@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 — 2026-09-21
+## 1.0.0 — 2026-09-22
 
 - Added English and Simplified Chinese application language support.
 - Added a reproducible DMG installer workflow with a Finder installation layout.
