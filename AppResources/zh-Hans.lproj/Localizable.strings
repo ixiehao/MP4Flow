@@ -1,0 +1,3 @@
+/* Simplified Chinese is MP4Flow's default interface language. Source strings
+   are intentionally used as fallbacks, so this table remains small and clear. */
+"Language" = "语言";
