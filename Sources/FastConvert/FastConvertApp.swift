@@ -852,6 +852,7 @@ private struct TrimEditor: View {
     let confirm: (Double, Double) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var duration = 0.0
+    @State private var frameDuration = 1.0 / 30.0
     @State private var start = 0.0
     @State private var end = 0.0
     @State private var startText = "00:00:00.000"
@@ -880,11 +881,11 @@ private struct TrimEditor: View {
                         Spacer()
                         Text(L10n.format("原始时长 %@", timeText(duration))).font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary)
                     }
-                    TrimRangeSlider(duration: duration, start: $start, end: $end) { seek(to: $0) }
+                    TrimRangeSlider(duration: duration, minimumLength: minimumClipDuration, start: $start, end: $end) { seek(to: $0) }
                         .frame(height: 50)
                     HStack(spacing: 10) {
-                        trimTimeField(title: "起始", text: $startText) { live in applyStart(live: live) }
-                        trimTimeField(title: "结束", text: $endText) { live in applyEnd(live: live) }
+                        trimTimeField(title: "起始", text: $startText, step: stepStart) { live in applyStart(live: live) }
+                        trimTimeField(title: "结束", text: $endText, step: stepEnd) { live in applyEnd(live: live) }
                         keptDurationField
                     }
                 }
@@ -910,7 +911,7 @@ private struct TrimEditor: View {
                     dismiss()
                 }
                     .buttonStyle(EditorActionButtonStyle(primary: true))
-                    .disabled(duration <= 0 || end - start < 0.05)
+                .disabled(duration <= 0 || end - start < minimumClipDuration)
             }
         }
         .padding(20)
@@ -923,7 +924,7 @@ private struct TrimEditor: View {
         .onChange(of: end) { value in endText = timeText(value) }
     }
 
-    private func trimTimeField(title: String, text: Binding<String>, submit: @escaping (Bool) -> Void) -> some View {
+    private func trimTimeField(title: String, text: Binding<String>, step: @escaping (Double) -> Void, submit: @escaping (Bool) -> Void) -> some View {
         HStack(spacing: 8) {
             Text(L10n.text(title)).font(AppFont.captionMedium).foregroundStyle(BrandColor.textPrimary)
             TextField("00:00:00.000", text: text)
@@ -936,11 +937,29 @@ private struct TrimEditor: View {
                 .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
                 .onChange(of: text.wrappedValue) { _ in submit(true) }
                 .onSubmit { submit(false) }
+            VStack(spacing: 2) {
+                frameStepButton(symbol: "minus", label: "后退 1 帧") { step(-frameDuration) }
+                frameStepButton(symbol: "plus", label: "前进 1 帧") { step(frameDuration) }
+            }
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, minHeight: 48)
         .background(BrandColor.surface.opacity(0.72), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(BrandColor.selectStroke.opacity(0.8), lineWidth: 1) }
+    }
+
+    private func frameStepButton(symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 9, weight: .bold))
+                .frame(width: 22, height: 15)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(BrandColor.blue)
+        .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 4, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
+        .help(L10n.text(label))
+        .accessibilityLabel(L10n.text(label))
     }
 
     private var keptDurationField: some View {
@@ -966,8 +985,9 @@ private struct TrimEditor: View {
             }
             let seconds = media.duration
             duration = seconds
-            start = min(max(0, initialRange?.start ?? 0), max(0, seconds - 0.05))
-            end = max(min(seconds, initialRange?.end ?? seconds), start + 0.05)
+            frameDuration = media.frameDuration
+            start = min(max(0, initialRange?.start ?? 0), max(0, seconds - minimumClipDuration))
+            end = max(min(seconds, initialRange?.end ?? seconds), min(seconds, start + minimumClipDuration))
             startText = timeText(start)
             endText = timeText(end)
             seek(to: start)
@@ -975,7 +995,19 @@ private struct TrimEditor: View {
     }
 
     private func seek(to seconds: Double) {
-        player?.seek(to: CMTime(seconds: seconds, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+        player?.seek(to: CMTime(seconds: seconds, preferredTimescale: 60_000), toleranceBefore: .zero, toleranceAfter: .zero)
+    }
+
+    private var minimumClipDuration: Double { min(frameDuration, max(0.001, duration)) }
+
+    private func stepStart(by delta: Double) {
+        start = min(max(0, start + delta), max(0, end - minimumClipDuration))
+        seek(to: start)
+    }
+
+    private func stepEnd(by delta: Double) {
+        end = max(min(duration, end + delta), min(duration, start + minimumClipDuration))
+        seek(to: end)
     }
 
     private func applyStart(live: Bool) {
@@ -983,7 +1015,7 @@ private struct TrimEditor: View {
             if !live { startText = timeText(start) }
             return
         }
-        start = min(max(0, value), max(0, end - 0.05))
+        start = min(max(0, value), max(0, end - minimumClipDuration))
         seek(to: start)
     }
     private func applyEnd(live: Bool) {
@@ -991,7 +1023,7 @@ private struct TrimEditor: View {
             if !live { endText = timeText(end) }
             return
         }
-        end = max(min(duration, value), min(duration, start + 0.05))
+        end = max(min(duration, value), min(duration, start + minimumClipDuration))
         seek(to: end)
     }
     private func timeText(_ seconds: Double) -> String {
@@ -1400,6 +1432,9 @@ private struct EditorMediaInfo: Sendable {
     let duration: Double
     let width: Int
     let height: Int
+    let frameRate: Double
+
+    var frameDuration: Double { 1 / frameRate }
 }
 
 /// Editors must never wait on AVFoundation's lazy duration loading.  FFprobe is
@@ -1414,9 +1449,11 @@ private enum EditorMediaProbe {
         let codecType: String?
         let width: Int?
         let height: Int?
+        let frameRate: String?
         enum CodingKeys: String, CodingKey {
             case codecType = "codec_type"
             case width, height
+            case frameRate = "r_frame_rate"
         }
     }
     private struct Format: Decodable {
@@ -1433,7 +1470,7 @@ private enum EditorMediaProbe {
             let process = Process()
             let output = Pipe()
             process.executableURL = binary
-            process.arguments = ["-v", "error", "-show_entries", "stream=codec_type,width,height:format=duration", "-of", "json", source.path]
+            process.arguments = ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:format=duration", "-of", "json", source.path]
             process.standardOutput = output
             process.standardError = Pipe()
             do {
@@ -1450,11 +1487,24 @@ private enum EditorMediaProbe {
                       let width = video.width, let height = video.height,
                       width > 0, height > 0,
                       let duration = Double(response.format?.duration ?? ""), duration.isFinite, duration > 0 else { return nil }
-                return EditorMediaInfo(duration: duration, width: width, height: height)
+                return EditorMediaInfo(duration: duration, width: width, height: height, frameRate: parseFrameRate(video.frameRate) ?? 30)
             } catch {
                 return nil
             }
         }.value
+    }
+
+    private static func parseFrameRate(_ value: String?) -> Double? {
+        guard let value else { return nil }
+        let parts = value.split(separator: "/", maxSplits: 1).map(String.init)
+        let rate: Double?
+        if parts.count == 2, let numerator = Double(parts[0]), let denominator = Double(parts[1]), denominator != 0 {
+            rate = numerator / denominator
+        } else {
+            rate = Double(value)
+        }
+        guard let rate, rate.isFinite, (1...240).contains(rate) else { return nil }
+        return rate
     }
 }
 
@@ -1580,10 +1630,10 @@ private struct CropPlaybackControls: View {
 
 private struct TrimRangeSlider: View {
     let duration: Double
+    let minimumLength: Double
     @Binding var start: Double
     @Binding var end: Double
     let onSeek: (Double) -> Void
-    private let minimumLength = 0.05
     @State private var startDragOrigin: Double?
     @State private var endDragOrigin: Double?
 
