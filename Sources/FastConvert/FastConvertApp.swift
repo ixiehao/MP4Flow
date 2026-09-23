@@ -583,7 +583,7 @@ private struct MP4FlowMenuTrigger: View {
     let isHovering: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text(title)
                 .font(AppFont.medium)
                 .foregroundStyle(isEnabled ? BrandColor.textPrimary : BrandColor.textSecondary)
@@ -859,6 +859,7 @@ private struct TrimEditor: View {
     @State private var endText = "00:00:00.000"
     @State private var player: AVPlayer?
     @State private var loadError: String?
+    @State private var isApplyingFrameStep = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -884,8 +885,8 @@ private struct TrimEditor: View {
                     TrimRangeSlider(duration: duration, minimumLength: minimumClipDuration, start: $start, end: $end) { seek(to: $0) }
                         .frame(height: 50)
                     HStack(spacing: 10) {
-                        trimTimeField(title: "起始", text: $startText, step: stepStart) { live in applyStart(live: live) }
-                        trimTimeField(title: "结束", text: $endText, step: stepEnd) { live in applyEnd(live: live) }
+                        trimTimeField(title: "起始", text: $startText, canStepBack: canStepStartBack, canStepForward: canStepStartForward, stepBack: stepStartBack, stepForward: stepStartForward) { live in applyStart(live: live) }
+                        trimTimeField(title: "结束", text: $endText, canStepBack: canStepEndBack, canStepForward: canStepEndForward, stepBack: stepEndBack, stepForward: stepEndForward) { live in applyEnd(live: live) }
                         keptDurationField
                     }
                 }
@@ -924,10 +925,10 @@ private struct TrimEditor: View {
         .onChange(of: end) { value in endText = timeText(value) }
     }
 
-    private func trimTimeField(title: String, text: Binding<String>, step: @escaping (Double) -> Void, submit: @escaping (Bool) -> Void) -> some View {
+    private func trimTimeField(title: String, text: Binding<String>, canStepBack: Bool, canStepForward: Bool, stepBack: @escaping () -> Void, stepForward: @escaping () -> Void, submit: @escaping (Bool) -> Void) -> some View {
         HStack(spacing: 8) {
             Text(L10n.text(title)).font(AppFont.captionMedium).foregroundStyle(BrandColor.textPrimary)
-            frameStepButton(symbol: "minus", label: "后退 1 帧") { step(-frameDuration) }
+            frameStepButton(symbol: "minus", label: "后退 1 帧", isEnabled: canStepBack, action: stepBack)
             TextField("00:00:00.000", text: text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
@@ -936,9 +937,11 @@ private struct TrimEditor: View {
                 .frame(maxWidth: .infinity, minHeight: 32)
                 .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
                 .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
-                .onChange(of: text.wrappedValue) { _ in submit(true) }
+                .onChange(of: text.wrappedValue) { _ in
+                    if !isApplyingFrameStep { submit(true) }
+                }
                 .onSubmit { submit(false) }
-            frameStepButton(symbol: "plus", label: "前进 1 帧") { step(frameDuration) }
+            frameStepButton(symbol: "plus", label: "前进 1 帧", isEnabled: canStepForward, action: stepForward)
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, minHeight: 48)
@@ -946,19 +949,20 @@ private struct TrimEditor: View {
         .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(BrandColor.selectStroke.opacity(0.8), lineWidth: 1) }
     }
 
-    private func frameStepButton(symbol: String, label: String, action: @escaping () -> Void) -> some View {
+    private func frameStepButton(symbol: String, label: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .bold))
-                .frame(width: 32, height: 32)
+                .font(.system(size: 13, weight: .bold))
+                .frame(width: 34, height: 34)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(BrandColor.blue)
+        .foregroundStyle(isEnabled ? BrandColor.blue : BrandColor.textSecondary.opacity(0.38))
         .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-        .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .background(isEnabled ? BrandColor.surface : BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
         .help(L10n.text(label))
         .accessibilityLabel(L10n.text(label))
+        .disabled(!isEnabled)
     }
 
     private var keptDurationField: some View {
@@ -969,7 +973,7 @@ private struct TrimEditor: View {
                 .font(.system(size: 13, weight: .semibold, design: .monospaced))
         }
         .foregroundStyle(BrandColor.blue)
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, minHeight: 48)
         .background(BrandColor.selectHover.opacity(0.74), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(BrandColor.selectHoverStroke, lineWidth: 1) }
@@ -994,19 +998,57 @@ private struct TrimEditor: View {
     }
 
     private func seek(to seconds: Double) {
-        player?.seek(to: CMTime(seconds: seconds, preferredTimescale: 60_000), toleranceBefore: .zero, toleranceAfter: .zero)
+        guard let player else { return }
+        player.pause()
+        player.currentItem?.cancelPendingSeeks()
+        player.seek(to: CMTime(seconds: seconds, preferredTimescale: 60_000), toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
     private var minimumClipDuration: Double { min(frameDuration, max(0.001, duration)) }
 
-    private func stepStart(by delta: Double) {
-        start = min(max(0, start + delta), max(0, end - minimumClipDuration))
-        seek(to: start)
+    private var canStepStartBack: Bool { canStep(start, direction: -1, lower: 0, upper: max(0, end - minimumClipDuration)) }
+    private var canStepStartForward: Bool { canStep(start, direction: 1, lower: 0, upper: max(0, end - minimumClipDuration)) }
+    private var canStepEndBack: Bool { canStep(end, direction: -1, lower: min(duration, start + minimumClipDuration), upper: duration) }
+    private var canStepEndForward: Bool { canStep(end, direction: 1, lower: min(duration, start + minimumClipDuration), upper: duration) }
+
+    private func stepStartBack() { applyFrameStep(toStart: true, direction: -1) }
+    private func stepStartForward() { applyFrameStep(toStart: true, direction: 1) }
+    private func stepEndBack() { applyFrameStep(toStart: false, direction: -1) }
+    private func stepEndForward() { applyFrameStep(toStart: false, direction: 1) }
+
+    private func applyFrameStep(toStart: Bool, direction: Int) {
+        let value = toStart ? start : end
+        let lower = toStart ? 0 : min(duration, start + minimumClipDuration)
+        let upper = toStart ? max(0, end - minimumClipDuration) : duration
+        let stepped = steppedFrameTime(from: value, direction: direction, lower: lower, upper: upper)
+        guard abs(stepped - value) > frameDuration / 1_000 else { return }
+
+        isApplyingFrameStep = true
+        if toStart {
+            start = stepped
+            startText = timeText(stepped)
+        } else {
+            end = stepped
+            endText = timeText(stepped)
+        }
+        seek(to: stepped)
+        DispatchQueue.main.async { isApplyingFrameStep = false }
     }
 
-    private func stepEnd(by delta: Double) {
-        end = max(min(duration, end + delta), min(duration, start + minimumClipDuration))
-        seek(to: end)
+    private func canStep(_ value: Double, direction: Int, lower: Double, upper: Double) -> Bool {
+        abs(steppedFrameTime(from: value, direction: direction, lower: lower, upper: upper) - value) > frameDuration / 1_000
+    }
+
+    private func steppedFrameTime(from value: Double, direction: Int, lower: Double, upper: Double) -> Double {
+        guard upper >= lower else { return value }
+        let epsilon = frameDuration / 10_000
+        let frameIndex: Int
+        if direction < 0 {
+            frameIndex = Int(ceil(value / frameDuration - epsilon)) - 1
+        } else {
+            frameIndex = Int(floor(value / frameDuration + epsilon)) + 1
+        }
+        return min(upper, max(lower, Double(frameIndex) * frameDuration))
     }
 
     private func applyStart(live: Bool) {
