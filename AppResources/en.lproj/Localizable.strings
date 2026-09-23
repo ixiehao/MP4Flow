@@ -154,8 +154,8 @@
 "起始" = "Start";
 "至" = "to";
 "结束" = "End";
-"后退 1 帧" = "Back 1 Frame";
-"前进 1 帧" = "Forward 1 Frame";
+"后退 5 帧" = "Back 5 Frames";
+"前进 5 帧" = "Forward 5 Frames";
 "保留 %@" = "Keep %@";
 "保留" = "Keep";
 "正在加载视频预览" = "Loading video preview";
