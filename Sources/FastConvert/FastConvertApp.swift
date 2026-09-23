@@ -927,6 +927,7 @@ private struct TrimEditor: View {
     private func trimTimeField(title: String, text: Binding<String>, step: @escaping (Double) -> Void, submit: @escaping (Bool) -> Void) -> some View {
         HStack(spacing: 8) {
             Text(L10n.text(title)).font(AppFont.captionMedium).foregroundStyle(BrandColor.textPrimary)
+            frameStepButton(symbol: "minus", label: "后退 1 帧") { step(-frameDuration) }
             TextField("00:00:00.000", text: text)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
@@ -937,10 +938,7 @@ private struct TrimEditor: View {
                 .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
                 .onChange(of: text.wrappedValue) { _ in submit(true) }
                 .onSubmit { submit(false) }
-            VStack(spacing: 2) {
-                frameStepButton(symbol: "minus", label: "后退 1 帧") { step(-frameDuration) }
-                frameStepButton(symbol: "plus", label: "前进 1 帧") { step(frameDuration) }
-            }
+            frameStepButton(symbol: "plus", label: "前进 1 帧") { step(frameDuration) }
         }
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity, minHeight: 48)
@@ -951,13 +949,14 @@ private struct TrimEditor: View {
     private func frameStepButton(symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 9, weight: .bold))
-                .frame(width: 22, height: 15)
+                .font(.system(size: 12, weight: .bold))
+                .frame(width: 32, height: 32)
         }
         .buttonStyle(.plain)
         .foregroundStyle(BrandColor.blue)
-        .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-        .overlay { RoundedRectangle(cornerRadius: 4, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
+        .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
         .help(L10n.text(label))
         .accessibilityLabel(L10n.text(label))
     }
