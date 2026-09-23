@@ -418,7 +418,8 @@ final class ConverterStore: ObservableObject {
         for provider in providers {
             provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { [weak self] item, _ in
                 guard let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
-                Task { @MainActor in self?.add([url]) }
+                guard let store = self else { return }
+                Task { @MainActor [store] in store.add([url]) }
             }
         }
         return true
@@ -582,16 +583,17 @@ final class ConverterStore: ObservableObject {
     }
 
     private func loadPresentation(for item: ConversionItem) {
-        presentationQueue.addOperation { [weak self] in
+        let store = self
+        presentationQueue.addOperation {
             // Keep the queue's bounded concurrency while loading modern
             // AVFoundation properties asynchronously.
             let completed = DispatchSemaphore(value: 0)
             Task {
                 let presentation = await VideoPresentation.load(from: item.source)
-                Task { @MainActor [weak self] in
+                Task { @MainActor [store] in
                     defer { completed.signal() }
-                    guard let self, let index = self.items.firstIndex(where: { $0.id == item.id }) else { return }
-                    self.items[index].presentation = presentation
+                    guard let index = store.items.firstIndex(where: { $0.id == item.id }) else { return }
+                    store.items[index].presentation = presentation
                 }
             }
             completed.wait()
@@ -686,14 +688,15 @@ final class ConverterStore: ObservableObject {
 
     private func runMergeFFmpeg(ffmpegURL: URL, listURL: URL, output: URL) async -> ProcessResult {
         let process = Process(), progress = Pipe(), errors = Pipe(), stderr = ErrorBuffer()
+        let store = self
         process.executableURL = ffmpegURL
         process.arguments = ["-hide_banner", "-nostdin", "-y", "-f", "concat", "-safe", "0", "-i", listURL.path, "-map", "0:v:0?", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1", "-c", "copy", "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", output.path]
         process.standardOutput = progress
         process.standardError = errors
-        progress.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        progress.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             guard !data.isEmpty else { return }
-            Task { @MainActor in self?.consumeMergeProgress(String(decoding: data, as: UTF8.self)) }
+            Task { @MainActor [store] in store.consumeMergeProgress(String(decoding: data, as: UTF8.self)) }
         }
         errors.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
@@ -701,12 +704,12 @@ final class ConverterStore: ObservableObject {
             stderr.append(String(decoding: data, as: UTF8.self))
         }
         return await withCheckedContinuation { continuation in
-            process.terminationHandler = { [weak self] finished in
+            process.terminationHandler = { finished in
                 progress.fileHandleForReading.readabilityHandler = nil
                 errors.fileHandleForReading.readabilityHandler = nil
-                Task { @MainActor in
+                Task { @MainActor [store] in
                     if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
-                    else { continuation.resume(returning: .failure(self?.friendlyMergeError(stderr.read(), code: finished.terminationStatus) ?? L10n.text("FFmpeg 合并失败。"))) }
+                    else { continuation.resume(returning: .failure(store.friendlyMergeError(stderr.read(), code: finished.terminationStatus))) }
                 }
             }
             do { try process.run() }
@@ -767,14 +770,15 @@ final class ConverterStore: ObservableObject {
 
     private func runCompatibleMergeFFmpeg(ffmpegURL: URL, sources: [URL], infos: [VideoInfo], target: CompatibleMergeTarget, output: URL, preferHardwareEncoder: Bool = true) async -> ProcessResult {
         let process = Process(), progress = Pipe(), errors = Pipe(), stderr = ErrorBuffer()
+        let store = self
         process.executableURL = ffmpegURL
         process.arguments = compatibleMergeArguments(sources: sources, infos: infos, target: target, output: output, preferHardwareEncoder: preferHardwareEncoder)
         process.standardOutput = progress
         process.standardError = errors
-        progress.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        progress.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             guard !data.isEmpty else { return }
-            Task { @MainActor in self?.consumeMergeProgress(String(decoding: data, as: UTF8.self)) }
+            Task { @MainActor [store] in store.consumeMergeProgress(String(decoding: data, as: UTF8.self)) }
         }
         errors.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
@@ -782,12 +786,12 @@ final class ConverterStore: ObservableObject {
             stderr.append(String(decoding: data, as: UTF8.self))
         }
         return await withCheckedContinuation { continuation in
-            process.terminationHandler = { [weak self] finished in
+            process.terminationHandler = { finished in
                 progress.fileHandleForReading.readabilityHandler = nil
                 errors.fileHandleForReading.readabilityHandler = nil
-                Task { @MainActor in
+                Task { @MainActor [store] in
                     if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
-                    else { continuation.resume(returning: .failure(self?.friendlyMergeError(stderr.read(), code: finished.terminationStatus) ?? L10n.text("FFmpeg 兼容合并失败。"))) }
+                    else { continuation.resume(returning: .failure(store.friendlyMergeError(stderr.read(), code: finished.terminationStatus))) }
                 }
             }
             do { try process.run() }
@@ -972,26 +976,27 @@ final class ConverterStore: ObservableObject {
 
     private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, id: UUID, count: Int, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
         let process = Process(), progress = Pipe(), errors = Pipe()
+        let store = self
         process.executableURL = ffmpegURL
         process.arguments = ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder)
         process.standardOutput = progress; process.standardError = errors
         let stderr = ErrorBuffer()
-        progress.fileHandleForReading.readabilityHandler = { [weak self] handle in
+        progress.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData; guard !data.isEmpty else { return }
-            Task { @MainActor in self?.consumeProgress(String(decoding: data, as: UTF8.self), duration: trim.map { $0.end - $0.start } ?? info.duration, id: id, count: count) }
+            Task { @MainActor [store] in store.consumeProgress(String(decoding: data, as: UTF8.self), duration: trim.map { $0.end - $0.start } ?? info.duration, id: id, count: count) }
         }
         errors.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData; guard !data.isEmpty else { return }
             stderr.append(String(decoding: data, as: UTF8.self))
         }
         return await withCheckedContinuation { continuation in
-            process.terminationHandler = { [weak self] finished in
+            process.terminationHandler = { finished in
                 progress.fileHandleForReading.readabilityHandler = nil; errors.fileHandleForReading.readabilityHandler = nil
-                Task { @MainActor in
-                    self?.activeProcesses.removeValue(forKey: id)
-                    if self?.cancellationRequested == true { continuation.resume(returning: .cancelled) }
+                Task { @MainActor [store] in
+                    store.activeProcesses.removeValue(forKey: id)
+                    if store.cancellationRequested { continuation.resume(returning: .cancelled) }
                     else if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
-                    else { continuation.resume(returning: .failure(self?.friendlyError(stderr.read(), code: finished.terminationStatus) ?? L10n.text("FFmpeg 转换失败。"))) }
+                    else { continuation.resume(returning: .failure(store.friendlyError(stderr.read(), code: finished.terminationStatus))) }
                 }
             }
             activeProcesses[id] = process
