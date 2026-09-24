@@ -6,7 +6,12 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 
 - The app reads the video files and folders that you add or choose. It may create an in-memory thumbnail and read media properties needed to show the queue and perform conversion.
 - It stores only the selected interface language in macOS user defaults. It does not persist a queue, video paths, conversion settings, diagnostics, account data, or a media library.
-- Conversion, probing, trimming, cropping, rotation, and merging run through the local `ffmpeg` and `ffprobe` executables. This app release contains no telemetry, analytics, advertising SDK, update client, or network upload code.
+- Conversion, probing, trimming, cropping, rotation, and merging run through the local `ffmpeg` and `ffprobe` executables. This app release contains no telemetry, analytics, advertising SDK, or media-upload code.
+
+## Update checks
+
+- MP4Flow can check `https://api.github.com/repos/ixiehao/MP4Flow/releases/latest` for the latest stable release. The request includes only a fixed MP4Flow User-Agent and normal network metadata handled by GitHub and the network connection; it does not include video content, file paths, conversion settings, account data, or usage data.
+- Checks run at most once every 12 hours while the app is open, or when you explicitly choose **Check for Updates**. A found update opens its public GitHub release page only when you choose to download it.
 
 ## Files created locally
 
@@ -24,4 +29,4 @@ Selecting **Open Homebrew** opens `https://brew.sh/zh-cn/` in the default browse
 
 ## Your choices
 
-Keep private media in folders with appropriate macOS permissions. Before sharing an output, review its visible content, audio, subtitles, filenames, and metadata. If a future release adds data collection or a network feature, this policy must be updated before that release.
+Keep private media in folders with appropriate macOS permissions. Before sharing an output, review its visible content, audio, subtitles, filenames, and metadata. If a future release adds data collection or a network feature beyond the public release check described above, this policy must be updated before that release.

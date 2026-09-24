@@ -7,21 +7,87 @@ import SwiftUI
 struct MP4FlowApp: App {
     @NSApplicationDelegateAdaptor(MP4FlowAppDelegate.self) private var appDelegate
     @StateObject private var store = ConverterStore()
+    @StateObject private var updateChecker = UpdateChecker()
     @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
 
     var body: some Scene {
         WindowGroup(id: "main") {
-            ContentView(store: store, appDelegate: appDelegate)
+            ContentView(store: store, updateChecker: updateChecker, appDelegate: appDelegate)
                 .frame(minWidth: 980, minHeight: 650)
                 .environment(\.locale, (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).locale)
         }
         .windowStyle(.hiddenTitleBar)
+        .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(L10n.text("关于 MP4Flow")) {
+                    appDelegate.showAboutPanel(availableUpdate: updateChecker.availableUpdate)
+                }
+            }
+            CommandGroup(replacing: .help) {
+                Button(L10n.text("MP4Flow 使用帮助")) {
+                    appDelegate.showHelpPanel(updateChecker: updateChecker)
+                }
+                Divider()
+                Button(updateChecker.hasUpdate ? L10n.format("发现新版本 v%@", updateChecker.availableUpdate?.version ?? "") : L10n.text("检查更新…")) {
+                    if updateChecker.hasUpdate {
+                        updateChecker.openDownloadPage()
+                    } else {
+                        Task { _ = await updateChecker.checkForUpdate(force: true) }
+                    }
+                }
+                Divider()
+                Button(L10n.text("在 GitHub 查看项目")) { NSWorkspace.shared.open(ProjectLinks.repository) }
+                Button(L10n.text("反馈问题或建议")) { NSWorkspace.shared.open(ProjectLinks.issues) }
+            }
+        }
+    }
+}
+
+private enum ProjectLinks {
+    static let repository = URL(string: "https://github.com/ixiehao/MP4Flow")!
+    static let issues = URL(string: "https://github.com/ixiehao/MP4Flow/issues/new/choose")!
+}
+
+private enum AboutCredits {
+    static func make(availableUpdate: AvailableUpdate?) -> NSAttributedString {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .center
+        paragraph.paragraphSpacing = 5
+        let body: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12),
+            .foregroundColor: NSColor.secondaryLabelColor,
+            .paragraphStyle: paragraph
+        ]
+        let link: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 12, weight: .medium),
+            .foregroundColor: NSColor.linkColor,
+            .paragraphStyle: paragraph,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        let credits = NSMutableAttributedString()
+        func appendBody(_ text: String) { credits.append(NSAttributedString(string: text, attributes: body)) }
+        func appendLink(_ text: String, _ destination: URL) {
+            var attributes = link
+            attributes[.link] = destination
+            credits.append(NSAttributedString(string: text, attributes: attributes))
+        }
+
+        appendBody(L10n.text("免费开源的本地视频转换工具") + "\n")
+        appendLink("github.com/ixiehao/MP4Flow\n", ProjectLinks.repository)
+        appendLink(L10n.text("反馈问题或建议"), ProjectLinks.issues)
+        if let availableUpdate {
+            appendBody("\n\n" + L10n.format("发现新版本 v%@", availableUpdate.version) + "\n")
+            appendLink(L10n.text("下载更新"), availableUpdate.downloadURL)
+        }
+        appendBody("\n\n" + L10n.text("本地处理，不上传视频或使用数据。") + "\n" + L10n.text("MIT License"))
+        return credits
     }
 }
 
 @MainActor
 final class MP4FlowAppDelegate: NSObject, NSApplicationDelegate {
     var openMainWindow: (() -> Void)?
+    private var helpWindow: NSWindow?
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
@@ -44,14 +110,135 @@ final class MP4FlowAppDelegate: NSObject, NSApplicationDelegate {
         }
         application.activate(ignoringOtherApps: true)
     }
+
+    func showAboutPanel(availableUpdate: AvailableUpdate?) {
+        NSApplication.shared.orderFrontStandardAboutPanel(options: [.credits: AboutCredits.make(availableUpdate: availableUpdate)])
+        NSApplication.shared.activate(ignoringOtherApps: true)
+    }
+
+    func showHelpPanel(updateChecker: UpdateChecker) {
+        let window: NSWindow
+        if let existingWindow = helpWindow {
+            window = existingWindow
+        } else {
+            window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            window.isReleasedWhenClosed = false
+            window.center()
+            helpWindow = window
+        }
+        window.title = L10n.text("MP4Flow 使用帮助")
+        window.contentView = NSHostingView(rootView: HelpPanel(updateChecker: updateChecker))
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+}
+
+private struct HelpStep: View {
+    let index: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 11) {
+            Text(index)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(BrandColor.blue)
+                .frame(width: 24, height: 24)
+                .background(BrandColor.blue.opacity(0.12), in: Circle())
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.system(size: 13, weight: .semibold))
+                Text(detail)
+                    .font(.system(size: 12))
+                    .foregroundStyle(BrandColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+private struct HelpPanel: View {
+    @ObservedObject var updateChecker: UpdateChecker
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                Image(nsImage: NSApplication.shared.applicationIconImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 48, height: 48)
+                    .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.text("MP4Flow 使用帮助"))
+                        .font(.system(size: 18, weight: .bold))
+                    Text(L10n.text("三步完成本地视频转换。"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(BrandColor.textSecondary)
+                }
+            }
+            Divider()
+
+            if let update = updateChecker.availableUpdate {
+                HStack(spacing: 10) {
+                    Mark(kind: .bolt, color: BrandColor.blue).frame(width: 16, height: 16)
+                    Text(L10n.format("发现新版本 v%@", update.version))
+                        .font(.system(size: 13, weight: .semibold))
+                    Spacer()
+                    Button(L10n.text("下载更新")) { updateChecker.openDownloadPage() }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                }
+                .padding(10)
+                .background(BrandColor.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                Divider()
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                HelpStep(index: "1", title: L10n.text("添加视频"), detail: L10n.text("点击「添加视频」或将文件拖入窗口。"))
+                HelpStep(index: "2", title: L10n.text("选择转换方式"), detail: L10n.text("选择预设、画质、分辨率与输出位置。"))
+                HelpStep(index: "3", title: L10n.text("开始转换"), detail: L10n.text("确认队列后点击「开始转换」，完成后可在访达中打开文件。"))
+            }
+
+            Divider()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L10n.text("遇到问题？"))
+                    .font(.system(size: 13, weight: .semibold))
+                Text(L10n.text("请确认已安装 FFmpeg；智能增强需要 Apple 芯片与 macOS 27+。不支持的素材可先用「智能转换」生成新文件后重试。"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(BrandColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text(L10n.text("所有转换均在本机完成。更新检查只读取 GitHub 公开版本信息，不上传视频或使用数据。"))
+                .font(.system(size: 11))
+                .foregroundStyle(BrandColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 8) {
+                Link(L10n.text("在 GitHub 查看项目"), destination: ProjectLinks.repository)
+                    .buttonStyle(.bordered)
+                Link(L10n.text("反馈问题或建议"), destination: ProjectLinks.issues)
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(24)
+        .frame(width: 520)
+    }
 }
 
 struct ContentView: View {
     @ObservedObject var store: ConverterStore
+    @ObservedObject var updateChecker: UpdateChecker
     let appDelegate: MP4FlowAppDelegate
     @Environment(\.openWindow) private var openWindow
     @State private var isDropTargeted = false
     @State private var showUpdateNotice = false
+    @State private var updateNoticeMessage = ""
+    @State private var updateDownloadURL: URL?
     @State private var clipItem: ConversionItem?
     @State private var cropItem: ConversionItem?
     @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
@@ -75,7 +262,10 @@ struct ContentView: View {
         .background(BrandColor.canvas)
         .ignoresSafeArea(.container, edges: .top)
         .font(AppFont.body)
-        .onAppear { appDelegate.openMainWindow = { openWindow(id: "main") } }
+        .onAppear {
+            appDelegate.openMainWindow = { openWindow(id: "main") }
+            Task { _ = await updateChecker.checkForUpdate() }
+        }
         .onChange(of: store.preset) { preset in
             if preset == .smartEnhanceUpscale {
                 store.reconcileSmartEnhanceTarget()
@@ -98,9 +288,12 @@ struct ContentView: View {
             Text(L10n.text("MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。"))
         }
         .alert(L10n.text("检查更新"), isPresented: $showUpdateNotice) {
+            if updateDownloadURL != nil {
+                Button(L10n.text("下载更新")) { updateChecker.openDownloadPage() }
+            }
             Button(L10n.text("知道了"), role: .cancel) {}
         } message: {
-            Text(L10n.format("当前版本为 v%@。正式发布更新源配置完成后，MP4Flow 会在这里提示可用的新版本。", appVersion))
+            Text(updateNoticeMessage)
         }
         .alert(L10n.text(store.mergeOutput == nil ? "无法无损合并" : "合并完成"), isPresented: $store.showMergeNotice) {
             if store.mergeOutput != nil {
@@ -125,6 +318,24 @@ struct ContentView: View {
             CropEditor(source: item.source, initialCrop: item.crop) { crop in
                 store.scheduleCrop(item, crop: crop)
             }
+        }
+    }
+
+    private func checkForUpdates() {
+        Task { @MainActor in
+            let result = await updateChecker.checkForUpdate(force: true)
+            switch result {
+            case .available(let update):
+                updateNoticeMessage = L10n.format("发现新版本 v%@，可前往 GitHub 下载。", update.version)
+                updateDownloadURL = update.downloadURL
+            case .upToDate:
+                updateNoticeMessage = L10n.format("MP4Flow 已是最新版本（v%@）。", appVersion)
+                updateDownloadURL = nil
+            case .failed:
+                updateNoticeMessage = L10n.text("暂时无法检查更新。请确认网络连接，或稍后重试。")
+                updateDownloadURL = nil
+            }
+            showUpdateNotice = true
         }
     }
 
@@ -378,10 +589,17 @@ struct ContentView: View {
                     HStack(spacing: 7) {
                         Text("v\(appVersion)")
                         Text("·").foregroundStyle(BrandColor.textSecondary.opacity(0.65))
-                        Button(L10n.text("检查更新")) { showUpdateNotice = true }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(BrandColor.blue)
-                            .accessibilityLabel(L10n.format("检查更新，当前版本 v%@", appVersion))
+                        if let update = updateChecker.availableUpdate {
+                            Button(L10n.format("发现新版本 v%@", update.version)) { updateChecker.openDownloadPage() }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(BrandColor.blue)
+                                .accessibilityLabel(L10n.format("发现新版本 v%@", update.version))
+                        } else {
+                            Button(L10n.text("检查更新")) { checkForUpdates() }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(BrandColor.blue)
+                                .accessibilityLabel(L10n.format("检查更新，当前版本 v%@", appVersion))
+                        }
                     }
                     .font(AppFont.caption)
                     .foregroundStyle(BrandColor.textSecondary)
