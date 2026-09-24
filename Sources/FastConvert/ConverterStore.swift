@@ -233,6 +233,16 @@ enum VideoRotation: String, CaseIterable, Equatable, Sendable {
         }
     }
 
+    /// VideoToolbox keeps decoded frames in hardware memory while rotating.
+    /// Callers retain the software filter as a compatibility fallback.
+    var videoToolboxFilter: String {
+        switch self {
+        case .clockwise: "transpose_vt=clock"
+        case .counterclockwise: "transpose_vt=cclock"
+        case .upsideDown: "transpose_vt=reversal"
+        }
+    }
+
     var fileSuffix: String {
         switch self {
         case .clockwise: "rotated-cw"
@@ -951,7 +961,7 @@ final class ConverterStore: ObservableObject {
         // at the same target bitrate. Retries are per-item and bounded.
         if case .failure = result,
            !cancellationRequested,
-           canUseVideoToolboxPipeline(info: info, preset: effectivePreset, rotation: rotation, crop: crop) {
+           canUseVideoToolboxPipeline(info: info, preset: effectivePreset, crop: crop) {
             statusText = L10n.text("硬件处理失败，正在使用兼容方式重试")
             result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false)
         }
@@ -1013,7 +1023,7 @@ final class ConverterStore: ObservableObject {
         // Privacy-first default: never copy source metadata or chapters, which
         // may contain title, author, device, location, or editing information.
         var args = ["-hide_banner", "-nostdin", "-y", "-thread_queue_size", "1024"]
-        let hardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, rotation: rotation, crop: crop)
+        let hardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop)
         // For H.264/HEVC without CPU-only edits, keep decoded frames inside
         // VideoToolbox all the way to the encoder. This also benefits an
         // original-size conversion: not just resizes.
@@ -1037,7 +1047,8 @@ final class ConverterStore: ObservableObject {
                 args += ["-ss", ffmpegTime(trim.start), "-to", ffmpegTime(trim.end)]
             }
         }
-        let filters = [crop?.filter, rotation?.filter, resolution.filter(sourceHeight: info.height, quality: quality, useVideoToolbox: hardwarePipeline)].compactMap { $0 }
+        let rotationFilter = rotation.map { hardwarePipeline ? $0.videoToolboxFilter : $0.filter }
+        let filters = [crop?.filter, rotationFilter, resolution.filter(sourceHeight: info.height, quality: quality, useVideoToolbox: hardwarePipeline)].compactMap { $0 }
         if !filters.isEmpty { args += ["-vf", filters.joined(separator: ",")] }
         let videoRate = info.outputRate(preset: preset, quality: quality, resolution: resolution), audioRate = info.safeAudioRate
         switch preset {
@@ -1070,10 +1081,9 @@ final class ConverterStore: ObservableObject {
         preset == .qualityTop || preset == .h264Cap8 || preset == .h264Hardware || preset == .hevcHardware
     }
 
-    private func canUseVideoToolboxPipeline(info: VideoInfo, preset: ConversionPreset, rotation: VideoRotation?, crop: CropRect?) -> Bool {
+    private func canUseVideoToolboxPipeline(info: VideoInfo, preset: ConversionPreset, crop: CropRect?) -> Bool {
         usesVideoToolboxEncoder(preset)
             && crop == nil
-            && rotation == nil
             && ["h264", "hevc"].contains(info.videoCodec?.lowercased() ?? "")
     }
 

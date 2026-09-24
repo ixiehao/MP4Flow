@@ -8,4 +8,4 @@ MP4Flow is a small native SwiftUI application without a server.
 - `AppResources/*.lproj/Localizable.strings` holds English and Simplified Chinese localizations. Chinese source strings are the Chinese fallback; English must include every user-facing key used dynamically.
 - `Scripts/build-app.sh` produces an app bundle; `Scripts/package-dmg.sh` creates an installer from an isolated temporary build.
 
-The converter uses FFmpeg and ffprobe from the local computer. Queue work is serial by design: it avoids competing for CPU, disk I/O, and VideoToolbox resources during long batch operations.
+The converter uses FFmpeg and ffprobe from the local computer. For supported H.264 and HEVC input without cropping, VideoToolbox keeps decode, scaling, rotation, and encoding in hardware memory. Rotation uses FFmpeg's `transpose_vt` filter when available and falls back to its software filter if a local FFmpeg build cannot run the hardware path. Queue work is serial by design: it avoids competing for CPU, disk I/O, and VideoToolbox resources during long batch operations.
