@@ -5,19 +5,19 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 enum ConversionPreset: String, CaseIterable, Identifiable, Sendable {
-    case qualityTop, h264Cap8, smartMP4, h264Hardware, hevcHardware, h264Software, remux
+    case qualityTop, h264Cap8, smartMP4, smartEnhanceUpscale, h264Hardware, hevcHardware, h264Software, remux
     var id: String { rawValue }
 
     /// The main menu answers a user's goal first. Encoding-specific fallbacks
     /// stay available, but never compete with the everyday choices.
     static let menuOrder: [ConversionPreset] = [
-        .smartMP4, .h264Cap8, .qualityTop, .h264Hardware,
+        .smartMP4, .smartEnhanceUpscale, .h264Cap8, .qualityTop, .h264Hardware,
         .hevcHardware, .h264Software, .remux
     ]
 
     var menuSection: String {
         switch self {
-        case .smartMP4, .h264Cap8, .qualityTop, .h264Hardware: L10n.text("常用选择")
+        case .smartMP4, .smartEnhanceUpscale, .h264Cap8, .qualityTop, .h264Hardware: L10n.text("常用选择")
         case .hevcHardware, .h264Software, .remux: L10n.text("更多选择")
         }
     }
@@ -25,6 +25,7 @@ enum ConversionPreset: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .smartMP4: L10n.text("智能转换（推荐）")
+        case .smartEnhanceUpscale: L10n.text("智能增强放大（macOS 27+）")
         case .h264Cap8: L10n.text("清晰又省空间")
         case .qualityTop: L10n.text("尽量保留原画")
         case .h264Hardware: L10n.text("所有设备都能播放")
@@ -36,6 +37,7 @@ enum ConversionPreset: String, CaseIterable, Identifiable, Sendable {
     var detail: String {
         switch self {
         case .smartMP4: L10n.text("自动选择，能不压就不压。")
+        case .smartEnhanceUpscale: L10n.text("支持 1280×1080 以下视频，最高 2 倍。")
         case .h264Cap8: L10n.text("清晰省空间，适合大文件。")
         case .qualityTop: L10n.text("保留更多细节，文件更大。")
         case .h264Hardware: L10n.text("旧设备和电视也能播放。")
@@ -121,6 +123,20 @@ enum OutputResolution: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// A Smart Enhance target is an output height rather than a fixed multiplier.
+/// The available choices are calculated per source video and must stay within
+/// the native enhancer's practical 2× limit.
+enum SmartEnhanceTarget: Int, CaseIterable, Identifiable, Sendable {
+    case p480 = 480
+    case p576 = 576
+    case p720 = 720
+    case p1080 = 1080
+    case p4K = 2160
+
+    var id: Int { rawValue }
+    var title: String { "\(rawValue)P" }
+}
+
 enum ConversionState: Equatable {
     case waiting, running(Double?), merging(Double?), complete(URL), failed(String), cancelled
     var color: Color { switch self { case .waiting, .cancelled: .secondary; case .running, .merging: .accentColor; case .complete: .green; case .failed: .red } }
@@ -140,11 +156,13 @@ enum ConversionState: Equatable {
 struct VideoPresentation: Equatable {
     let summary: String?
     let thumbnail: NSImage?
+    let width: Int?
+    let height: Int?
 
     // NSImage itself is not Equatable; the textual summary is the state that
     // participates in SwiftUI's list updates.
     static func == (lhs: VideoPresentation, rhs: VideoPresentation) -> Bool {
-        lhs.summary == rhs.summary
+        lhs.summary == rhs.summary && lhs.width == rhs.width && lhs.height == rhs.height
     }
 
     static func load(from source: URL) async -> VideoPresentation {
@@ -175,7 +193,14 @@ struct VideoPresentation: Equatable {
         } else {
             image = nil
         }
-        return VideoPresentation(summary: parts.isEmpty ? nil : parts.joined(separator: " · "), thumbnail: image)
+        let width = naturalSize.map { Int(abs($0.width).rounded()) }.flatMap { $0 > 0 ? $0 : nil }
+        let height = naturalSize.map { Int(abs($0.height).rounded()) }.flatMap { $0 > 0 ? $0 : nil }
+        return VideoPresentation(
+            summary: parts.isEmpty ? nil : parts.joined(separator: " · "),
+            thumbnail: image,
+            width: width,
+            height: height
+        )
     }
 
     private static func formattedDuration(_ value: Double) -> String {
@@ -252,7 +277,7 @@ enum VideoRotation: String, CaseIterable, Equatable, Sendable {
     }
 }
 
-private struct VideoInfo: Sendable {
+struct VideoInfo: Sendable {
     let duration: Double?, videoRate: Int?, audioRate: Int?, width: Int?, height: Int?, hasVideo: Bool
     let videoCodec: String?
     let audioCodec: String?
@@ -267,7 +292,7 @@ private struct VideoInfo: Sendable {
         ["h264", "hevc"].contains(videoCodec?.lowercased() ?? "")
             && (audioCodec == nil || audioCodec?.lowercased() == "aac")
     }
-    var mergeSignature: MergeSignature? {
+    fileprivate var mergeSignature: MergeSignature? {
         guard let videoCodec, let width, let height, let frameRate, let pixelFormat else { return nil }
         return MergeSignature(videoCodec: videoCodec.lowercased(), width: width, height: height, frameRate: frameRate, pixelFormat: pixelFormat, audioCodec: audioCodec?.lowercased(), audioSampleRate: audioSampleRate, audioChannels: audioChannels)
     }
@@ -288,7 +313,7 @@ private struct VideoInfo: Sendable {
             baseRate = min(max(matchedRate, 500_000), 100_000_000)
         case .h264Cap8:
             baseRate = min(max(min(matchedRate, 8_000_000), 500_000), 8_000_000)
-        case .smartMP4, .h264Hardware, .hevcHardware, .h264Software, .remux:
+        case .smartMP4, .smartEnhanceUpscale, .h264Hardware, .hevcHardware, .h264Software, .remux:
             baseRate = min(max(Int((Double(matchedRate) * preset.efficiency * quality.multiplier).rounded()), 500_000), 100_000_000)
         }
         return min(max(Int((Double(baseRate) * resolution.rateMultiplier(sourceHeight: height)).rounded()), 500_000), 100_000_000)
@@ -341,6 +366,7 @@ final class ConverterStore: ObservableObject {
     @Published var preset: ConversionPreset = .smartMP4
     @Published var quality: ConversionQuality = .balanced
     @Published var outputResolution: OutputResolution = .original
+    @Published var smartEnhanceTarget: SmartEnhanceTarget = .p720
     @Published var outputDirectory: URL?
     @Published var isRunning = false
     @Published var overallProgress: Double?
@@ -404,10 +430,26 @@ final class ConverterStore: ObservableObject {
             return L10n.text("当前方式已设定画质。")
         case .remux:
             return L10n.text("只换格式，不压缩画面。")
-        case .smartMP4, .h264Hardware, .hevcHardware, .h264Software:
+        case .smartMP4, .h264Hardware, .hevcHardware, .h264Software, .smartEnhanceUpscale:
             break
         }
         return quality.detail
+    }
+
+    var smartEnhanceTargets: [SmartEnhanceTarget] {
+        guard #available(macOS 27.0, *),
+              let presentation = items.first?.presentation,
+              let width = presentation.width,
+              let height = presentation.height else { return [] }
+        return SmartEnhancePlan.availableTargets(sourceWidth: width, sourceHeight: height)
+    }
+
+    func reconcileSmartEnhanceTarget() {
+        let targets = smartEnhanceTargets
+        guard !targets.isEmpty else { return }
+        if !targets.contains(smartEnhanceTarget) {
+            smartEnhanceTarget = targets[0]
+        }
     }
 
     func chooseFiles() {
@@ -604,6 +646,7 @@ final class ConverterStore: ObservableObject {
                     defer { completed.signal() }
                     guard let index = store.items.firstIndex(where: { $0.id == item.id }) else { return }
                     store.items[index].presentation = presentation
+                    store.reconcileSmartEnhanceTarget()
                 }
             }
             completed.wait()
@@ -899,10 +942,10 @@ final class ConverterStore: ObservableObject {
 
     private func convertQueue(ids: [UUID]) async {
         guard let binary = ffmpegURL, !ids.isEmpty else { isRunning = false; return }
-        let options = (preset, quality, outputResolution)
+        let options = (preset, quality, outputResolution, smartEnhanceTarget)
         for id in ids {
             guard shouldContinue else { break }
-            await convert(id: id, ffmpegURL: binary, preset: options.0, quality: options.1, resolution: options.2, count: ids.count)
+            await convert(id: id, ffmpegURL: binary, preset: options.0, quality: options.1, resolution: options.2, smartEnhanceTarget: options.3, count: ids.count)
         }
         if cancellationRequested {
             for index in items.indices where queueIDs.contains(items[index].id) { if case .waiting = items[index].state { items[index].state = .cancelled } }
@@ -922,7 +965,7 @@ final class ConverterStore: ObservableObject {
 
     private var shouldContinue: Bool { !cancellationRequested }
 
-    private func convert(id: UUID, ffmpegURL: URL, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, count: Int) async {
+    private func convert(id: UUID, ffmpegURL: URL, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, smartEnhanceTarget: SmartEnhanceTarget, count: Int) async {
         guard let item = items.first(where: { $0.id == id }) else { return }
         let source = item.source
         let trim = item.trimRange
@@ -938,7 +981,9 @@ final class ConverterStore: ObservableObject {
         // Unsupported streams fall back to the user's normal hardware/software
         // conversion choice so the output remains a playable MP4.
         let effectivePreset: ConversionPreset
-        if rotation != nil || crop != nil || resolution.requiresReencode {
+        if preset == .smartEnhanceUpscale {
+            effectivePreset = preset
+        } else if rotation != nil || crop != nil || resolution.requiresReencode {
             effectivePreset = (preset == .qualityTop || preset == .h264Cap8) ? preset : .h264Hardware
         } else if trim != nil, info.canDirectRemuxToMP4 {
             effectivePreset = .remux
@@ -953,7 +998,23 @@ final class ConverterStore: ObservableObject {
         statusText = outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution)
         let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop)
         let temporary = final.deletingLastPathComponent().appendingPathComponent(".MP4Flow-\(UUID().uuidString).partial.mp4")
-        var result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count)
+        var result: ProcessResult
+        if effectivePreset == .smartEnhanceUpscale {
+            guard rotation == nil, crop == nil else {
+                items[index].state = .failed(L10n.text("智能增强放大暂不支持裁切或旋转。"))
+                refreshProgress(count)
+                return
+            }
+            guard #available(macOS 27.0, *), let plan = SmartEnhancePlan.make(info: info, target: smartEnhanceTarget) else {
+                items[index].state = .failed(L10n.text("当前视频不支持智能增强放大。"))
+                refreshProgress(count)
+                return
+            }
+            statusText = L10n.format("智能增强放大至 %@", plan.outputSummary)
+            result = await runSmartEnhance(source: source, output: temporary, info: info, plan: plan, trim: trim, quality: quality, id: id, count: count)
+        } else {
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count)
+        }
         // Keep the fast VideoToolbox path as the default, but never make one
         // unavailable hardware session fail an otherwise healthy batch. The
         // first retry only moves decode/filtering back to the CPU; if the
@@ -961,12 +1022,14 @@ final class ConverterStore: ObservableObject {
         // at the same target bitrate. Retries are per-item and bounded.
         if case .failure = result,
            !cancellationRequested,
+           effectivePreset != .smartEnhanceUpscale,
            canUseVideoToolboxPipeline(info: info, preset: effectivePreset, crop: crop) {
             statusText = L10n.text("硬件处理失败，正在使用兼容方式重试")
             result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false)
         }
         if case .failure = result,
            !cancellationRequested,
+           effectivePreset != .smartEnhanceUpscale,
            usesVideoToolboxEncoder(effectivePreset) {
             statusText = L10n.text("硬件编码不可用，正在使用兼容编码重试")
             result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false)
@@ -983,6 +1046,36 @@ final class ConverterStore: ObservableObject {
     }
 
     private enum ProcessResult { case success, cancelled, failure(String) }
+
+    private func runSmartEnhance(source: URL, output: URL, info: VideoInfo, plan: SmartEnhancePlan, trim: ClipRange?, quality: ConversionQuality, id: UUID, count: Int) async -> ProcessResult {
+        guard #available(macOS 27.0, *) else {
+            return .failure(L10n.text("智能增强放大需要 macOS 27 或更高版本。"))
+        }
+        do {
+            let exporter = SmartEnhanceExporter()
+            try await exporter.export(
+                source: source,
+                output: output,
+                plan: plan,
+                trim: trim,
+                videoBitRate: info.outputRate(preset: .smartEnhanceUpscale, quality: quality, resolution: .original),
+                shouldCancel: { [weak self] in self?.cancellationRequested ?? true },
+                onProgress: { [weak self] seconds in
+                    guard let self, let index = self.items.firstIndex(where: { $0.id == id }) else { return }
+                    let duration = trim.map { $0.end - $0.start } ?? info.duration
+                    guard let duration, duration > 0 else { return }
+                    let progress = min(max(seconds / duration, 0), 0.999)
+                    self.items[index].state = .running(progress)
+                    self.refreshProgress(count)
+                }
+            )
+            return cancellationRequested ? .cancelled : .success
+        } catch is CancellationError {
+            return .cancelled
+        } catch {
+            return .failure(L10n.format("智能增强放大失败：%@", error.localizedDescription))
+        }
+    }
 
     private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, id: UUID, count: Int, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
         let process = Process(), progress = Pipe(), errors = Pipe()
@@ -1060,7 +1153,7 @@ final class ConverterStore: ObservableObject {
             args += preferHardwareEncoder
                 ? hardware(codec: "h264_videotoolbox", videoRate: videoRate, audioRate: 192_000, inputAudioCodec: info.audioCodec, forceAAC: true, keepsVideoToolboxFrames: hardwarePipeline)
                 : softwareBitrate(videoRate: videoRate, audioRate: 192_000, inputAudioCodec: info.audioCodec, forceAAC: true)
-        case .smartMP4: preconditionFailure("智能预设必须在探测后解析为具体编码路径")
+        case .smartMP4, .smartEnhanceUpscale: preconditionFailure("智能预设必须在探测后解析为具体编码路径")
         case .h264Hardware:
             args += preferHardwareEncoder
                 ? hardware(codec: "h264_videotoolbox", videoRate: videoRate, audioRate: audioRate, inputAudioCodec: info.audioCodec, keepsVideoToolboxFrames: hardwarePipeline)
@@ -1108,6 +1201,7 @@ final class ConverterStore: ObservableObject {
         }
         if preset == .h264Cap8 { return "H.264 \(String(format: "%.1f", Double(info.outputRate(preset: preset, quality: quality, resolution: resolution)) / 1_000_000)) Mbps · AAC 192k\(sizeLabel)" }
         if preset == .h264Software { return "H.264 · CRF \(quality.crf)\(sizeLabel)" }
+        if preset == .smartEnhanceUpscale { return L10n.text("智能增强放大（实验性）") + sizeLabel }
         if preset == .remux { return L10n.text("不重新编码") }
         return L10n.format("目标码率 %.1f Mbps", Double(info.outputRate(preset: preset, quality: quality, resolution: resolution)) / 1_000_000) + sizeLabel
     }

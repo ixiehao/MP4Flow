@@ -18,6 +18,7 @@ MP4Flow 将常见视频格式转换为易播放的 MP4。它把复杂的编码�
 - **能快则快**：可直接封装 MP4；兼容时剪辑不重新编码；符合条件的 H.264/HEVC 缩放使用 Apple VideoToolbox。
 - **好懂的转换选择**：智能转换、清晰又省空间、尽量保留原画、所有设备都能播放、节省更多空间、软件兼容模式。
 - **分辨率控制**：保持原画，或转为 1080P、720P、576P、480P，并保持原视频比例。放大只改变尺寸，不能补回不存在的细节。
+- **实验性智能增强放大**：Apple 芯片且 macOS 27 或更高版本，可使用系统 VideoToolbox 的超分能力。仅在系统报告支持的精确放大倍率下启用，暂不支持同时裁切或旋转；首次使用可能需要系统下载模型。
 - **简单编辑**：可修剪起止时间、拖动裁切框并输入数值、旋转 90° 或 180°。
 - **两种合并方式**：参数一致时无损合并；参数不同可兼容合并，以队列中最大尺寸为准，小画面等比例放大且不拉伸。
 - **稳定批处理**：显示进度、重排失败项、可取消任务、安全临时文件、不会覆盖已有输出。
@@ -28,6 +29,7 @@ MP4Flow 将常见视频格式转换为易播放的 MP4。它把复杂的编码�
 - macOS 13 Ventura 或更高版本
 - 已在 `/opt/homebrew/bin`、`/usr/local/bin`、`/opt/local/bin` 或 `/usr/bin` 中安装 [FFmpeg](https://ffmpeg.org/) 和 `ffprobe`
 - Apple 芯片或 Intel Mac；硬件加速取决于设备与源视频编码
+- **智能增强放大（实验性）**：需要 Apple 芯片、macOS 27 或更高版本，且源尺寸与目标尺寸须匹配 VideoToolbox 支持的放大倍率。系统首次使用时可能下载模型；模型不随 MP4Flow 打包，MP4Flow 也不会将视频上传给开发者或第三方服务。
 
 通过 Homebrew 安装 FFmpeg：
 
@@ -59,6 +61,7 @@ open MP4Flow.app
 
 - MP4Flow 使用 Swift、SwiftUI 与 Apple 系统框架开发。
 - FFmpeg 是外部运行时依赖，应用不会打包、下载或为其授权；其许可证取决于你安装的构建版本。
+- 智能增强放大在当前 Mac 与系统支持时调用 Apple VideoToolbox；可用性、支持倍率和模型交付均由操作系统控制。
 - 随应用提供的 Noto Sans SC 字体使用 [SIL Open Font License 1.1](AppResources/OFL.txt)。
 
 请查看 [NOTICE.md](NOTICE.md)、[PRIVACY.md](PRIVACY.md) 和 [LICENSE](LICENSE)。

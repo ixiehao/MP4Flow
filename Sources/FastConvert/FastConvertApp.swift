@@ -76,6 +76,11 @@ struct ContentView: View {
         .ignoresSafeArea(.container, edges: .top)
         .font(AppFont.body)
         .onAppear { appDelegate.openMainWindow = { openWindow(id: "main") } }
+        .onChange(of: store.preset) { preset in
+            if preset == .smartEnhanceUpscale {
+                store.reconcileSmartEnhanceTarget()
+            }
+        }
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: store.acceptDrop)
         .overlay {
             if isDropTargeted {
@@ -188,7 +193,14 @@ struct ContentView: View {
                 configurationColumn(title: "转换预设", mark: .film, width: usableWidth * 0.31) {
                     MP4FlowMenuPicker(
                         selection: $store.preset,
-                        options: ConversionPreset.menuOrder.map { ConfigurationOption(value: $0, title: $0.title, section: $0.menuSection) },
+                        options: ConversionPreset.menuOrder.map {
+                            ConfigurationOption(
+                                value: $0,
+                                title: $0.title,
+                                section: $0.menuSection,
+                                isAvailable: $0 != .smartEnhanceUpscale || SmartEnhanceAvailability.isSupported
+                            )
+                        },
                         isEnabled: !store.isBusy,
                         menuWidth: usableWidth * 0.31
                     )
@@ -203,14 +215,31 @@ struct ContentView: View {
                 }
                 configurationDivider
                 configurationColumn(title: "分辨率", mark: .resolution, width: usableWidth * 0.16) {
-                    MP4FlowMenuPicker(
-                        selection: $store.outputResolution,
-                        options: OutputResolution.allCases.map { ConfigurationOption(value: $0, title: $0.title) },
-                        isEnabled: !store.isBusy,
-                        menuWidth: usableWidth * 0.16
-                    )
-                    .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
-                    Text(store.outputResolution.detail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                    if store.preset == .smartEnhanceUpscale {
+                        if store.smartEnhanceTargets.isEmpty {
+                            MP4FlowMenuTrigger(title: L10n.text("添加视频"), isEnabled: false, isHovering: false)
+                                .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
+                        } else {
+                            MP4FlowMenuPicker(
+                                selection: $store.smartEnhanceTarget,
+                                options: store.smartEnhanceTargets.map { ConfigurationOption(value: $0, title: $0.title) },
+                                isEnabled: !store.isBusy,
+                                menuWidth: usableWidth * 0.16
+                            )
+                            .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
+                        }
+                        Text(store.smartEnhanceTargets.isEmpty ? L10n.text("添加视频后显示可选分辨率。") : L10n.text("最高增强 2 倍。"))
+                            .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                    } else {
+                        MP4FlowMenuPicker(
+                            selection: $store.outputResolution,
+                            options: OutputResolution.allCases.map { ConfigurationOption(value: $0, title: $0.title) },
+                            isEnabled: !store.isBusy,
+                            menuWidth: usableWidth * 0.16
+                        )
+                        .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
+                        Text(store.outputResolution.detail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                    }
                 }
                 configurationDivider
                 configurationColumn(title: "输出位置", mark: .folder, width: usableWidth * 0.28) {
@@ -412,11 +441,13 @@ private struct ConfigurationOption<Value: Hashable> {
     let value: Value
     let title: String
     let section: String?
+    let isAvailable: Bool
 
-    init(value: Value, title: String, section: String? = nil) {
+    init(value: Value, title: String, section: String? = nil, isAvailable: Bool = true) {
         self.value = value
         self.title = title
         self.section = section
+        self.isAvailable = isAvailable
     }
 }
 
@@ -488,7 +519,7 @@ private struct MP4FlowMenuPicker<Value: Hashable>: View {
                             .padding(.top, index == 0 ? 2 : 8)
                             .padding(.bottom, 2)
                     }
-                    MP4FlowMenuRow(title: option.title, isSelected: option.value == selection) {
+                    MP4FlowMenuRow(title: option.title, isSelected: option.value == selection, isEnabled: option.isAvailable) {
                         selection = option.value
                         isPresented = false
                     }
@@ -555,6 +586,7 @@ private struct OutputLocationMenuPicker: View {
 private struct MP4FlowMenuRow: View {
     let title: String
     let isSelected: Bool
+    var isEnabled = true
     let action: () -> Void
 
     var body: some View {
@@ -573,6 +605,8 @@ private struct MP4FlowMenuRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.42)
         .frame(maxWidth: .infinity)
     }
 }
@@ -626,7 +660,9 @@ private struct QueueRow: View {
                 .padding(.horizontal, 9).padding(.vertical, 4).background(BrandColor.tag, in: Capsule())
                 .frame(width: 58, alignment: .leading)
             Spacer(minLength: 12)
-            stateView.frame(width: 265, alignment: .leading)
+            stateView
+                .frame(minWidth: 260, maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
             HStack(spacing: 7) {
                 QueueActionButton(mark: .scissors, title: "剪辑", isDisabled: !canEdit, action: edit)
                 QueueActionButton(mark: .crop, title: "裁切画面", isDisabled: !canEdit, action: crop)
@@ -681,7 +717,23 @@ private struct QueueRow: View {
                 HStack(spacing: 9) { StatusMark(state: item.state); Text(L10n.text("等待中")).font(AppFont.rowTitle).foregroundStyle(BrandColor.textSecondary) }
             }
         case .failed(let message):
-            HStack(spacing: 9) { StatusMark(state: item.state); Text(message).font(AppFont.captionMedium).foregroundStyle(.red).lineLimit(1) }
+            let failure = FailurePresentation(message: message)
+            HStack(alignment: .top, spacing: 9) {
+                StatusMark(state: item.state)
+                    .padding(.top, 1)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(failure.reason)
+                        .font(AppFont.captionMedium)
+                        .foregroundStyle(.red)
+                        .lineLimit(1)
+                    Text(failure.solution)
+                        .font(AppFont.caption)
+                        .foregroundStyle(BrandColor.textSecondary)
+                        .lineLimit(1)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         case .cancelled:
             HStack(spacing: 9) { StatusMark(state: item.state); Text(L10n.text("已取消")).font(AppFont.rowTitle).foregroundStyle(BrandColor.textSecondary) }
         }
@@ -714,6 +766,38 @@ private struct QueueRow: View {
         if let crop = item.crop { parts.append(L10n.format("裁切为 %@", crop.summary)) }
         if let rotation = item.rotation { parts.append(rotation.title) }
         return parts.joined(separator: " · ")
+    }
+}
+
+/// Queue failures are intentionally concise: an actionable explanation is more
+/// useful than exposing a long underlying framework error in a narrow row.
+private struct FailurePresentation {
+    let reason: String
+    let solution: String
+
+    init(message: String) {
+        let isSmartEnhance = message.contains("智能增强") || message.localizedCaseInsensitiveContains("smart enhance")
+        if isSmartEnhance {
+            if message.contains("裁切") || message.contains("旋转") || message.localizedCaseInsensitiveContains("crop") || message.localizedCaseInsensitiveContains("rotation") {
+                reason = L10n.text("智能增强不支持裁切或旋转")
+                solution = L10n.text("请先使用普通转换，再剪辑或裁切。")
+            } else if message.contains("超时") || message.contains("未响应") || message.localizedCaseInsensitiveContains("timed out") || message.localizedCaseInsensitiveContains("did not respond") {
+                reason = L10n.text("智能增强处理超时")
+                solution = L10n.text("请降低目标分辨率后重试。")
+            } else if message.contains("macOS 27") {
+                reason = L10n.text("需要 macOS 27 或更高版本")
+                solution = L10n.text("请改用「智能转换」。")
+            } else {
+                reason = L10n.text("此视频暂不支持智能增强")
+                solution = L10n.text("请使用「智能转换」先转换为新文件，然后添加新文件重试。")
+            }
+        } else if message.contains("未检测到视频流") || message.localizedCaseInsensitiveContains("no video stream") {
+            reason = L10n.text("未检测到可用视频流")
+            solution = L10n.text("请确认文件可播放，或重新导出后再试。")
+        } else {
+            reason = L10n.text("转换未完成")
+            solution = L10n.text("请重试；仍失败请使用「最稳妥转换」。")
+        }
     }
 }
 
