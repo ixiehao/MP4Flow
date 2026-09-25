@@ -4,7 +4,7 @@ const copy = {
     eyebrow: "为 macOS 而做的视频转换", heroTitle: "把视频变成 MP4，<br />特别简单。",
     heroIntro: "免费、开源、本地处理。不上传视频，不要求账户，也不把编码参数丢给你。",
     download: "免费下载", viewSource: "查看源代码 <span aria-hidden=\"true\">↗</span>", heroSystemNote: "macOS 13+", installGuide: "安装 FFmpeg",
-    stageCaption: "MP4Flow 正在本机转换视频。",
+    stageCaption: "MP4Flow 正在本机转换视频。", stageAlt: "MP4Flow 正在本机转换视频的真实界面截图",
     principleOneTitle: "视频留在你的 Mac", principleOneBody: "转换在本机完成；MP4Flow 不上传你的素材。",
     principleTwoTitle: "能快就不重编码", principleTwoBody: "兼容时直接封装；需要转码时优先使用 Apple 硬件能力。",
     principleThreeTitle: "没有订阅与水印", principleThreeBody: "项目以 MIT 许可证开源，功能没有付费墙。",
@@ -30,7 +30,7 @@ const copy = {
     eyebrow: "VIDEO CONVERSION FOR macOS", heroTitle: "Video to MP4.<br />Seriously simple.",
     heroIntro: "Free, open source, and processed locally. No uploads, no accounts, and no codec jargon in your way.",
     download: "Download free", viewSource: "View source <span aria-hidden=\"true\">↗</span>", heroSystemNote: "macOS 13+", installGuide: "Install FFmpeg",
-    stageCaption: "MP4Flow converting locally.",
+    stageCaption: "Completed locally in MP4Flow.", stageAlt: "A real MP4Flow screen while converting video locally",
     principleOneTitle: "Your videos stay on your Mac", principleOneBody: "Conversion happens locally. MP4Flow never uploads your media.",
     principleTwoTitle: "Fast when it can be", principleTwoBody: "Compatible files are remuxed directly; re-encoding prefers Apple hardware.",
     principleThreeTitle: "No subscription. No watermark.", principleThreeBody: "MIT-licensed open source, with no feature paywall.",
@@ -55,6 +55,7 @@ const copy = {
 
 const languageButton = document.querySelector(".language-switch");
 const languageLabel = document.querySelector("#language-label");
+const heroAppScreen = document.querySelector("#hero-app-screen");
 let language = navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
 
 function applyLanguage(nextLanguage) {
@@ -63,6 +64,8 @@ function applyLanguage(nextLanguage) {
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   document.title = translations.pageTitle;
   document.querySelector('meta[name="description"]').setAttribute("content", translations.pageDescription);
+  heroAppScreen.src = language === "zh" ? heroAppScreen.dataset.srcZh : heroAppScreen.dataset.srcEn;
+  heroAppScreen.alt = translations.stageAlt;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     element.innerHTML = translations[element.dataset.i18n];
   });

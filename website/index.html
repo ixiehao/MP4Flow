@@ -43,7 +43,11 @@
         <a href="#download" data-i18n="navDownload">下载</a>
       </nav>
       <button class="language-switch" type="button" aria-label="Switch language">
-        <span aria-hidden="true">文</span><span id="language-label">EN</span>
+        <svg class="language-globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="8.5"></circle>
+          <path d="M3.8 12h16.4M12 3.5c2.3 2.3 3.5 5.1 3.5 8.5S14.3 18.2 12 20.5C9.7 18.2 8.5 15.4 8.5 12S9.7 5.8 12 3.5Z"></path>
+        </svg>
+        <span id="language-label">EN</span>
       </button>
     </header>
 
@@ -63,7 +67,9 @@
         </div>
 
         <figure class="hero-stage hero-stage-real" aria-label="MP4Flow app demonstration">
-          <img src="assets/mp4flow-working-screen.png" width="1600" height="1108" alt="MP4Flow running a local video conversion" decoding="async" fetchpriority="high" />
+          <div class="stage-media">
+            <img id="hero-app-screen" src="assets/mp4flow-working-screen.png" data-src-zh="assets/mp4flow-working-screen.png" data-src-en="assets/mp4flow-working-screen-en.png" width="1600" height="1108" alt="MP4Flow running a local video conversion" decoding="async" fetchpriority="high" />
+          </div>
           <figcaption class="stage-caption" data-i18n="stageCaption">MP4Flow 正在本机转换视频。</figcaption>
         </figure>
       </section>
