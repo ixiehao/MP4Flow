@@ -3,7 +3,7 @@ const copy = {
     navFeatures: "功能", navWorkflow: "使用方式", navDownload: "下载",
     eyebrow: "为 macOS 而做的视频转换", heroTitle: "把视频变成 MP4，<br />简单这件事。",
     heroIntro: "免费、开源、本地处理。不上传视频，不要求账户，也不把编码参数丢给你。",
-    download: "免费下载", viewSource: "查看源代码 <span aria-hidden=\"true\">↗</span>", heroNote: "macOS 13+ · 需要 FFmpeg 与 ffprobe",
+    download: "免费下载", viewSource: "查看源代码 <span aria-hidden=\"true\">↗</span>", heroSystemNote: "macOS 13+", installGuide: "安装 FFmpeg",
     stageCaption: "添加文件，选择质量，开始转换。",
     principleOneTitle: "视频留在你的 Mac", principleOneBody: "转换在本机完成；MP4Flow 不上传你的素材。",
     principleTwoTitle: "能快就不重编码", principleTwoBody: "兼容时直接封装；需要转码时优先使用 Apple 硬件能力。",
@@ -22,13 +22,14 @@ const copy = {
     downloadEyebrow: "从 GitHub 获取", downloadTitle: "让视频转换回归简单。",
     downloadBody: "下载最新版本，或从源代码构建。MP4Flow 始终免费、开源，并在你的 Mac 上运行。",
     getLatest: "获取最新版本", starGithub: "在 GitHub 关注 <span aria-hidden=\"true\">↗</span>",
-    footerTagline: "原生 macOS 视频转 MP4 工具。", footerGithub: "GitHub", footerPrivacy: "隐私", footerLicense: "MIT 许可证"
+    footerTagline: "原生 macOS 视频转 MP4 工具。", footerGithub: "GitHub", footerPrivacy: "隐私", footerLicense: "MIT 许可证",
+    installEyebrow: "开始转换前", installTitle: "安装 FFmpeg", installIntro: "MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。", installStepOne: "打开「终端」应用。", installStepTwo: "输入以下命令：", installStepThree: "安装完成后，重新打开 MP4Flow。", installHelp: "还没有 Homebrew？请先访问 <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> 安装。"
   },
   en: {
     navFeatures: "Features", navWorkflow: "How it works", navDownload: "Download",
     eyebrow: "VIDEO CONVERSION FOR macOS", heroTitle: "Video to MP4.<br />Nothing extra.",
     heroIntro: "Free, open source, and processed locally. No uploads, no accounts, and no codec jargon in your way.",
-    download: "Download free", viewSource: "View source <span aria-hidden=\"true\">↗</span>", heroNote: "macOS 13+ · FFmpeg and ffprobe required",
+    download: "Download free", viewSource: "View source <span aria-hidden=\"true\">↗</span>", heroSystemNote: "macOS 13+", installGuide: "Install FFmpeg",
     stageCaption: "Add a file. Choose quality. Convert.",
     principleOneTitle: "Your videos stay on your Mac", principleOneBody: "Conversion happens locally. MP4Flow never uploads your media.",
     principleTwoTitle: "Fast when it can be", principleTwoBody: "Compatible files are remuxed directly; re-encoding prefers Apple hardware.",
@@ -47,7 +48,8 @@ const copy = {
     downloadEyebrow: "GET IT ON GITHUB", downloadTitle: "Make video conversion simple again.",
     downloadBody: "Download the latest release or build it from source. MP4Flow is free, open source, and runs on your Mac.",
     getLatest: "Get the latest release", starGithub: "Follow on GitHub <span aria-hidden=\"true\">↗</span>",
-    footerTagline: "Native video-to-MP4 conversion for macOS.", footerGithub: "GitHub", footerPrivacy: "Privacy", footerLicense: "MIT License"
+    footerTagline: "Native video-to-MP4 conversion for macOS.", footerGithub: "GitHub", footerPrivacy: "Privacy", footerLicense: "MIT License",
+    installEyebrow: "BEFORE YOU CONVERT", installTitle: "Install FFmpeg", installIntro: "MP4Flow uses FFmpeg and ffprobe to read and convert video. Installing with Homebrew adds both tools.", installStepOne: "Open the Terminal app.", installStepTwo: "Run this command:", installStepThree: "When it finishes, reopen MP4Flow.", installHelp: "Need Homebrew first? Install it from <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a>."
   }
 };
 
@@ -63,9 +65,18 @@ function applyLanguage(nextLanguage) {
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     element.innerHTML = translations[element.dataset.i18n];
   });
+  document.querySelectorAll("[data-i18n-html]").forEach((element) => {
+    element.innerHTML = translations[element.dataset.i18nHtml];
+  });
   languageLabel.textContent = language === "zh" ? "EN" : "中文";
   languageButton.setAttribute("aria-label", language === "zh" ? "Switch to English" : "切换到中文");
 }
 
 languageButton.addEventListener("click", () => applyLanguage(language === "zh" ? "en" : "zh"));
+const installDialog = document.querySelector("#install-dialog");
+document.querySelector("#install-guide-trigger").addEventListener("click", () => installDialog.showModal());
+document.querySelector("#install-dialog-close").addEventListener("click", () => installDialog.close());
+installDialog.addEventListener("click", (event) => {
+  if (event.target === installDialog) installDialog.close();
+});
 applyLanguage(language);

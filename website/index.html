@@ -37,7 +37,7 @@
             <a class="button button-primary" href="https://github.com/ixiehao/MP4Flow/releases/latest" data-i18n="download">免费下载</a>
             <a class="button button-quiet" href="https://github.com/ixiehao/MP4Flow" data-i18n="viewSource">查看源代码 <span aria-hidden="true">↗</span></a>
           </div>
-          <p class="hero-note" data-i18n="heroNote">macOS 13+ · 需要 FFmpeg 与 ffprobe</p>
+          <p class="hero-note"><span data-i18n="heroSystemNote">macOS 13+</span><span aria-hidden="true"> · </span><button class="install-guide-trigger" id="install-guide-trigger" type="button" data-i18n="installGuide">安装 FFmpeg</button></p>
         </div>
 
         <div class="hero-stage" aria-label="MP4Flow app demonstration">
@@ -147,6 +147,24 @@
         <a href="https://github.com/ixiehao/MP4Flow/blob/main/LICENSE" data-i18n="footerLicense">MIT 许可证</a>
       </div>
     </footer>
+
+    <dialog class="install-dialog" id="install-dialog" aria-labelledby="install-dialog-title">
+      <div class="dialog-header">
+        <p class="eyebrow" data-i18n="installEyebrow">开始转换前</p>
+        <button class="dialog-close" id="install-dialog-close" type="button" aria-label="Close installation guide">×</button>
+      </div>
+      <h2 id="install-dialog-title" data-i18n="installTitle">安装 FFmpeg</h2>
+      <p class="dialog-intro" data-i18n="installIntro">MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。</p>
+      <ol class="install-steps">
+        <li data-i18n="installStepOne">打开「终端」应用。</li>
+        <li>
+          <span data-i18n="installStepTwo">输入以下命令：</span>
+          <code>brew install ffmpeg</code>
+        </li>
+        <li data-i18n="installStepThree">安装完成后，重新打开 MP4Flow。</li>
+      </ol>
+      <p class="install-help" data-i18n-html="installHelp">还没有 Homebrew？请先访问 <a href="https://brew.sh/" target="_blank" rel="noreferrer">brew.sh</a> 安装。</p>
+    </dialog>
 
     <script src="app.js"></script>
   </body>
