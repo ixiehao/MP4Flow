@@ -46,6 +46,7 @@ struct MP4FlowApp: App {
 private enum ProjectLinks {
     static let repository = URL(string: "https://github.com/ixiehao/MP4Flow")!
     static let issues = URL(string: "https://github.com/ixiehao/MP4Flow/issues/new/choose")!
+    static let developer = URL(string: "https://github.com/ixiehao")!
 }
 
 private enum AboutCredits {
@@ -73,6 +74,8 @@ private enum AboutCredits {
         }
 
         appendBody(L10n.text("免费开源的本地视频转换工具") + "\n")
+        appendBody(L10n.text("开发者："))
+        appendLink("ixiehao\n", ProjectLinks.developer)
         appendLink("github.com/ixiehao/MP4Flow\n", ProjectLinks.repository)
         appendLink(L10n.text("反馈问题或建议"), ProjectLinks.issues)
         if let availableUpdate {

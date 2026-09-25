@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title>ixiehao developer avatar</title>
+  <defs>
+    <linearGradient id="background" x1="120" y1="90" x2="900" y2="960" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#173cbb"/>
+      <stop offset="0.55" stop-color="#1557e8"/>
+      <stop offset="1" stop-color="#061c6f"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="24" flood-color="#020b37" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="226" fill="url(#background)"/>
+  <path d="M-68 782C148 622 316 610 508 696c190 86 322 57 584-123v451H-68Z" fill="#0a2da5" opacity="0.45"/>
+  <circle cx="810" cy="230" r="182" fill="#3f8dff" opacity="0.22"/>
+  <g filter="url(#shadow)">
+    <rect x="158" y="322" width="708" height="246" rx="64" fill="#fff"/>
+    <path d="M595 282 837 445 595 608V510H340V380h255Z" fill="#8bc8ff"/>
+    <path d="M604 306 823 445 604 584V497H360V395h244Z" fill="#fff"/>
+  </g>
+  <text x="512" y="770" fill="#ffffff" font-family="SF Pro Display, Helvetica Neue, Arial, sans-serif" font-size="112" font-weight="700" letter-spacing="-5" text-anchor="middle">ixiehao</text>
+  <text x="512" y="852" fill="#b9d7ff" font-family="SF Pro Text, Helvetica Neue, Arial, sans-serif" font-size="37" font-weight="600" letter-spacing="8" text-anchor="middle">DEVELOPER</text>
+</svg>
