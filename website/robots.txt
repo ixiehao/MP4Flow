@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ixiehao.github.io/MP4Flow/sitemap.xml
