@@ -2,7 +2,7 @@ const copy = {
   zh: {
     navFeatures: "功能", navWorkflow: "使用方式", navDownload: "下载",
     eyebrow: "为 macOS 而做的视频转换", heroTitle: "把视频变成 MP4，<br />特别简单。",
-    heroIntro: "免费、开源、本地处理。不上传视频，不要求账户，也不把编码参数丢给你。",
+    heroIntro: "免费、开源、本地处理。<br />不用登录、不用上传、不用会看参数。",
     download: "免费下载", viewSource: "查看源代码 <span aria-hidden=\"true\">↗</span>", heroSystemNote: "macOS 13+", installGuide: "安装 FFmpeg",
     stageCaption: "MP4Flow 正在本机转换视频。", stageAlt: "MP4Flow 正在本机转换视频的真实界面截图",
     principleOneTitle: "视频留在你的 Mac", principleOneBody: "转换在本机完成；MP4Flow 不上传你的素材。",
@@ -20,7 +20,7 @@ const copy = {
     stepTwoTitle: "选择结果", stepTwoBody: "用清晰的预设选择质量、尺寸与输出位置。",
     stepThreeTitle: "开始转换", stepThreeBody: "进度清晰可见，完成后可直接在 Finder 中查看。",
     downloadEyebrow: "从 GitHub 获取", downloadTitle: "让视频转换回归简单。",
-    downloadBody: "下载最新版本，或从源代码构建。MP4Flow 始终免费、开源，并在你的 Mac 上运行。",
+    downloadBody: "下载最新版本，或从源代码构建。<br />MP4Flow 免费、开源，在你的 Mac 上运行。",
     getLatest: "获取最新版本", starGithub: "在 GitHub 关注 <span aria-hidden=\"true\">↗</span>",
     footerTagline: "原生 macOS 视频转 MP4 工具。", footerGithub: "GitHub", footerPrivacy: "隐私", footerLicense: "MIT 许可证", pageTitle: "MP4Flow｜免费开源的 macOS 视频转 MP4 工具", pageDescription: "MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。本地处理、不上传视频，支持批量转换、剪切、裁切与旋转。",
     installEyebrow: "开始转换前", installTitle: "安装 FFmpeg", installIntro: "MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。", installStepOne: "打开「终端」应用。", installStepTwo: "输入以下命令：", installStepThree: "安装完成后，重新打开 MP4Flow。", installHelp: "还没有 Homebrew？请先访问 <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> 安装。"
