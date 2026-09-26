@@ -63,6 +63,7 @@ struct SmartEnhancePlan: Sendable {
 
     @available(macOS 27.0, *)
     static func availableTargets(sourceWidth: Int, sourceHeight: Int) -> [SmartEnhanceTarget] {
+#if compiler(>=6.4)
         guard SmartEnhanceExporter.isSupported,
               sourceWidth > 0,
               sourceHeight > 0 else { return [] }
@@ -76,10 +77,16 @@ struct SmartEnhancePlan: Sendable {
                 && target.rawValue <= maximumHeight
                 && outputWidth(sourceWidth: sourceWidth, sourceHeight: sourceHeight, targetHeight: target.rawValue) >= 2
         }
+#else
+        // Xcode versions before 27 do not ship the VideoToolbox super-resolution
+        // declarations. Keep the app buildable there; the feature is unavailable.
+        []
+#endif
     }
 
     @available(macOS 27.0, *)
     static func make(info: VideoInfo, target: SmartEnhanceTarget) -> SmartEnhancePlan? {
+#if compiler(>=6.4)
         guard SmartEnhanceExporter.isSupported,
               let sourceWidth = info.width,
               let sourceHeight = info.height,
@@ -106,6 +113,9 @@ struct SmartEnhancePlan: Sendable {
             targetHeight: target.rawValue,
             scaleFactor: scaleFactor
         )
+#else
+        nil
+#endif
     }
 
     private static func outputWidth(sourceWidth: Int, sourceHeight: Int, targetHeight: Int) -> Int {
@@ -114,6 +124,7 @@ struct SmartEnhancePlan: Sendable {
     }
 }
 
+#if compiler(>=6.4)
 @available(macOS 27.0, *)
 final class SmartEnhanceExporter {
     static var isSupported: Bool {
@@ -378,3 +389,28 @@ final class SmartEnhanceExporter {
         }
     }
 }
+#else
+/// Older Xcode SDKs do not declare the macOS 27 VideoToolbox super-resolution
+/// API. This compatibility shell keeps CI and source builds valid while the
+/// UI correctly reports that Smart Enhance is unavailable on those SDKs.
+@available(macOS 27.0, *)
+final class SmartEnhanceExporter {
+    static var isSupported: Bool { false }
+
+    func export(
+        source: URL,
+        output: URL,
+        plan: SmartEnhancePlan,
+        trim: ClipRange?,
+        videoBitRate: Int,
+        shouldCancel: @escaping () -> Bool,
+        onProgress: (Double) -> Void
+    ) async throws {
+        throw SmartEnhanceUnsupportedError()
+    }
+}
+
+private struct SmartEnhanceUnsupportedError: LocalizedError {
+    var errorDescription: String? { L10n.text("此 Mac 不支持智能增强放大。") }
+}
+#endif
