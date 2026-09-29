@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.1 — 2026-09-29
+
+### English
+
+- Added an Environment Check that reports the local FFmpeg/ffprobe installation and available VideoToolbox hardware encoders. Output-folder checks are deferred until a video or a custom destination is known, so launch stays quiet and responsive.
+- Made conversion progress explain its current route—inspection, direct remuxing, hardware transcoding, software fallback, and output verification. Added stall timeouts, safe cancellation cleanup, output validation, and recovery guidance for common failures.
+- Makes media handling explicit before conversion: MP4Flow reports multi-audio, subtitle, and HDR handling instead of silently implying they were preserved. Added a reproducible 28-case synthetic media regression gate.
+- Refined the Environment Check layout, original icon system, centered checking state, and compact action buttons.
+
+### 中文
+
+- 新增“环境体检”：检查本机 FFmpeg、ffprobe 与可用的 VideoToolbox 硬件编码器。输出位置仅在添加视频或选择自定义目录后检查，启动界面更安静、响应更快。
+- 转换状态会明确显示检测素材、快速直封装、硬件转码、软件兼容转码与输出验证；新增无进度超时、安全取消清理、输出校验和常见故障恢复提示。
+- 转换前会明确提示多音轨、字幕与 HDR 的处理策略，不再静默暗示它们被保留；新增可重复执行的 28 项合成媒体回归门槛。
+- 优化环境体检布局、原创小图标、居中检查状态与紧凑操作按钮。
+
 ## 1.1.0 — 2026-09-24
 
 ### English

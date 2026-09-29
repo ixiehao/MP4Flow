@@ -239,6 +239,7 @@ struct ContentView: View {
     let appDelegate: MP4FlowAppDelegate
     @Environment(\.openWindow) private var openWindow
     @State private var isDropTargeted = false
+    @StateObject private var dependencyHealth = DependencyHealthMonitor()
     @State private var showUpdateNotice = false
     @State private var updateNoticeMessage = ""
     @State private var updateDownloadURL: URL?
@@ -252,7 +253,6 @@ struct ContentView: View {
         VStack(spacing: 0) {
             header
             configuration
-            ffmpegGuide
             queue
             footer
         }
@@ -268,7 +268,10 @@ struct ContentView: View {
         .onAppear {
             appDelegate.openMainWindow = { openWindow(id: "main") }
             Task { _ = await updateChecker.checkForUpdate() }
+            refreshDependencyHealth()
         }
+        .onChange(of: store.outputDirectory) { _ in refreshDependencyHealth() }
+        .onChange(of: store.items.count) { _ in refreshDependencyHealth() }
         .onChange(of: store.preset) { preset in
             if preset == .smartEnhanceUpscale {
                 store.reconcileSmartEnhanceTarget()
@@ -357,7 +360,10 @@ struct ContentView: View {
                 }
             }
             .padding(.leading, 16)
-            Spacer()
+            Spacer(minLength: 26)
+            dependencyHealthGuide
+                .frame(minWidth: 280, maxWidth: 440)
+            Spacer(minLength: 18)
             Menu {
                 ForEach(AppLanguage.allCases) { language in
                     Button {
@@ -494,24 +500,20 @@ struct ContentView: View {
         .frame(width: width, alignment: .topLeading)
     }
 
-    @ViewBuilder
-    private var ffmpegGuide: some View {
-        if !store.isFFmpegAvailable {
-            HStack(spacing: 10) {
-                Mark(kind: .info, color: BrandColor.warning).frame(width: 18, height: 18)
-                Text(L10n.text("需要安装 FFmpeg？")).font(AppFont.captionMedium)
-                Text(L10n.text("复制")).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
-                Text("brew install ffmpeg").font(.system(size: 11, design: .monospaced)).padding(.horizontal, 6).padding(.vertical, 3).background(Color.black.opacity(0.045), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
-                Button(L10n.text("复制安装命令")) { store.copyFFmpegInstallCommand() }.buttonStyle(.plain).font(AppFont.captionMedium).foregroundStyle(BrandColor.blue)
-                Button(L10n.text("查看安装步骤")) { store.openHomebrewWebsite() }.buttonStyle(.plain).font(AppFont.captionMedium).foregroundStyle(BrandColor.blue)
-                Spacer()
-            }
-            .padding(.horizontal, 14)
-            .frame(height: 42)
-            .background(BrandColor.warningBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(BrandColor.warning.opacity(0.28), lineWidth: 1) }
-            .padding(.top, 14)
-        }
+    private var dependencyHealthGuide: some View {
+        DependencyHealthStatusBar(
+            monitor: dependencyHealth,
+            refresh: refreshDependencyHealth,
+            copyFFmpegInstallCommand: store.copyFFmpegInstallCommand,
+            openHomebrewWebsite: store.openHomebrewWebsite
+        )
+    }
+
+    private func refreshDependencyHealth() {
+        dependencyHealth.refresh(
+            outputDirectory: store.outputDirectory,
+            sourceDirectories: store.items.map(\.source)
+        )
     }
 
     private var queue: some View {
@@ -520,9 +522,15 @@ struct ContentView: View {
                 emptyQueue
             } else {
                 VStack(spacing: 0) {
-                    HStack {
-                        Text(L10n.format("转换队列（%d）", store.items.count)).font(AppFont.section)
-                        Spacer()
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Text(L10n.format("转换队列（%d）", store.items.count)).font(AppFont.section)
+                            Spacer()
+                        }
+                        Text(L10n.text("默认输出第一路视频和音频，并移除容器元数据和章节；开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。"))
+                            .font(AppFont.caption)
+                            .foregroundStyle(BrandColor.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 14).padding(.vertical, 11)
                     Divider().overlay(BrandColor.stroke)
@@ -911,9 +919,23 @@ private struct QueueRow: View {
             HStack(spacing: 9) {
                 StatusMark(state: item.state)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(progress.map { L10n.format("正在转换 · %d%%", Int($0 * 100)) } ?? L10n.format("正在转换 · %@", L10n.text("处理中"))).font(AppFont.rowTitle).foregroundStyle(BrandColor.blue)
+                    Text(runningTitle(progress))
+                        .font(AppFont.rowTitle)
+                        .foregroundStyle(BrandColor.blue)
                     if let progress { ProgressView(value: progress).tint(BrandColor.blue).frame(width: 150) }
                     else { ProgressView().frame(width: 150, alignment: .leading) }
+                    if let notice = item.mediaHandling {
+                        Text(notice.summary)
+                            .font(AppFont.caption)
+                            .foregroundStyle(BrandColor.textSecondary)
+                            .lineLimit(1)
+                        if !notice.warnings.isEmpty {
+                            Text(notice.warnings.joined(separator: " · "))
+                                .font(AppFont.caption)
+                                .foregroundStyle(BrandColor.warning)
+                                .lineLimit(2)
+                        }
+                    }
                 }
             }
         case .merging(let progress):
@@ -938,7 +960,7 @@ private struct QueueRow: View {
                 HStack(spacing: 9) { StatusMark(state: item.state); Text(L10n.text("等待中")).font(AppFont.rowTitle).foregroundStyle(BrandColor.textSecondary) }
             }
         case .failed(let message):
-            let failure = FailurePresentation(message: message)
+            let failure = item.failure.map { FailurePresentation(failure: $0) } ?? FailurePresentation(message: message)
             HStack(alignment: .top, spacing: 9) {
                 StatusMark(state: item.state)
                     .padding(.top, 1)
@@ -964,6 +986,12 @@ private struct QueueRow: View {
         if case .running = item.state { return BrandColor.blue.opacity(0.075) }
         if case .merging = item.state { return BrandColor.blue.opacity(0.075) }
         return .clear
+    }
+
+    private func runningTitle(_ progress: Double?) -> String {
+        let phase = item.phase?.title ?? L10n.text("正在转换")
+        if let progress { return L10n.format("%@ · %d%%", phase, Int(progress * 100)) }
+        return L10n.format("%@ · %@", phase, L10n.text("处理中"))
     }
 
     private func timeText(_ seconds: Double) -> String {
@@ -1019,6 +1047,11 @@ private struct FailurePresentation {
             reason = L10n.text("转换未完成")
             solution = L10n.text("请重试；仍失败请使用「最稳妥转换」。")
         }
+    }
+
+    init(failure: ConversionFailure) {
+        reason = failure.reason
+        solution = failure.solution
     }
 }
 

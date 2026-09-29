@@ -153,6 +153,51 @@ enum ConversionState: Equatable {
     }
 }
 
+/// A small, user-facing description of the work currently being performed.
+/// It stays separate from `ConversionState` so existing views can keep their
+/// simple progress matching while newer views can show the exact strategy.
+enum ConversionPhase: Equatable, Sendable {
+    case inspecting
+    case directRemux
+    case hardwareTranscoding
+    case softwareTranscoding
+    case verifying
+
+    var title: String {
+        switch self {
+        case .inspecting: L10n.text("正在检测素材")
+        case .directRemux: L10n.text("正在快速直封装")
+        case .hardwareTranscoding: L10n.text("正在硬件转码")
+        case .softwareTranscoding: L10n.text("正在兼容转码")
+        case .verifying: L10n.text("正在验证输出")
+        }
+    }
+}
+
+/// The failure payload deliberately separates the concise reason shown in a
+/// queue row from the next action. `diagnostic` contains no source path or
+/// file name, so it is safe to copy into a support report only after the user
+/// chooses to do so.
+struct ConversionFailure: Equatable, Sendable {
+    let reason: String
+    let solution: String
+    let diagnostic: String?
+
+    var legacyMessage: String { reason }
+}
+
+/// Explicitly documents what a conversion will and will not carry forward.
+/// This prevents the current first-video/first-audio mapping from silently
+/// surprising users, and gives the UI one value to present before start.
+struct MediaHandlingNotice: Equatable, Sendable {
+    let summary: String
+    let warnings: [String]
+
+    var detail: String {
+        ([summary] + warnings).joined(separator: "\n")
+    }
+}
+
 struct VideoPresentation: Equatable {
     let summary: String?
     let thumbnail: NSImage?
@@ -218,9 +263,12 @@ struct ConversionItem: Identifiable, Equatable {
     var trimRange: ClipRange?
     var rotation: VideoRotation?
     var crop: CropRect?
+    var phase: ConversionPhase?
+    var failure: ConversionFailure?
+    var mediaHandling: MediaHandlingNotice?
 
     static func == (lhs: ConversionItem, rhs: ConversionItem) -> Bool {
-        lhs.id == rhs.id && lhs.source == rhs.source && lhs.state == rhs.state && lhs.presentation == rhs.presentation && lhs.trimRange == rhs.trimRange && lhs.rotation == rhs.rotation && lhs.crop == rhs.crop
+        lhs.id == rhs.id && lhs.source == rhs.source && lhs.state == rhs.state && lhs.presentation == rhs.presentation && lhs.trimRange == rhs.trimRange && lhs.rotation == rhs.rotation && lhs.crop == rhs.crop && lhs.phase == rhs.phase && lhs.failure == rhs.failure && lhs.mediaHandling == rhs.mediaHandling
     }
 }
 
@@ -268,6 +316,16 @@ enum VideoRotation: String, CaseIterable, Equatable, Sendable {
         }
     }
 
+    /// A quarter turn swaps the encoded width and height. VideoToolbox does
+    /// not invert non-square pixel aspect ratios for these transforms, so the
+    /// caller must correct the display aspect ratio after the hardware filter.
+    var swapsDimensions: Bool {
+        switch self {
+        case .clockwise, .counterclockwise: true
+        case .upsideDown: false
+        }
+    }
+
     var fileSuffix: String {
         switch self {
         case .clockwise: "rotated-cw"
@@ -285,6 +343,14 @@ struct VideoInfo: Sendable {
     let pixelFormat: String?
     let audioSampleRate: String?
     let audioChannels: Int?
+    let audioTrackCount: Int
+    let subtitleTrackCount: Int
+    let colorTransfer: String?
+    let probeSucceeded: Bool
+
+    var isHDR: Bool {
+        ["smpte2084", "arib-std-b67"].contains(colorTransfer?.lowercased() ?? "")
+    }
 
     /// These elementary streams can be placed in MP4 without loss. Restricting
     /// audio to AAC keeps the automatic path broadly compatible with players.
@@ -306,7 +372,7 @@ struct VideoInfo: Sendable {
     }
     var matchedRate: Int { videoRate ?? fallbackRate }
     var safeAudioRate: Int { min(max(audioRate ?? 128_000, 64_000), 192_000) }
-    func outputRate(preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution) -> Int {
+    func outputRate(preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, sourceHeight: Int? = nil) -> Int {
         let baseRate: Int
         switch preset {
         case .qualityTop:
@@ -316,7 +382,7 @@ struct VideoInfo: Sendable {
         case .smartMP4, .smartEnhanceUpscale, .h264Hardware, .hevcHardware, .h264Software, .remux:
             baseRate = min(max(Int((Double(matchedRate) * preset.efficiency * quality.multiplier).rounded()), 500_000), 100_000_000)
         }
-        return min(max(Int((Double(baseRate) * resolution.rateMultiplier(sourceHeight: height)).rounded()), 500_000), 100_000_000)
+        return min(max(Int((Double(baseRate) * resolution.rateMultiplier(sourceHeight: sourceHeight ?? height)).rounded()), 500_000), 100_000_000)
     }
 }
 
@@ -342,10 +408,11 @@ private struct CompatibleMergeTarget: Sendable {
 private struct ProbeResponse: Decodable, Sendable { let streams: [ProbeStream]; let format: ProbeFormat? }
 private struct ProbeStream: Decodable, Sendable {
     let codecType: String?, codecName: String?, bitRate: String?, width: Int?, height: Int?
-    let rFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?
+    let rFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?, colorTransfer: String?
     enum CodingKeys: String, CodingKey {
         case codecType = "codec_type", codecName = "codec_name", bitRate = "bit_rate"
         case rFrameRate = "r_frame_rate", pixelFormat = "pix_fmt", sampleRate = "sample_rate", channels, width, height
+        case colorTransfer = "color_transfer"
     }
 }
 private struct ProbeFormat: Decodable, Sendable {
@@ -358,6 +425,40 @@ private final class ErrorBuffer: @unchecked Sendable {
     private var value = ""
     func append(_ text: String) { lock.lock(); value = String((value + text).suffix(4_000)); lock.unlock() }
     func read() -> String { lock.lock(); defer { lock.unlock() }; return value }
+}
+
+/// `-progress pipe:1` is FFmpeg's liveness contract. Keep its clock behind a
+/// lock because pipe callbacks and the main actor watchdog run independently.
+private final class ProcessActivity: @unchecked Sendable {
+    private let lock = NSLock()
+    private var lastActivity = Date()
+    private var timeoutMessage: String?
+
+    func touch() {
+        lock.lock()
+        lastActivity = Date()
+        lock.unlock()
+    }
+
+    func inactivity() -> TimeInterval {
+        lock.lock()
+        defer { lock.unlock() }
+        return Date().timeIntervalSince(lastActivity)
+    }
+
+    func markTimedOut(_ message: String) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard timeoutMessage == nil else { return false }
+        timeoutMessage = message
+        return true
+    }
+
+    func timeout() -> String? {
+        lock.lock()
+        defer { lock.unlock() }
+        return timeoutMessage
+    }
 }
 
 @MainActor
@@ -381,6 +482,7 @@ final class ConverterStore: ObservableObject {
 
     private var ffmpegURL: URL?
     private var activeProcesses: [UUID: Process] = [:]
+    private var activeTemporaryOutputs: [UUID: URL] = [:]
     private var cancellationRequested = false
     private var queueIDs: [UUID] = []
     private var progressTimes: [UUID: Double] = [:]
@@ -392,6 +494,12 @@ final class ConverterStore: ObservableObject {
     private var mergeProgressTime: Double?
     private var compatibleMergeIDs: [UUID] = []
     private var isCompatibleMerging = false
+    /// FFmpeg emits a machine-readable progress packet roughly twice a second
+    /// while it is healthy. A generous limit avoids mistaking a slow decoder
+    /// startup for a hang while still recovering from blocked network volumes,
+    /// broken inputs, or wedged hardware sessions.
+    private let ffmpegNoProgressTimeout: TimeInterval = 90
+    private let ffmpegTerminationGrace: UInt64 = 3_000_000_000
     private let presentationQueue: OperationQueue = {
         let queue = OperationQueue()
         queue.name = "com.ixiehao.mp4flow.media-inspection"
@@ -500,12 +608,28 @@ final class ConverterStore: ObservableObject {
     }
     func retryIncomplete() {
         guard !isRunning else { return }
-        for index in items.indices { if case .failed = items[index].state { items[index].state = .waiting }; if case .cancelled = items[index].state { items[index].state = .waiting } }
+        for index in items.indices {
+            if case .failed = items[index].state {
+                items[index].state = .waiting
+                items[index].failure = nil
+                items[index].phase = nil
+            }
+            if case .cancelled = items[index].state {
+                items[index].state = .waiting
+                items[index].failure = nil
+                items[index].phase = nil
+            }
+        }
     }
 
     func start() {
         guard !isMerging else { return }
         guard let binary = locateFFmpeg() else { showFFmpegSetup = true; return }
+        guard locateFFprobe(for: binary) != nil else {
+            statusText = L10n.text("未检测到 ffprobe，请安装完整的 FFmpeg 后重试。")
+            showFFmpegSetup = true
+            return
+        }
         let pendingIDs = items.compactMap { if case .waiting = $0.state { return $0.id }; return nil }
         guard !pendingIDs.isEmpty else { return }
         ffmpegURL = binary; cancellationRequested = false; queueIDs = pendingIDs; isRunning = true; overallProgress = 0
@@ -592,11 +716,14 @@ final class ConverterStore: ObservableObject {
 
     func cancel() {
         guard isRunning else { return }
-        cancellationRequested = true; statusText = L10n.text("正在停止转换")
-        activeProcesses.values.forEach { $0.terminate() }
+        cancellationRequested = true
+        statusText = L10n.text("正在停止转换并清理临时文件")
+        let processes = Array(activeProcesses.values)
+        processes.forEach { $0.terminate() }
         Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            guard let self, self.isRunning, self.cancellationRequested else { return }
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: self.ffmpegTerminationGrace)
+            guard self.isRunning, self.cancellationRequested else { return }
             self.activeProcesses.values.filter(\.isRunning).forEach { process in
                 _ = Darwin.kill(process.processIdentifier, SIGKILL)
             }
@@ -948,7 +1075,16 @@ final class ConverterStore: ObservableObject {
             await convert(id: id, ffmpegURL: binary, preset: options.0, quality: options.1, resolution: options.2, smartEnhanceTarget: options.3, count: ids.count)
         }
         if cancellationRequested {
-            for index in items.indices where queueIDs.contains(items[index].id) { if case .waiting = items[index].state { items[index].state = .cancelled } }
+            for index in items.indices where queueIDs.contains(items[index].id) {
+                if case .waiting = items[index].state {
+                    items[index].state = .cancelled
+                    items[index].phase = nil
+                }
+            }
+            // All per-item workers have returned before the queue reaches this
+            // point, so removing their partial files cannot race a live FFmpeg
+            // writer. Final outputs are never listed here.
+            activeTemporaryOutputs.values.forEach { try? FileManager.default.removeItem(at: $0) }
             statusText = L10n.text("转换已取消；可重新排队未完成项目。")
         } else {
             overallProgress = 1
@@ -959,7 +1095,7 @@ final class ConverterStore: ObservableObject {
             }.count
             statusText = failures == 0 ? L10n.text("转换完成") : L10n.format("队列处理结束，%d 项失败。", failures)
         }
-        activeProcesses.removeAll(); progressBuffers.removeAll(); progressTimes.removeAll(); lastProgressUpdate.removeAll(); queueIDs.removeAll(); isRunning = false
+        activeProcesses.removeAll(); activeTemporaryOutputs.removeAll(); progressBuffers.removeAll(); progressTimes.removeAll(); lastProgressUpdate.removeAll(); queueIDs.removeAll(); isRunning = false
         presentationQueue.isSuspended = false
     }
 
@@ -971,10 +1107,22 @@ final class ConverterStore: ObservableObject {
         let trim = item.trimRange
         let rotation = item.rotation
         let crop = item.crop
+        setPhase(.inspecting, for: id, progress: nil, count: count)
         let info = await probe(source, ffmpegURL: ffmpegURL)
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
-        guard !cancellationRequested else { items[index].state = .cancelled; return }
-        guard info.hasVideo else { items[index].state = .failed(L10n.text("未检测到视频流，文件可能损坏或只是音频文件。")); refreshProgress(count); return }
+        guard !cancellationRequested else {
+            items[index].state = .cancelled
+            items[index].phase = nil
+            return
+        }
+        guard info.hasVideo else {
+            markFailed(id, failure: ConversionFailure(
+                reason: L10n.text("未检测到可用视频流"),
+                solution: L10n.text("请确认文件可播放，或重新导出后再试。"),
+                diagnostic: "probe:no-video"
+            ), count: count)
+            return
+        }
         // A trim should not silently become a full re-encode. When the source
         // streams are safe in MP4, use lossless stream copy regardless of the
         // selected conversion preset. This is the same fast path as “极速直封装”.
@@ -992,24 +1140,32 @@ final class ConverterStore: ObservableObject {
         } else {
             effectivePreset = preset
         }
-        items[index].state = .running(info.duration == nil ? nil : 0)
-        // The footer supplies the conversion state and current queue count.
-        // Keep this text focused on the selected output characteristics.
-        statusText = outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution)
+        items[index].failure = nil
+        items[index].mediaHandling = mediaHandlingNotice(for: info, preset: effectivePreset)
+        setPhase(phase(for: effectivePreset, preferHardwareEncoder: true), for: id, progress: info.duration == nil ? nil : 0, count: count, detail: outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution))
         let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop)
         let temporary = final.deletingLastPathComponent().appendingPathComponent(".MP4Flow-\(UUID().uuidString).partial.mp4")
+        activeTemporaryOutputs[id] = temporary
+        defer { activeTemporaryOutputs.removeValue(forKey: id) }
         var result: ProcessResult
         if effectivePreset == .smartEnhanceUpscale {
             guard rotation == nil, crop == nil else {
-                items[index].state = .failed(L10n.text("智能增强放大暂不支持裁切或旋转。"))
-                refreshProgress(count)
+                markFailed(id, failure: ConversionFailure(
+                    reason: L10n.text("智能增强不支持裁切或旋转"),
+                    solution: L10n.text("请先使用普通转换，再剪辑或裁切。"),
+                    diagnostic: "enhance:unsupported-edit"
+                ), count: count)
                 return
             }
             guard #available(macOS 27.0, *), let plan = SmartEnhancePlan.make(info: info, target: smartEnhanceTarget) else {
-                items[index].state = .failed(L10n.text("当前视频不支持智能增强放大。"))
-                refreshProgress(count)
+                markFailed(id, failure: ConversionFailure(
+                    reason: L10n.text("此视频暂不支持智能增强"),
+                    solution: L10n.text("请使用「智能转换」先转换为新文件，然后添加新文件重试。"),
+                    diagnostic: "enhance:unsupported-source"
+                ), count: count)
                 return
             }
+            setPhase(.hardwareTranscoding, for: id, progress: info.duration == nil ? nil : 0, count: count, detail: L10n.format("智能增强放大至 %@", plan.outputSummary))
             statusText = L10n.format("智能增强放大至 %@", plan.outputSummary)
             result = await runSmartEnhance(source: source, output: temporary, info: info, plan: plan, trim: trim, quality: quality, id: id, count: count)
         } else {
@@ -1024,28 +1180,172 @@ final class ConverterStore: ObservableObject {
            !cancellationRequested,
            effectivePreset != .smartEnhanceUpscale,
            canUseVideoToolboxPipeline(info: info, preset: effectivePreset, crop: crop) {
-            statusText = L10n.text("硬件处理失败，正在使用兼容方式重试")
+            setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件处理失败，正在使用兼容方式重试"))
             result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false)
         }
         if case .failure = result,
            !cancellationRequested,
            effectivePreset != .smartEnhanceUpscale,
            usesVideoToolboxEncoder(effectivePreset) {
-            statusText = L10n.text("硬件编码不可用，正在使用兼容编码重试")
+            setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件编码不可用，正在使用兼容编码重试"))
             result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false)
+        }
+        if case .success = result, !cancellationRequested {
+            setPhase(.verifying, for: id, progress: 0.999, count: count)
+            if let verificationFailure = await verifyOutput(temporary, ffmpegURL: ffmpegURL) {
+                result = .failure(verificationFailure.reason)
+                if let current = items.firstIndex(where: { $0.id == id }) {
+                    items[current].failure = verificationFailure
+                }
+            }
         }
         guard let current = items.firstIndex(where: { $0.id == id }) else { return }
         switch result {
         case .success:
-            do { try FileManager.default.moveItem(at: temporary, to: final); items[current].state = .complete(final) }
-            catch { items[current].state = .failed("无法保存输出文件：\(error.localizedDescription)"); try? FileManager.default.removeItem(at: temporary) }
-        case .cancelled: items[current].state = .cancelled; try? FileManager.default.removeItem(at: temporary)
-        case .failure(let message): items[current].state = .failed(message); try? FileManager.default.removeItem(at: temporary)
+            do {
+                try FileManager.default.moveItem(at: temporary, to: final)
+                items[current].state = .complete(final)
+                items[current].phase = nil
+            } catch {
+                try? FileManager.default.removeItem(at: temporary)
+                markFailed(id, failure: ConversionFailure(
+                    reason: L10n.text("无法保存输出文件"),
+                    solution: L10n.text("请检查输出文件夹权限和可用空间后重试。"),
+                    diagnostic: "publish:\(error._code)"
+                ), count: count)
+            }
+        case .cancelled:
+            items[current].state = .cancelled
+            items[current].phase = nil
+            try? FileManager.default.removeItem(at: temporary)
+        case .failure(let message):
+            try? FileManager.default.removeItem(at: temporary)
+            let existingFailure = items[current].failure
+            markFailed(id, failure: existingFailure ?? failure(from: message), count: count)
         }
         refreshProgress(count)
     }
 
     private enum ProcessResult { case success, cancelled, failure(String) }
+
+    private func setPhase(_ phase: ConversionPhase, for id: UUID, progress: Double?, count: Int, detail: String? = nil) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        items[index].phase = phase
+        items[index].state = .running(progress)
+        let phaseText = phase.title
+        statusText = detail.map { "\(phaseText) · \($0)" } ?? phaseText
+        refreshProgress(count)
+    }
+
+    private func phase(for preset: ConversionPreset, preferHardwareEncoder: Bool) -> ConversionPhase {
+        if preset == .remux { return .directRemux }
+        if preset == .h264Software || !preferHardwareEncoder { return .softwareTranscoding }
+        return .hardwareTranscoding
+    }
+
+    private func markFailed(_ id: UUID, failure: ConversionFailure, count: Int) {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return }
+        items[index].failure = failure
+        items[index].phase = nil
+        items[index].state = .failed(failure.legacyMessage)
+        refreshProgress(count)
+    }
+
+    private func mediaHandlingNotice(for info: VideoInfo, preset: ConversionPreset) -> MediaHandlingNotice {
+        let audioDescription = info.audioCodec == nil
+            ? L10n.text("未检测到音频流。")
+            : L10n.text("仅保留第一路视频和第一路音频。")
+        var warnings = [L10n.text("容器元数据和章节将被移除。")]
+        if info.audioTrackCount > 1 {
+            warnings.append(L10n.format("检测到 %d 路音频；其余音轨不会写入输出。", info.audioTrackCount))
+        }
+        if info.subtitleTrackCount > 0 {
+            warnings.append(L10n.format("检测到 %d 条字幕；当前输出不会保留字幕。", info.subtitleTrackCount))
+        }
+        if info.isHDR {
+            warnings.append(
+                preset == .remux
+                    ? L10n.text("检测到 HDR；视频流将直接封装，完成后仍建议核对播放效果。")
+                    : L10n.text("检测到 HDR；转码后请核对色彩与动态范围。")
+            )
+        }
+        return MediaHandlingNotice(summary: audioDescription, warnings: warnings)
+    }
+
+    private func failure(from message: String) -> ConversionFailure {
+        let text = message.lowercased()
+        if text.contains("无进度") || text.contains("未响应") || text.contains("timed out") || text.contains("timeout") {
+            return ConversionFailure(
+                reason: L10n.text("转换长时间无进度，已安全停止"),
+                solution: L10n.text("请确认视频可播放、磁盘可用后重试；仍失败请使用「最稳妥转换」。"),
+                diagnostic: "ffmpeg:stalled"
+            )
+        }
+        if text.contains("no space left") || text.contains("disk full") {
+            return ConversionFailure(
+                reason: L10n.text("输出磁盘空间不足"),
+                solution: L10n.text("请释放空间或选择其他输出位置后重试。"),
+                diagnostic: "ffmpeg:disk-full"
+            )
+        }
+        if text.contains("permission denied") || text.contains("operation not permitted") {
+            return ConversionFailure(
+                reason: L10n.text("没有读取或写入文件的权限"),
+                solution: L10n.text("请检查文件和输出文件夹权限后重试。"),
+                diagnostic: "ffmpeg:permission"
+            )
+        }
+        if text.contains("unknown encoder") || text.contains("videotoolbox") {
+            return ConversionFailure(
+                reason: L10n.text("硬件编码不可用"),
+                solution: L10n.text("请重试；仍失败请使用「最稳妥转换」。"),
+                diagnostic: "ffmpeg:hardware-encoder"
+            )
+        }
+        if text.contains("invalid data") || text.contains("moov atom") || text.contains("could not find codec") {
+            return ConversionFailure(
+                reason: L10n.text("无法读取此视频的媒体数据"),
+                solution: L10n.text("请确认文件可播放，或使用「智能转换」生成新文件后重试。"),
+                diagnostic: "ffmpeg:unreadable-media"
+            )
+        }
+        return ConversionFailure(
+            reason: L10n.text("转换未完成"),
+            solution: L10n.text("请重试；仍失败请使用「最稳妥转换」。"),
+            diagnostic: "ffmpeg:failed"
+        )
+    }
+
+    /// Validate the temporary result before atomically publishing it. This is
+    /// deliberately metadata-only: it catches a zero-byte/truncated output
+    /// without decoding a long video for a second time.
+    private func verifyOutput(_ output: URL, ffmpegURL: URL) async -> ConversionFailure? {
+        guard let values = try? output.resourceValues(forKeys: [.fileSizeKey]),
+              let size = values.fileSize,
+              size > 0 else {
+            return ConversionFailure(
+                reason: L10n.text("输出文件为空或未写完整"),
+                solution: L10n.text("请检查磁盘空间后重试。"),
+                diagnostic: "verify:empty-output"
+            )
+        }
+        let info = await probe(output, ffmpegURL: ffmpegURL)
+        guard info.probeSucceeded else {
+            return ConversionFailure(
+                reason: L10n.text("无法验证输出文件"),
+                solution: L10n.text("请安装 FFmpeg 和 ffprobe 后重试。"),
+                diagnostic: "verify:ffprobe-unavailable-or-failed"
+            )
+        }
+        guard info.hasVideo else {
+            return ConversionFailure(
+                reason: L10n.text("输出文件缺少视频流"),
+                solution: L10n.text("请使用「最稳妥转换」重试。"),
+                diagnostic: "verify:no-video-stream"
+            )
+        }
+        return nil
+    }
 
     private func runSmartEnhance(source: URL, output: URL, info: VideoInfo, plan: SmartEnhancePlan, trim: ClipRange?, quality: ConversionQuality, id: UUID, count: Int) async -> ProcessResult {
         guard #available(macOS 27.0, *) else {
@@ -1080,16 +1380,19 @@ final class ConverterStore: ObservableObject {
     private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, id: UUID, count: Int, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
         let process = Process(), progress = Pipe(), errors = Pipe()
         let store = self
+        let activity = ProcessActivity()
         process.executableURL = ffmpegURL
         process.arguments = ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder)
         process.standardOutput = progress; process.standardError = errors
         let stderr = ErrorBuffer()
         progress.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData; guard !data.isEmpty else { return }
+            activity.touch()
             Task { @MainActor [store] in store.consumeProgress(String(decoding: data, as: UTF8.self), duration: trim.map { $0.end - $0.start } ?? info.duration, id: id, count: count) }
         }
         errors.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData; guard !data.isEmpty else { return }
+            activity.touch()
             stderr.append(String(decoding: data, as: UTF8.self))
         }
         return await withCheckedContinuation { continuation in
@@ -1098,6 +1401,7 @@ final class ConverterStore: ObservableObject {
                 Task { @MainActor [store] in
                     store.activeProcesses.removeValue(forKey: id)
                     if store.cancellationRequested { continuation.resume(returning: .cancelled) }
+                    else if let timeout = activity.timeout() { continuation.resume(returning: .failure(timeout)) }
                     else if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
                     else { continuation.resume(returning: .failure(store.friendlyError(stderr.read(), code: finished.terminationStatus))) }
                 }
@@ -1108,6 +1412,26 @@ final class ConverterStore: ObservableObject {
                 activeProcesses.removeValue(forKey: id)
                 progress.fileHandleForReading.readabilityHandler = nil; errors.fileHandleForReading.readabilityHandler = nil
                 continuation.resume(returning: .failure("无法启动 FFmpeg：\(error.localizedDescription)"))
+                return
+            }
+            let timeout = ffmpegNoProgressTimeout
+            let grace = ffmpegTerminationGrace
+            Task { [weak process, weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    guard !Task.isCancelled, let process, process.isRunning else { return }
+                    guard activity.inactivity() >= timeout else { continue }
+                    let message = L10n.text("FFmpeg 长时间无进度，已安全停止。")
+                    guard activity.markTimedOut(message) else { return }
+                    guard let self, !self.cancellationRequested else { return }
+                    self.statusText = L10n.text("转换长时间无进度，正在安全停止")
+                    process.terminate()
+                    try? await Task.sleep(nanoseconds: grace)
+                    if process.isRunning {
+                        _ = Darwin.kill(process.processIdentifier, SIGKILL)
+                    }
+                    return
+                }
             }
         }
     }
@@ -1140,10 +1464,23 @@ final class ConverterStore: ObservableObject {
                 args += ["-ss", ffmpegTime(trim.start), "-to", ffmpegTime(trim.end)]
             }
         }
-        let rotationFilter = rotation.map { hardwarePipeline ? $0.videoToolboxFilter : $0.filter }
-        let filters = [crop?.filter, rotationFilter, resolution.filter(sourceHeight: info.height, quality: quality, useVideoToolbox: hardwarePipeline)].compactMap { $0 }
+        // Crop coordinates are chosen in the source orientation; rotate before
+        // resizing so a selected output height always applies to the final
+        // orientation. `transpose_vt` leaves a non-square input SAR unchanged,
+        // unlike the CPU transpose filter, so invert it after a 90° turn.
+        let rotatedSourceHeight = rotation?.swapsDimensions == true ? info.width : info.height
+        var filters = [crop?.filter].compactMap { $0 }
+        if let rotation {
+            filters.append(hardwarePipeline ? rotation.videoToolboxFilter : rotation.filter)
+            if hardwarePipeline && rotation.swapsDimensions {
+                filters.append("setsar=1/sar")
+            }
+        }
+        if let resolutionFilter = resolution.filter(sourceHeight: rotatedSourceHeight, quality: quality, useVideoToolbox: hardwarePipeline) {
+            filters.append(resolutionFilter)
+        }
         if !filters.isEmpty { args += ["-vf", filters.joined(separator: ",")] }
-        let videoRate = info.outputRate(preset: preset, quality: quality, resolution: resolution), audioRate = info.safeAudioRate
+        let videoRate = info.outputRate(preset: preset, quality: quality, resolution: resolution, sourceHeight: rotatedSourceHeight), audioRate = info.safeAudioRate
         switch preset {
         case .qualityTop:
             args += preferHardwareEncoder
@@ -1245,24 +1582,69 @@ final class ConverterStore: ObservableObject {
     }
 
     private func probe(_ source: URL, ffmpegURL: URL) async -> VideoInfo {
-        let probe = ffmpegURL.deletingLastPathComponent().appendingPathComponent("ffprobe")
-        guard FileManager.default.isExecutableFile(atPath: probe.path) else { return VideoInfo(duration: nil, videoRate: nil, audioRate: nil, width: nil, height: nil, hasVideo: true, videoCodec: nil, audioCodec: nil, frameRate: nil, pixelFormat: nil, audioSampleRate: nil, audioChannels: nil) }
-        return await Task.detached {
-            let process = Process(), pipe = Pipe(); process.executableURL = probe; process.arguments = ["-v", "error", "-show_entries", "stream=codec_type,codec_name,bit_rate,width,height,r_frame_rate,pix_fmt,sample_rate,channels:format=duration,bit_rate", "-of", "json", source.path]; process.standardOutput = pipe
+        guard let probe = locateFFprobe(for: ffmpegURL) else {
+            return Self.unavailableProbeInfo()
+        }
+        return await withCheckedContinuation { continuation in
+            let process = Process()
+            let pipe = Pipe()
+            process.executableURL = probe
+            process.arguments = ["-v", "error", "-show_entries", "stream=codec_type,codec_name,bit_rate,width,height,r_frame_rate,pix_fmt,sample_rate,channels,color_transfer:format=duration,bit_rate", "-of", "json", source.path]
+            process.standardOutput = pipe
+            process.terminationHandler = { finished in
+                let info: VideoInfo
+                guard finished.terminationStatus == 0 else {
+                    info = Self.unavailableProbeInfo()
+                    Task { @MainActor in continuation.resume(returning: info) }
+                    return
+                }
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                info = Self.decodeProbe(data) ?? Self.unavailableProbeInfo()
+                Task { @MainActor in continuation.resume(returning: info) }
+            }
             do {
-                try process.run(); process.waitUntilExit(); guard process.terminationStatus == 0 else { throw CocoaError(.fileReadCorruptFile) }
-                let response = try JSONDecoder().decode(ProbeResponse.self, from: pipe.fileHandleForReading.readDataToEndOfFile())
-                let video = response.streams.first { $0.codecType == "video" }, audio = response.streams.first { $0.codecType == "audio" }
-                let videoRate = Int(video?.bitRate ?? "") ?? response.format.flatMap { guard let total = Int($0.bitRate ?? "") else { return nil }; return max(total - (Int(audio?.bitRate ?? "") ?? 0), 1) }
-                return VideoInfo(duration: Double(response.format?.duration ?? ""), videoRate: videoRate, audioRate: Int(audio?.bitRate ?? ""), width: video?.width, height: video?.height, hasVideo: video != nil, videoCodec: video?.codecName, audioCodec: audio?.codecName, frameRate: video?.rFrameRate, pixelFormat: video?.pixelFormat, audioSampleRate: audio?.sampleRate, audioChannels: audio?.channels)
-            } catch { return VideoInfo(duration: nil, videoRate: nil, audioRate: nil, width: nil, height: nil, hasVideo: true, videoCodec: nil, audioCodec: nil, frameRate: nil, pixelFormat: nil, audioSampleRate: nil, audioChannels: nil) }
-        }.value
+                try process.run()
+            } catch {
+                continuation.resume(returning: Self.unavailableProbeInfo())
+                return
+            }
+            Task { [process] in
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                guard process.isRunning else { return }
+                process.terminate()
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if process.isRunning {
+                    _ = Darwin.kill(process.processIdentifier, SIGKILL)
+                }
+            }
+        }
+    }
+
+    nonisolated private static func unavailableProbeInfo() -> VideoInfo {
+        VideoInfo(duration: nil, videoRate: nil, audioRate: nil, width: nil, height: nil, hasVideo: true, videoCodec: nil, audioCodec: nil, frameRate: nil, pixelFormat: nil, audioSampleRate: nil, audioChannels: nil, audioTrackCount: 0, subtitleTrackCount: 0, colorTransfer: nil, probeSucceeded: false)
+    }
+
+    nonisolated private static func decodeProbe(_ data: Data) -> VideoInfo? {
+        guard let response = try? JSONDecoder().decode(ProbeResponse.self, from: data) else { return nil }
+        let video = response.streams.first { $0.codecType == "video" }
+        let audioStreams = response.streams.filter { $0.codecType == "audio" }
+        let subtitleStreams = response.streams.filter { $0.codecType == "subtitle" }
+        let audio = audioStreams.first
+        let videoRate = Int(video?.bitRate ?? "") ?? response.format.flatMap {
+            guard let total = Int($0.bitRate ?? "") else { return nil }
+            return max(total - (Int(audio?.bitRate ?? "") ?? 0), 1)
+        }
+        return VideoInfo(duration: Double(response.format?.duration ?? ""), videoRate: videoRate, audioRate: Int(audio?.bitRate ?? ""), width: video?.width, height: video?.height, hasVideo: video != nil, videoCodec: video?.codecName, audioCodec: audio?.codecName, frameRate: video?.rFrameRate, pixelFormat: video?.pixelFormat, audioSampleRate: audio?.sampleRate, audioChannels: audio?.channels, audioTrackCount: audioStreams.count, subtitleTrackCount: subtitleStreams.count, colorTransfer: video?.colorTransfer, probeSucceeded: true)
     }
 
     private func locateFFmpeg() -> URL? {
         ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/local/bin/ffmpeg", "/usr/bin/ffmpeg"]
             .map(URL.init(fileURLWithPath:))
             .first { FileManager.default.isExecutableFile(atPath: $0.path) }
+    }
+    private func locateFFprobe(for ffmpeg: URL) -> URL? {
+        let sibling = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        return FileManager.default.isExecutableFile(atPath: sibling.path) ? sibling : nil
     }
     private func canonicalURL(_ url: URL) -> URL {
         url.standardizedFileURL.resolvingSymlinksInPath()

@@ -34,7 +34,7 @@ enum AppFont {
     static let tag = Font.custom("NotoSansSC-Medium", size: 11)
 }
 
-enum MarkKind { case film, hardDrive, resolution, plus, bolt, shield, folder, trash, scissors, crop, rotate, chevron, ellipsis, info }
+enum MarkKind { case film, hardDrive, resolution, plus, bolt, shield, healthCheck, refresh, folder, trash, scissors, crop, rotate, chevron, ellipsis, info }
 
 /// Original geometric marks drawn in SwiftUI; no third-party icon assets are used.
 struct Mark: View {
@@ -83,9 +83,31 @@ struct Mark: View {
                     }.fill(color)
                 case .shield:
                     Path { path in
-                        path.move(to: CGPoint(x: side * 0.50, y: side * 0.08)); path.addLine(to: CGPoint(x: side * 0.82, y: side * 0.21)); path.addLine(to: CGPoint(x: side * 0.77, y: side * 0.62)); path.addLine(to: CGPoint(x: side * 0.50, y: side * 0.88)); path.addLine(to: CGPoint(x: side * 0.23, y: side * 0.62)); path.addLine(to: CGPoint(x: side * 0.18, y: side * 0.21)); path.closeSubpath()
+                        path.move(to: CGPoint(x: side * 0.50, y: side * 0.09)); path.addLine(to: CGPoint(x: side * 0.80, y: side * 0.21)); path.addLine(to: CGPoint(x: side * 0.76, y: side * 0.60)); path.addLine(to: CGPoint(x: side * 0.50, y: side * 0.87)); path.addLine(to: CGPoint(x: side * 0.24, y: side * 0.60)); path.addLine(to: CGPoint(x: side * 0.20, y: side * 0.21)); path.closeSubpath()
                     }.stroke(color, style: line)
-                    Circle().fill(color).frame(width: side * 0.12, height: side * 0.12)
+                    Path { path in
+                        path.move(to: CGPoint(x: side * 0.35, y: side * 0.49)); path.addLine(to: CGPoint(x: side * 0.46, y: side * 0.60)); path.addLine(to: CGPoint(x: side * 0.66, y: side * 0.39))
+                    }.stroke(color, style: line)
+                case .healthCheck:
+                    RoundedRectangle(cornerRadius: side * 0.18, style: .continuous)
+                        .stroke(color, style: line)
+                        .padding(side * 0.12)
+                    Path { path in
+                        path.move(to: CGPoint(x: side * 0.24, y: side * 0.54)); path.addLine(to: CGPoint(x: side * 0.37, y: side * 0.54))
+                        path.addLine(to: CGPoint(x: side * 0.46, y: side * 0.36)); path.addLine(to: CGPoint(x: side * 0.57, y: side * 0.67))
+                        path.addLine(to: CGPoint(x: side * 0.67, y: side * 0.46)); path.addLine(to: CGPoint(x: side * 0.77, y: side * 0.46))
+                    }.stroke(color, style: line)
+                case .refresh:
+                    Path { path in
+                        path.move(to: CGPoint(x: side * 0.22, y: side * 0.48))
+                        path.addCurve(to: CGPoint(x: side * 0.78, y: side * 0.42), control1: CGPoint(x: side * 0.37, y: side * 0.14), control2: CGPoint(x: side * 0.66, y: side * 0.15))
+                        path.move(to: CGPoint(x: side * 0.78, y: side * 0.42)); path.addLine(to: CGPoint(x: side * 0.64, y: side * 0.30))
+                        path.move(to: CGPoint(x: side * 0.78, y: side * 0.42)); path.addLine(to: CGPoint(x: side * 0.62, y: side * 0.51))
+                        path.move(to: CGPoint(x: side * 0.78, y: side * 0.57))
+                        path.addCurve(to: CGPoint(x: side * 0.22, y: side * 0.59), control1: CGPoint(x: side * 0.64, y: side * 0.89), control2: CGPoint(x: side * 0.35, y: side * 0.88))
+                        path.move(to: CGPoint(x: side * 0.22, y: side * 0.59)); path.addLine(to: CGPoint(x: side * 0.36, y: side * 0.47))
+                        path.move(to: CGPoint(x: side * 0.22, y: side * 0.59)); path.addLine(to: CGPoint(x: side * 0.38, y: side * 0.69))
+                    }.stroke(color, style: line)
                 case .folder:
                     Path { path in
                         path.move(to: CGPoint(x: side * 0.10, y: side * 0.30)); path.addLine(to: CGPoint(x: side * 0.42, y: side * 0.30)); path.addLine(to: CGPoint(x: side * 0.50, y: side * 0.20)); path.addLine(to: CGPoint(x: side * 0.72, y: side * 0.20)); path.addLine(to: CGPoint(x: side * 0.86, y: side * 0.34)); path.addLine(to: CGPoint(x: side * 0.86, y: side * 0.78)); path.addLine(to: CGPoint(x: side * 0.10, y: side * 0.78)); path.closeSubpath()
