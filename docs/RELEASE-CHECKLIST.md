@@ -16,6 +16,9 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 - [ ] Verify all FFmpeg and ffprobe invocations use argument arrays, `-nostdin`, and the documented executable locations. Do not add shell interpolation for file paths.
 - [ ] Test conversion, cancellation, lossless merge, compatible merge, and a denied output folder. Confirm source files remain unchanged and ordinary failures remove `.partial.mp4` files.
 - [ ] Test files with spaces, quotes, Unicode, long names, and line breaks. Lossless Merge must reject line-break filenames; normal conversion must not use a shell.
+- [ ] Run `./Scripts/run-media-regression.sh`; retain the command output with the private release record, not the generated media.
+- [ ] Complete the real-device matrix in [MEDIA-REGRESSION.md](MEDIA-REGRESSION.md), including VFR, portrait/rotation metadata, audio/subtitle policies, HDR behaviour, long inputs, damaged inputs, unusual dimensions, and output-storage failures.
+- [ ] Confirm the app names the planned conversion route and does not imply that secondary audio, subtitles, metadata, chapters, or HDR were retained when its selected route removes or changes them.
 - [ ] Run a clean-machine test with a trusted separately installed FFmpeg build. Record the FFmpeg version in release validation notes.
 
 ## Licences, copyright, and content

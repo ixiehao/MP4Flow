@@ -16,3 +16,4 @@ dist/
 *.provisionprofile
 MP4Flow.app/Contents/MacOS/MP4Flow
 MP4Flow.app/Contents/Resources/
+Tests/.generated/

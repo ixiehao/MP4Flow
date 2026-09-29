@@ -10,7 +10,7 @@ Beyond MP4 conversion, use MP4Flow to trim clips, crop the frame, and rotate vid
 
 *Add a video, make quick edits, and convert it locally.*
 
-[中文说明](README.zh-CN.md) · [Installer guide](docs/INSTALLER-BUILD.md) · [Release checklist](docs/RELEASE-CHECKLIST.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md)
+[中文说明](README.zh-CN.md) · [Installer guide](docs/INSTALLER-BUILD.md) · [Media regression](docs/MEDIA-REGRESSION.md) · [Release checklist](docs/RELEASE-CHECKLIST.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md)
 
 ## Highlights
 
@@ -56,6 +56,20 @@ open MP4Flow.app
 ```
 
 The generated app is ad-hoc signed for local development. See [docs/INSTALLER-BUILD.md](docs/INSTALLER-BUILD.md) to create a distributable DMG.
+
+## Media regression
+
+With FFmpeg installed, run the synthetic media suite before a release:
+
+```sh
+./Scripts/run-media-regression.sh
+```
+
+It creates and removes tiny project-owned fixtures for H.264, HEVC, VFR,
+portrait video, audio/subtitle variants, rotation, HDR signalling, unusual
+dimensions, long-duration scheduling, special file names, and corrupt input.
+See [the media regression gate](docs/MEDIA-REGRESSION.md) for its limits and
+the real-device matrix required for a public release.
 
 ## Dependencies and licensing
 

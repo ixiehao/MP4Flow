@@ -10,7 +10,7 @@ MP4Flow 将常见视频格式转换为易播放的 MP4。它把复杂的编码�
 
 *添加视频、快速剪辑、裁切或旋转，然后在本地转换。*
 
-[English](README.md) · [安装包构建](docs/INSTALLER-BUILD.md) · [发布检查清单](docs/RELEASE-CHECKLIST.md) · [隐私](PRIVACY.md) · [安全](SECURITY.md)
+[English](README.md) · [安装包构建](docs/INSTALLER-BUILD.md) · [媒体回归测试](docs/MEDIA-REGRESSION.md) · [发布检查清单](docs/RELEASE-CHECKLIST.md) · [隐私](PRIVACY.md) · [安全](SECURITY.md)
 
 ## 功能特点
 
@@ -56,6 +56,16 @@ open MP4Flow.app
 ```
 
 本地构建的应用使用 ad-hoc 签名。制作可发布的 DMG，请查看 [安装包构建说明](docs/INSTALLER-BUILD.md)。
+
+## 媒体回归测试
+
+安装 FFmpeg 后，发布前可运行合成媒体测试：
+
+```sh
+./Scripts/run-media-regression.sh
+```
+
+它会临时生成并在结束后删除很小的项目自有测试素材，覆盖 H.264、HEVC、可变帧率、竖屏、音轨/字幕变体、旋转、HDR 标记、异常尺寸、长时长调度、特殊文件名和损坏输入。公开发布前仍须按[媒体回归门槛](docs/MEDIA-REGRESSION.md)完成真机测试。
 
 ## 依赖与许可
 

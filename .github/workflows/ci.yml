@@ -15,3 +15,7 @@ jobs:
         run: swift build -c release
       - name: Validate localizations and metadata
         run: ./Scripts/validate-localizations.sh
+      - name: Install synthetic-media test dependency
+        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Run synthetic media regression matrix
+        run: ./Scripts/run-media-regression.sh
