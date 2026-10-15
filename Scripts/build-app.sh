@@ -23,6 +23,12 @@ cp AppResources/NotoSansSC-Variable.ttf "$APP_PATH/Contents/Resources/Fonts/Noto
 cp AppResources/OFL.txt "$APP_PATH/Contents/Resources/Fonts/OFL.txt"
 cp AppResources/ASSET_NOTICES.md "$APP_PATH/Contents/Resources/ASSET_NOTICES.md"
 cp -R AppResources/en.lproj AppResources/zh-Hans.lproj "$APP_PATH/Contents/Resources/"
+# SwiftPM places the curated Tabler Outline SVGs in a resource bundle. Keep it
+# alongside the executable so AppKit can render the vectors at every scale.
+for resource_bundle in .build/release/*.bundle; do
+  [[ -e "$resource_bundle" ]] || continue
+  cp -R "$resource_bundle" "$APP_PATH/Contents/Resources/"
+done
 # Resource forks and Finder attributes create AppleDouble files in ordinary ZIPs,
 # invalidating the sealed code signature after extraction.
 xattr -cr "$APP_PATH" 2>/dev/null || true

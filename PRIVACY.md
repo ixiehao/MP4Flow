@@ -11,7 +11,8 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 ## Update checks
 
 - MP4Flow can check `https://api.github.com/repos/ixiehao/MP4Flow/releases/latest` for the latest stable release. The request includes only a fixed MP4Flow User-Agent and normal network metadata handled by GitHub and the network connection; it does not include video content, file paths, conversion settings, account data, or usage data.
-- Checks run at most once every 12 hours while the app is open, or when you explicitly choose **Check for Updates**. A found update opens its public GitHub release page only when you choose to download it.
+- Automatic checks are enabled by default, but the first launch stays offline. From a later launch, MP4Flow checks at most once per day; a temporary failure backs off for one hour. You can turn automatic checks off in **Settings** and still use **Help > Check for Updates** at any time.
+- A found update only opens its public GitHub release page when you choose to view it. MP4Flow never downloads, installs, or executes an update automatically.
 
 ## Files created locally
 

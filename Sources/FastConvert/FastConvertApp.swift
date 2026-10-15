@@ -28,17 +28,21 @@ struct MP4FlowApp: App {
                     appDelegate.showHelpPanel(updateChecker: updateChecker)
                 }
                 Divider()
-                Button(updateChecker.hasUpdate ? L10n.format("发现新版本 v%@", updateChecker.availableUpdate?.version ?? "") : L10n.text("检查更新…")) {
+                Button(updateChecker.hasUpdate ? L10n.format("发现新版本 v%@", updateChecker.availableUpdate?.version ?? "") : (updateChecker.isChecking ? L10n.text("正在检查…") : L10n.text("检查更新…"))) {
                     if updateChecker.hasUpdate {
                         updateChecker.openDownloadPage()
                     } else {
-                        Task { _ = await updateChecker.checkForUpdate(force: true) }
+                        appDelegate.requestManualUpdateCheck?()
                     }
                 }
+                .disabled(updateChecker.isChecking)
                 Divider()
                 Button(L10n.text("在 GitHub 查看项目")) { NSWorkspace.shared.open(ProjectLinks.repository) }
                 Button(L10n.text("反馈问题或建议")) { NSWorkspace.shared.open(ProjectLinks.issues) }
             }
+        }
+        Settings {
+            UpdateSettingsView(updateChecker: updateChecker)
         }
     }
 }
@@ -90,6 +94,7 @@ private enum AboutCredits {
 @MainActor
 final class MP4FlowAppDelegate: NSObject, NSApplicationDelegate {
     var openMainWindow: (() -> Void)?
+    var requestManualUpdateCheck: (() -> Void)?
     private var helpWindow: NSWindow?
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
@@ -191,9 +196,13 @@ private struct HelpPanel: View {
                     Text(L10n.format("发现新版本 v%@", update.version))
                         .font(.system(size: 13, weight: .semibold))
                     Spacer()
-                    Button(L10n.text("下载更新")) { updateChecker.openDownloadPage() }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
+                    Button { updateChecker.openDownloadPage() } label: {
+                        HStack(spacing: 5) {
+                            TablerIcon(name: .download, color: .white).frame(width: 13, height: 13)
+                            Text(L10n.text("下载更新"))
+                        }
+                    }
+                    .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 86, height: 32))
                 }
                 .padding(10)
                 .background(BrandColor.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -222,14 +231,107 @@ private struct HelpPanel: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
-                Link(L10n.text("在 GitHub 查看项目"), destination: ProjectLinks.repository)
-                    .buttonStyle(.bordered)
-                Link(L10n.text("反馈问题或建议"), destination: ProjectLinks.issues)
-                    .buttonStyle(.bordered)
+                Button { NSWorkspace.shared.open(ProjectLinks.repository) } label: {
+                    HStack(spacing: 5) {
+                        TablerIcon(name: .externalLink, color: BrandColor.textPrimary).frame(width: 13, height: 13)
+                        Text(L10n.text("在 GitHub 查看项目"))
+                    }
+                }
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 126, height: 32))
+                Button { NSWorkspace.shared.open(ProjectLinks.issues) } label: {
+                    HStack(spacing: 5) {
+                        TablerIcon(name: .externalLink, color: BrandColor.textPrimary).frame(width: 13, height: 13)
+                        Text(L10n.text("反馈问题或建议"))
+                    }
+                }
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 126, height: 32))
             }
         }
         .padding(24)
         .frame(width: 520)
+    }
+}
+
+private struct UpdateSettingsView: View {
+    @ObservedObject var updateChecker: UpdateChecker
+    @AppStorage(UpdateCheckSchedule.automaticChecksEnabledKey) private var automaticallyCheckForUpdates = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 11) {
+                TablerIcon(name: .download, color: BrandColor.blue)
+                    .frame(width: 20, height: 20)
+                    .padding(8)
+                    .background(BrandColor.blue.opacity(0.09), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.text("更新设置"))
+                        .font(.system(size: 17, weight: .bold))
+                    Text(L10n.text("更新不会自动下载或安装。"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(BrandColor.textSecondary)
+                }
+            }
+
+            Toggle(L10n.text("自动检查更新"), isOn: $automaticallyCheckForUpdates)
+                .toggleStyle(.switch)
+
+            Text(automaticallyCheckForUpdates
+                 ? L10n.text("首次启动不联网；从第二次启动起，每天最多检查一次 GitHub 公开发布信息。")
+                 : L10n.text("自动检查已关闭。你仍可随时通过“帮助 > 检查更新”手动检查。"))
+                .font(.system(size: 12))
+                .foregroundStyle(BrandColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Divider()
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(updateChecker.isChecking ? BrandColor.warning : BrandColor.success)
+                    .frame(width: 8, height: 8)
+                Text(updateChecker.isChecking ? L10n.text("正在检查更新…") : L10n.text("更新检查只读取 GitHub 公开发布信息，不上传视频或使用数据。"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(BrandColor.textSecondary)
+            }
+        }
+        .padding(24)
+        .frame(width: 460, alignment: .leading)
+    }
+}
+
+private struct UpdateAvailableBanner: View {
+    @ObservedObject var updateChecker: UpdateChecker
+
+    var body: some View {
+        if let update = updateChecker.availableUpdate, updateChecker.shouldShowUpdateBanner {
+            HStack(spacing: 12) {
+                TablerIcon(name: .download, color: BrandColor.blue)
+                    .frame(width: 18, height: 18)
+                    .padding(7)
+                    .background(BrandColor.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.format("发现新版本 v%@", update.version))
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(L10n.text("可在 GitHub Release 查看更新说明并下载。"))
+                        .font(.system(size: 11))
+                        .foregroundStyle(BrandColor.textSecondary)
+                }
+                Spacer(minLength: 12)
+                Button(L10n.text("查看更新与下载")) {
+                    updateChecker.openDownloadPage()
+                }
+                .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 126, height: 32))
+                Button(L10n.text("暂不提醒此版本")) {
+                    updateChecker.dismissAvailableUpdateBanner()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(BrandColor.textSecondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(BrandColor.blue.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(BrandColor.blue.opacity(0.22), lineWidth: 1) }
+        }
     }
 }
 
@@ -252,6 +354,8 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            UpdateAvailableBanner(updateChecker: updateChecker)
+                .padding(.bottom, updateChecker.shouldShowUpdateBanner ? 12 : 0)
             configuration
             queue
             footer
@@ -267,7 +371,8 @@ struct ContentView: View {
         .font(AppFont.body)
         .onAppear {
             appDelegate.openMainWindow = { openWindow(id: "main") }
-            Task { _ = await updateChecker.checkForUpdate() }
+            appDelegate.requestManualUpdateCheck = checkForUpdates
+            Task { _ = await updateChecker.checkAtLaunchIfEligible() }
             refreshDependencyHealth()
         }
         .onChange(of: store.outputDirectory) { _ in refreshDependencyHealth() }
@@ -328,6 +433,7 @@ struct ContentView: View {
     }
 
     private func checkForUpdates() {
+        guard !updateChecker.isChecking else { return }
         Task { @MainActor in
             let result = await updateChecker.checkForUpdate(force: true)
             switch result {
@@ -340,6 +446,8 @@ struct ContentView: View {
             case .failed:
                 updateNoticeMessage = L10n.text("暂时无法检查更新。请确认网络连接，或稍后重试。")
                 updateDownloadURL = nil
+            case .checking:
+                return
             }
             showUpdateNotice = true
         }
@@ -371,7 +479,7 @@ struct ContentView: View {
                     } label: {
                         HStack(spacing: 8) {
                             if (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault) == language {
-                                Image(systemName: "checkmark").frame(width: 14)
+                                TablerIcon(name: .check, color: BrandColor.blue).frame(width: 14, height: 14)
                             } else {
                                 Color.clear.frame(width: 14, height: 14)
                             }
@@ -381,8 +489,8 @@ struct ContentView: View {
                 }
             } label: {
                 HStack(spacing: 5) {
-                    Image(systemName: "globe")
-                        .font(.system(size: 13, weight: .medium))
+                    TablerIcon(name: .language, color: BrandColor.textSecondary)
+                        .frame(width: 14, height: 14)
                     Text((AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).displayName)
                         .font(AppFont.captionMedium)
                 }
@@ -492,7 +600,10 @@ struct ContentView: View {
     private func configurationColumn<Content: View>(title: String, mark: MarkKind, width: CGFloat, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Mark(kind: mark, color: BrandColor.icon).frame(width: 20, height: 20)
+                Mark(kind: mark, color: BrandColor.blue)
+                    .frame(width: 18, height: 18)
+                    .padding(5)
+                    .background(BrandColor.blue.opacity(0.085), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 Text(L10n.text(title)).font(AppFont.section)
             }
             content()
@@ -573,7 +684,7 @@ struct ContentView: View {
             Button { store.chooseFiles() } label: {
                 HStack(spacing: 7) { Mark(kind: .plus, color: .white).frame(width: 14, height: 14); Text(L10n.text("添加视频")).font(AppFont.medium) }
             }
-            .buttonStyle(.borderedProminent).tint(BrandColor.blue).controlSize(.large)
+            .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 132, height: 38))
         }
         .frame(maxWidth: .infinity, minHeight: 220)
     }
@@ -606,10 +717,11 @@ struct ContentView: View {
                                 .foregroundStyle(BrandColor.blue)
                                 .accessibilityLabel(L10n.format("发现新版本 v%@", update.version))
                         } else {
-                            Button(L10n.text("检查更新")) { checkForUpdates() }
+                            Button(updateChecker.isChecking ? L10n.text("正在检查…") : L10n.text("检查更新")) { checkForUpdates() }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(BrandColor.blue)
                                 .accessibilityLabel(L10n.format("检查更新，当前版本 v%@", appVersion))
+                                .disabled(updateChecker.isChecking)
                         }
                     }
                     .font(AppFont.caption)
@@ -618,19 +730,22 @@ struct ContentView: View {
             }
             Spacer()
             Button(L10n.text("清空列表")) { store.clearQueue() }
-                .buttonStyle(.bordered).controlSize(.large)
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36))
                 .disabled(store.isBusy || store.items.isEmpty)
             Button(L10n.format("清理已完成（%d）", completedCount)) { store.clearCompleted() }
-                .buttonStyle(.bordered).controlSize(.large).disabled(!store.hasCompleted)
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 124, height: 36)).disabled(!store.hasCompleted)
             Button(L10n.text("重排失败项")) { store.retryIncomplete() }
-                .buttonStyle(.bordered).controlSize(.large).disabled(store.isBusy || !store.hasIncomplete)
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 108, height: 36)).disabled(store.isBusy || !store.hasIncomplete)
             Button(L10n.format("合并（%d）", store.mergeDisplayCount)) { store.mergeWaitingItems() }
-                .buttonStyle(.bordered).controlSize(.large)
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36))
                 .disabled(!store.canMerge)
             if store.isRunning {
-                Button(L10n.text("取消任务")) { store.cancel() }.buttonStyle(.bordered).controlSize(.large)
+                Button(L10n.text("取消任务")) { store.cancel() }
+                    .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36))
             } else {
-                Button(L10n.text(store.isMerging ? "正在合并" : "开始转换")) { store.start() }.buttonStyle(.borderedProminent).tint(BrandColor.blue).controlSize(.large).disabled(store.isBusy || !store.hasWaiting)
+                Button(L10n.text(store.isMerging ? "正在合并" : "开始转换")) { store.start() }
+                    .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 112, height: 36))
+                    .disabled(store.isBusy || !store.hasWaiting)
             }
         }
         .padding(.top, 14)
@@ -659,10 +774,53 @@ private struct PrimaryActionButtonStyle: ButtonStyle {
         configuration.label
             .foregroundStyle(.white)
             .frame(width: 132, height: 36)
-            .background(isEnabled ? (configuration.isPressed ? BrandColor.bluePressed : BrandColor.blue) : BrandColor.blueDisabled)
-            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .background(
+                isEnabled
+                    ? (configuration.isPressed
+                        ? AnyShapeStyle(BrandColor.bluePressed)
+                        : AnyShapeStyle(LinearGradient(colors: [BrandColor.blue, BrandColor.blue.opacity(0.88)], startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    : AnyShapeStyle(BrandColor.blueDisabled),
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+            .overlay { RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.white.opacity(0.24), lineWidth: 1) }
+            .shadow(color: isEnabled ? BrandColor.blue.opacity(configuration.isPressed ? 0.08 : 0.24) : .clear, radius: 7, y: 3)
             .opacity(isEnabled ? 1 : 0.76)
-            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+/// Shared action style for the footer and empty state. It removes AppKit's
+/// inconsistent button chrome while keeping clear primary/secondary hierarchy.
+private struct AppActionButtonStyle: ButtonStyle {
+    let primary: Bool
+    let minWidth: CGFloat
+    let height: CGFloat
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.medium)
+            .foregroundStyle(primary ? Color.white : (isEnabled ? BrandColor.textPrimary : BrandColor.textSecondary))
+            .lineLimit(1)
+            .padding(.horizontal, 14)
+            .frame(minWidth: minWidth, minHeight: height)
+            .background(background(isPressed: configuration.isPressed), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(primary ? Color.white.opacity(0.23) : BrandColor.selectStroke, lineWidth: 1)
+            }
+            .shadow(color: primary && isEnabled ? BrandColor.blue.opacity(configuration.isPressed ? 0.08 : 0.22) : .black.opacity(configuration.isPressed ? 0 : 0.035), radius: primary ? 7 : 2, y: primary ? 3 : 1)
+            .opacity(isEnabled ? 1 : 0.48)
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private func background(isPressed: Bool) -> AnyShapeStyle {
+        if primary {
+            if isPressed { return AnyShapeStyle(BrandColor.bluePressed) }
+            return AnyShapeStyle(LinearGradient(colors: [BrandColor.blue, BrandColor.blue.opacity(0.88)], startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        return AnyShapeStyle(isPressed ? BrandColor.selectHover : BrandColor.surface)
     }
 }
 
@@ -1078,17 +1236,20 @@ private struct QueueActionButton: View {
     let title: String
     var isDisabled = false
     let action: () -> Void
+    @State private var isHovering = false
 
     var body: some View {
         Button(action: action) {
             Mark(kind: mark, color: isDisabled ? BrandColor.icon.opacity(0.35) : BrandColor.icon)
                 .frame(width: 16, height: 16)
-                .frame(width: 28, height: 28)
-                .background(BrandColor.canvas, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.stroke, lineWidth: 1) }
+                .frame(width: 30, height: 30)
+                .background(isHovering && !isDisabled ? BrandColor.selectHover : BrandColor.canvas, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(isHovering && !isDisabled ? BrandColor.selectHoverStroke : BrandColor.stroke, lineWidth: 1) }
+                .shadow(color: isHovering && !isDisabled ? BrandColor.blue.opacity(0.11) : .clear, radius: 4, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+        .onHover { isHovering = $0 }
         .help(L10n.text(title))
         .accessibilityLabel(L10n.text(title))
     }
@@ -1099,17 +1260,20 @@ private struct QueueRotationMenu: View {
     let isDisabled: Bool
     let select: (VideoRotation?) -> Void
     @State private var isPresented = false
+    @State private var isHovering = false
 
     var body: some View {
         Button { isPresented.toggle() } label: {
             Mark(kind: .rotate, color: isDisabled ? BrandColor.icon.opacity(0.35) : (current == nil ? BrandColor.icon : BrandColor.blue))
                 .frame(width: 16, height: 16)
-                .frame(width: 28, height: 28)
-                .background(current == nil ? BrandColor.canvas : BrandColor.selectHover, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(current == nil ? BrandColor.stroke : BrandColor.selectHoverStroke, lineWidth: 1) }
+                .frame(width: 30, height: 30)
+                .background(current == nil && !isHovering ? BrandColor.canvas : BrandColor.selectHover, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(current == nil && !isHovering ? BrandColor.stroke : BrandColor.selectHoverStroke, lineWidth: 1) }
+                .shadow(color: (current != nil || isHovering) && !isDisabled ? BrandColor.blue.opacity(0.11) : .clear, radius: 4, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
+        .onHover { isHovering = $0 }
         .help(L10n.text("旋转视频"))
         .accessibilityLabel(L10n.text("旋转视频"))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
@@ -1923,9 +2087,9 @@ private struct CropPlaybackControls: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            transportButton(systemName: "gobackward.5") { move(by: -5) }
-            transportButton(systemName: isPlaying ? "pause.fill" : "play.fill") { togglePlayback() }
-            transportButton(systemName: "goforward.5") { move(by: 5) }
+            transportButton(icon: .playerSkipBack) { move(by: -5) }
+            transportButton(icon: isPlaying ? .playerPause : .playerPlay) { togglePlayback() }
+            transportButton(icon: .playerSkipForward) { move(by: 5) }
 
             Text(timeText(currentTime))
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -1938,9 +2102,8 @@ private struct CropPlaybackControls: View {
                 .foregroundStyle(BrandColor.textSecondary)
                 .frame(width: 48, alignment: .leading)
 
-            Image(systemName: "speaker.wave.2.fill")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(BrandColor.icon)
+            TablerIcon(name: .volume, color: BrandColor.icon)
+                .frame(width: 15, height: 15)
             Slider(value: Binding(get: { Double(volume) }, set: { value in
                 volume = Float(value)
                 player?.volume = volume
@@ -1956,12 +2119,11 @@ private struct CropPlaybackControls: View {
         .onDisappear { removeTimeObserver() }
     }
 
-    private func transportButton(systemName: String, action: @escaping () -> Void) -> some View {
+    private func transportButton(icon: TablerIconName, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 12, weight: .semibold))
+            TablerIcon(name: icon, color: BrandColor.textPrimary)
+                .frame(width: 16, height: 16)
                 .frame(width: 20, height: 24)
-                .foregroundStyle(BrandColor.textPrimary)
         }
         .buttonStyle(.plain)
     }

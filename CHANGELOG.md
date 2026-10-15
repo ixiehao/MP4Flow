@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.2 — 2026-10-15
+
+### English
+
+- Refined update reminders: the first launch stays offline, automatic checks are persisted and limited to once per day, and Settings can disable them. New releases now have a dismissible in-app banner, while manual checks consistently report available, current, or failed status.
+- Added update-check regression coverage for semantic versions, trusted release URLs, draft/prerelease filtering, daily backoff, HTTP failures, and timeouts. Updates remain a user-approved visit to the GitHub Release page; they are never downloaded or installed automatically.
+- Standardised interface symbols on the bundled Tabler Icons Outline set and refined shared controls for a more consistent macOS experience.
+
+### 中文
+
+- 完善更新提醒：首次启动不联网，自动检查会持久化并限制为每天最多一次，也可在“设置”中关闭。发现新版本时显示可隐藏的应用内提示；手动检查会一致地反馈有更新、已是最新或检查失败。
+- 新增更新检查回归测试，覆盖版本比较、受信任发布链接、草稿/预发布过滤、每日节流、HTTP 失败和超时。更新仍需用户确认后打开 GitHub Release 页面，不会自动下载或安装。
+- 统一使用随应用内置的 Tabler Icons Outline 图标，并优化共享控件的视觉一致性。
+
 ## 1.1.1 — 2026-09-29
 
 ### English

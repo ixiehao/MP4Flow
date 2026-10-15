@@ -306,9 +306,9 @@ struct DependencyHealthStatusBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Circle()
-                .fill(color(for: monitor.report.overallLevel))
-                .frame(width: 8, height: 8)
+            TablerIcon(name: statusIcon(for: monitor.report.overallLevel), color: color(for: monitor.report.overallLevel))
+                .frame(width: 15, height: 15)
+                .rotationEffect(monitor.isChecking ? .degrees(-75) : .zero)
             Text(compactSummary)
                 .font(AppFont.caption)
                 .foregroundStyle(BrandColor.textSecondary)
@@ -335,11 +335,11 @@ struct DependencyHealthStatusBar: View {
             .help(L10n.text("重新检查"))
             .accessibilityLabel(L10n.text("重新检查"))
         }
-        .padding(.horizontal, 14)
-        .frame(height: 42)
-        .background(backgroundColor, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .background(backgroundColor, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(color(for: monitor.report.overallLevel).opacity(0.24), lineWidth: 1)
         }
         .sheet(isPresented: $isShowingDetails) {
@@ -377,9 +377,19 @@ struct DependencyHealthStatusBar: View {
     private func healthActionMark(_ kind: MarkKind) -> some View {
         Mark(kind: kind, color: BrandColor.blue)
             .frame(width: 15, height: 15)
-            .frame(width: 29, height: 28)
-            .background(BrandColor.blue.opacity(0.075), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .frame(width: 30, height: 30)
+            .background(BrandColor.blue.opacity(0.075), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.blue.opacity(0.10), lineWidth: 1) }
+            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+    }
+
+    private func statusIcon(for level: DependencyHealthLevel) -> TablerIconName {
+        switch level {
+        case .ready: .circleCheck
+        case .warning: .infoCircle
+        case .failed: .alertCircle
+        case .checking: .loader2
+        }
     }
 }
 
@@ -482,7 +492,9 @@ private struct DependencyHealthSheet: View {
     @ViewBuilder
     private func healthRow(title: String, level: DependencyHealthLevel, detail: String, fix: String?) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Circle().fill(color(for: level)).frame(width: 8, height: 8).padding(.top, 5)
+            TablerIcon(name: statusIcon(for: level), color: color(for: level))
+                .frame(width: 16, height: 16)
+                .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(AppFont.captionMedium)
                 Text(detail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
@@ -493,8 +505,9 @@ private struct DependencyHealthSheet: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(11)
-        .background(BrandColor.canvas, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .padding(12)
+        .background(BrandColor.canvas, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(BrandColor.stroke.opacity(0.72), lineWidth: 1) }
     }
 
     private func executableDetail(_ executable: ExecutableHealth) -> String {
@@ -535,6 +548,15 @@ private struct DependencyHealthSheet: View {
         default: return nil
         }
     }
+
+    private func statusIcon(for level: DependencyHealthLevel) -> TablerIconName {
+        switch level {
+        case .ready: .circleCheck
+        case .warning: .infoCircle
+        case .failed: .alertCircle
+        case .checking: .loader2
+        }
+    }
 }
 
 /// Matches the compact visual language used by MP4Flow's editor actions,
@@ -549,15 +571,16 @@ private struct HealthSheetActionButtonStyle: ButtonStyle {
             .foregroundStyle(primary ? Color.white : BrandColor.blue)
             .lineLimit(1)
             .padding(.horizontal, primary ? 14 : 12)
-            .frame(minHeight: 32)
-            .background(background(pressed: configuration.isPressed), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .frame(minHeight: 34)
+            .background(background(pressed: configuration.isPressed), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(primary ? Color.clear : BrandColor.selectStroke, lineWidth: 1)
             }
-            .shadow(color: primary ? BrandColor.blue.opacity(configuration.isPressed ? 0 : 0.16) : .black.opacity(0.035), radius: primary ? 4 : 1.5, y: primary ? 2 : 1)
+            .shadow(color: primary ? BrandColor.blue.opacity(configuration.isPressed ? 0 : 0.20) : .black.opacity(0.035), radius: primary ? 6 : 2, y: primary ? 3 : 1)
             .opacity(isEnabled ? 1 : 0.46)
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 
     private func background(pressed: Bool) -> Color {
