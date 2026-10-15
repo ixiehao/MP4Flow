@@ -77,5 +77,6 @@ the real-device matrix required for a public release.
 - FFmpeg is an external runtime dependency and is not bundled, downloaded, or licensed by the app. Its licence depends on the build you install.
 - Smart Enhance Upscale uses Apple's on-device VideoToolbox framework when it is supported by the current Mac and macOS. Its availability, supported factors, and model delivery are controlled by the operating system.
 - The bundled Noto Sans SC font is licensed under the [SIL Open Font License 1.1](AppResources/OFL.txt).
+- The app bundles a curated subset of [Tabler Icons Outline](https://github.com/tabler/tabler-icons) SVGs (v3.49.0) for its interface. They are used locally, without a runtime network dependency, under the [MIT License](AppResources/ASSET_NOTICES.md).
 
 See [NOTICE.md](NOTICE.md) for attribution, [PRIVACY.md](PRIVACY.md) for data handling, and [LICENSE](LICENSE) for the project license.
