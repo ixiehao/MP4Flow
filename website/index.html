@@ -6,14 +6,15 @@
     <meta name="theme-color" content="#071a3e" />
     <meta name="description" content="MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。智能转换、剪切、裁切、旋转，全部本地完成。" />
     <meta name="keywords" content="macOS 视频转 MP4, Mac 视频转换器, 智能转换, 视频剪切, 视频裁切, 视频旋转, 免费视频转换器, 开源视频转换器, FFmpeg, MP4Flow" />
+    <meta name="author" content="ixiehao" />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <link rel="canonical" href="https://ixiehao.github.io/MP4Flow/" />
+    <link id="canonical-url" rel="canonical" href="https://ixiehao.github.io/MP4Flow/" />
     <link rel="alternate" hreflang="zh-CN" href="https://ixiehao.github.io/MP4Flow/" />
     <link rel="alternate" hreflang="en" href="https://ixiehao.github.io/MP4Flow/?lang=en" />
     <link rel="alternate" hreflang="ja" href="https://ixiehao.github.io/MP4Flow/?lang=ja" />
     <link rel="alternate" hreflang="x-default" href="https://ixiehao.github.io/MP4Flow/" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ixiehao.github.io/MP4Flow/" />
+    <meta id="og-url" property="og:url" content="https://ixiehao.github.io/MP4Flow/" />
     <meta property="og:site_name" content="MP4Flow" />
     <meta property="og:locale" content="zh_CN" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -35,19 +36,22 @@
     <link rel="icon" type="image/png" sizes="1024x1024" href="assets/mp4flow-app-icon.png" />
     <link rel="apple-touch-icon" href="assets/mp4flow-app-icon.png" />
     <link rel="stylesheet" href="styles.css?v=20261016.4" />
-    <script type="application/ld+json">
+    <script id="software-schema" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
+        "@id": "https://ixiehao.github.io/MP4Flow/#software",
         "name": "MP4Flow",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "macOS 13 or later",
         "description": "A free and open-source native macOS video-to-MP4 converter with Smart Convert, trim, crop, rotate, and local processing.",
         "url": "https://ixiehao.github.io/MP4Flow/",
         "downloadUrl": "https://github.com/ixiehao/MP4Flow/releases/latest",
+        "codeRepository": "https://github.com/ixiehao/MP4Flow",
         "license": "https://github.com/ixiehao/MP4Flow/blob/main/LICENSE",
         "isAccessibleForFree": true,
         "inLanguage": ["zh-CN", "en", "ja"],
+        "author": { "@type": "Person", "name": "ixiehao", "url": "https://github.com/ixiehao" },
         "featureList": "Smart video conversion, trim, crop, rotate, batch conversion, local processing, and Apple VideoToolbox acceleration.",
         "offers": {
           "@type": "Offer",
