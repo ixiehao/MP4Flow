@@ -58,5 +58,8 @@ hdiutil detach "$VALIDATION_DEVICE" -quiet
 VALIDATION_DEVICE=""
 rmdir "$VALIDATION_MOUNT"
 VALIDATION_MOUNT=""
-shasum -a 256 "$DMG_PATH" > "$DMG_PATH.sha256"
+(
+  cd "$OUTPUT_DIR"
+  shasum -a 256 "$(basename "$DMG_PATH")" > "$(basename "$DMG_PATH").sha256"
+)
 printf 'Created %s\n' "$DMG_PATH"
