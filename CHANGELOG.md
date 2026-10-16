@@ -1,18 +1,18 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-10-16
 
 ### English
 
-- Added a complete Japanese experience: app language selection and system-language detection, bundled Japanese resources, a Japanese website view, Japanese documentation, and Japanese release-note coverage.
+- Added a complete Japanese experience: app language selection and system-language detection, bundled Japanese resources, a Japanese website view, Japanese documentation, and Japanese release-note coverage. Existing English and Simplified Chinese choices and video-processing behaviour are unchanged.
 
 ### 日本語
 
-- 日本語での利用体験を追加しました。アプリの言語選択とシステム言語の検出、日本語リソースの同梱、日本語の公式サイト、日本語ドキュメント、日本語のリリースノートを含みます。
+- 日本語での利用体験を追加しました。アプリの言語選択とシステム言語の検出、日本語リソースの同梱、日本語の公式サイト、日本語ドキュメント、日本語のリリースノートを含みます。既存の英語・簡体字中国語の選択肢と動画処理の動作は変わりません。
 
 ### 中文
 
-- 新增完整日文支持：应用语言选择与系统语言识别、日文资源随应用打包、官网日文页面、日文文档与日文版本说明。
+- 新增完整日文支持：应用语言选择与系统语言识别、日文资源随应用打包、官网日文页面、日文文档与日文版本说明；原有英语、简体中文选择和视频处理行为保持不变。
 
 ## 1.1.2 — 2026-10-15
 
