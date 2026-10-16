@@ -1,4 +1,4 @@
-# Download and install / 下载与安装
+# Download and install / ダウンロードとインストール / 下载与安装
 
 ## English
 
@@ -27,6 +27,34 @@ cat MP4Flow-<version>.dmg.sha256
 ```
 
 The two SHA-256 values must match. If they do not, delete the DMG and download it again from the [official Releases page](https://github.com/ixiehao/MP4Flow/releases/latest).
+
+## 日本語
+
+### MP4Flow をダウンロード
+
+1. [GitHub Releases](https://github.com/ixiehao/MP4Flow/releases/latest)から現在の `.dmg` をダウンロードします。同じページに対応する `.sha256` ファイルもあります。
+2. DMG を開き、**MP4Flow** を **Applications** にドラッグします。
+3. アプリが必要とする2つのローカル動画ツールをインストールします。
+
+   ```sh
+   brew install ffmpeg
+   ```
+
+4. MP4Flow を開き、**環境チェック** を使います。`ffmpeg` と `ffprobe` の両方が見つかることと、利用可能なハードウェアエンコーダを確認できます。
+
+MP4Flow は、Appleシリコンと Intel Mac の macOS 13 Ventura 以降に対応しています。処理はローカルで行われ、動画をアップロードしたりアカウントを要求したりすることはありません。
+
+### ダウンロードを確認する（任意）
+
+リリースをダウンロードした後、ターミナルで次のコマンドを実行します。ファイル名はダウンロードしたバージョンに置き換えてください。
+
+```sh
+cd ~/Downloads
+shasum -a 256 MP4Flow-<version>.dmg
+cat MP4Flow-<version>.dmg.sha256
+```
+
+2つの SHA-256 値は一致している必要があります。一致しない場合は DMG を削除し、[公式 Releases ページ](https://github.com/ixiehao/MP4Flow/releases/latest)からもう一度ダウンロードしてください。
 
 ## 中文
 

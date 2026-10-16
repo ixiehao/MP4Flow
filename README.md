@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/ixiehao/MP4Flow?style=flat)](https://github.com/ixiehao/MP4Flow/stargazers)
 
-[Download MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [中文说明](README.zh-CN.md) · [Report a problem](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+[Download MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [日本語](README.ja.md) · [中文说明](README.zh-CN.md) · [Report a problem](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
 MP4Flow converts common video files to playable MP4 **on your Mac**. It replaces codec jargon with clear choices: keep the original, save space, use a compatible format, trim, crop, rotate, or merge clips. Your videos are never uploaded, no account is required, and the app is free to use.
 
@@ -44,7 +44,7 @@ The release page and this repository are the official download locations. If you
 
 ## Highlights
 
-- **English and Simplified Chinese UI** — follows the system language on first launch and can be changed in the app.
+- **English, Japanese, and Simplified Chinese UI** — follows the system language on first launch and can be changed in the app.
 - **Fast when possible** — direct MP4 remuxing and stream-copy trimming avoid re-encoding; supported H.264/HEVC scaling uses Apple VideoToolbox.
 - **Clear choices** — Smart Convert, Clear and Compact, Preserve Original Quality, device-compatible H.264, smaller HEVC, and a software fallback.
 - **Resolution control** — keep original dimensions or convert to 1080p, 720p, 576p, or 480p while preserving aspect ratio. Upscaling enlarges the canvas, not missing detail.

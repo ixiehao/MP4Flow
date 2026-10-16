@@ -7,7 +7,7 @@
 [![许可证](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/ixiehao/MP4Flow?style=flat)](https://github.com/ixiehao/MP4Flow/stargazers)
 
-[下载 MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/) · [English](README.md) · [反馈问题](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+[下载 MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/) · [English](README.md) · [日本語](README.ja.md) · [反馈问题](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
 MP4Flow 将常见视频格式转换为易播放的 MP4，所有处理都在 **你的 Mac 本机** 完成。它把复杂的编码参数换成直观选择：保留原画、节省空间、兼容播放、剪辑、裁切、旋转和合并。无需登录、不会上传视频，且完全免费。
 
@@ -44,7 +44,7 @@ MP4Flow 将常见视频格式转换为易播放的 MP4，所有处理都在 **�
 
 ## 功能特点
 
-- **中英文界面**：首次启动跟随系统语言，也可在应用顶部手动切换。
+- **中文、英文、日文界面**：首次启动跟随系统语言，也可在应用顶部手动切换。
 - **能快则快**：可直接封装 MP4；兼容时剪辑不重新编码；符合条件的 H.264/HEVC 缩放使用 Apple VideoToolbox。
 - **好懂的转换选择**：智能转换、清晰又省空间、尽量保留原画、所有设备都能播放、节省更多空间、软件兼容模式。
 - **分辨率控制**：保持原画，或转为 1080P、720P、576P、480P，并保持原视频比例。放大只改变尺寸，不能补回不存在的细节。
@@ -103,5 +103,6 @@ open MP4Flow.app
 - FFmpeg 是外部运行时依赖，应用不会打包、下载或为其授权；其许可证取决于你安装的构建版本。
 - 智能增强放大在当前 Mac 与系统支持时调用 Apple VideoToolbox；可用性、支持倍率和模型交付均由操作系统控制。
 - 随应用提供的 Noto Sans SC 字体使用 [SIL Open Font License 1.1](AppResources/OFL.txt)。
+- 应用为界面内置了 [Tabler Icons Outline](https://github.com/tabler/tabler-icons) SVG 的精选子集（v3.49.0）；图标仅在本机使用、没有运行时网络依赖，并遵循 [MIT License](AppResources/ASSET_NOTICES.md)。
 
 请查看 [NOTICE.md](NOTICE.md)、[PRIVACY.md](PRIVACY.md) 和 [LICENSE](LICENSE)。

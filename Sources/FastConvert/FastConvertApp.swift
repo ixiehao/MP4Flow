@@ -1183,12 +1183,12 @@ private struct FailurePresentation {
     let solution: String
 
     init(message: String) {
-        let isSmartEnhance = message.contains("智能增强") || message.localizedCaseInsensitiveContains("smart enhance")
+        let isSmartEnhance = message.contains("智能增强") || message.contains("スマート高画質拡大") || message.localizedCaseInsensitiveContains("smart enhance")
         if isSmartEnhance {
-            if message.contains("裁切") || message.contains("旋转") || message.localizedCaseInsensitiveContains("crop") || message.localizedCaseInsensitiveContains("rotation") {
+            if message.contains("裁切") || message.contains("旋转") || message.contains("クロップ") || message.contains("回転") || message.localizedCaseInsensitiveContains("crop") || message.localizedCaseInsensitiveContains("rotation") {
                 reason = L10n.text("智能增强不支持裁切或旋转")
                 solution = L10n.text("请先使用普通转换，再剪辑或裁切。")
-            } else if message.contains("超时") || message.contains("未响应") || message.localizedCaseInsensitiveContains("timed out") || message.localizedCaseInsensitiveContains("did not respond") {
+            } else if message.contains("超时") || message.contains("未响应") || message.contains("タイムアウト") || message.contains("応答しません") || message.localizedCaseInsensitiveContains("timed out") || message.localizedCaseInsensitiveContains("did not respond") {
                 reason = L10n.text("智能增强处理超时")
                 solution = L10n.text("请降低目标分辨率后重试。")
             } else if message.contains("macOS 27") {
@@ -1198,7 +1198,7 @@ private struct FailurePresentation {
                 reason = L10n.text("此视频暂不支持智能增强")
                 solution = L10n.text("请使用「智能转换」先转换为新文件，然后添加新文件重试。")
             }
-        } else if message.contains("未检测到视频流") || message.localizedCaseInsensitiveContains("no video stream") {
+        } else if message.contains("未检测到视频流") || message.contains("映像ストリームが見つかりません") || message.localizedCaseInsensitiveContains("no video stream") {
             reason = L10n.text("未检测到可用视频流")
             solution = L10n.text("请确认文件可播放，或重新导出后再试。")
         } else {

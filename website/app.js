@@ -21,7 +21,8 @@ const copy = {
     footerTagline: "智能转换、剪切、裁切、旋转，全部在 Mac 本地完成。", footerGithub: "GitHub", footerPrivacy: "隐私", footerLicense: "MIT 许可证",
     pageTitle: "MP4Flow｜智能转换、剪切、裁切、旋转的 macOS 视频转 MP4 工具", pageDescription: "MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。智能转换、剪切、裁切、旋转，全部本地完成。",
     ogTitle: "MP4Flow｜智能转换、剪切、裁切、旋转，全部在 Mac 本地完成", ogDescription: "免费开源的原生 macOS 视频转 MP4 工具。极速处理、不上传视频、不用登录。", ogLocale: "zh_CN", socialImageAlt: "MP4Flow 真实软件工作界面，展示在 Mac 本地完成的视频转换",
-    installEyebrow: "开始转换前", installTitle: "安装 FFmpeg", installIntro: "MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。", installStepOne: "打开「终端」应用。", installStepTwo: "输入以下命令：", installStepThree: "安装完成后，重新打开 MP4Flow。", installHelp: "还没有 Homebrew？请先访问 <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> 安装。"
+    installEyebrow: "开始转换前", installTitle: "安装 FFmpeg", installIntro: "MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。", installStepOne: "打开「终端」应用。", installStepTwo: "输入以下命令：", installStepThree: "安装完成后，重新打开 MP4Flow。", installHelp: "还没有 Homebrew？请先访问 <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> 安装。",
+    homeLabel: "MP4Flow 首页", navLabel: "主导航", languagePickerLabel: "语言选择", featureListLabel: "MP4Flow 核心功能", stageLabel: "MP4Flow 应用演示", closeInstall: "关闭安装说明", privacyURL: "https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY.md"
   },
   en: {
     navTools: "Four tools", navWorkflow: "How it works", navDownload: "Download",
@@ -45,14 +46,44 @@ const copy = {
     footerTagline: "Smart Convert, trim, crop, and rotate — all on your Mac.", footerGithub: "GitHub", footerPrivacy: "Privacy", footerLicense: "MIT License",
     pageTitle: "MP4Flow — Smart Convert, Trim, Crop & Rotate Video to MP4 on macOS", pageDescription: "MP4Flow is a free, open-source native macOS video-to-MP4 converter with Smart Convert, trim, crop, rotate, and local processing.",
     ogTitle: "MP4Flow — Smart Convert, Trim, Crop & Rotate Video on Mac", ogDescription: "A free, open-source native macOS video-to-MP4 app. Fast where possible, processed locally, with no account or upload.", ogLocale: "en_US", socialImageAlt: "MP4Flow's real macOS workspace showing video processed locally",
-    installEyebrow: "BEFORE YOU CONVERT", installTitle: "Install FFmpeg", installIntro: "MP4Flow uses FFmpeg and ffprobe to read and convert video. Installing with Homebrew adds both tools.", installStepOne: "Open the Terminal app.", installStepTwo: "Run this command:", installStepThree: "When it finishes, reopen MP4Flow.", installHelp: "Need Homebrew first? Install it from <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a>."
+    installEyebrow: "BEFORE YOU CONVERT", installTitle: "Install FFmpeg", installIntro: "MP4Flow uses FFmpeg and ffprobe to read and convert video. Installing with Homebrew adds both tools.", installStepOne: "Open the Terminal app.", installStepTwo: "Run this command:", installStepThree: "When it finishes, reopen MP4Flow.", installHelp: "Need Homebrew first? Install it from <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a>.",
+    homeLabel: "MP4Flow home", navLabel: "Primary navigation", languagePickerLabel: "Language", featureListLabel: "Core MP4Flow features", stageLabel: "MP4Flow app demonstration", closeInstall: "Close installation guide", privacyURL: "https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY.md"
+  },
+  ja: {
+    navTools: "4つの機能", navWorkflow: "使い方", navDownload: "ダウンロード",
+    eyebrow: "MP4FLOW FOR MAC", heroTitle: "MP4へ変換。<br />もっと簡単に。",
+    heroIntro: "スマート変換、トリミング、クロップ、回転。よく使う動画処理を、軽くて分かりやすい Mac アプリにまとめました。",
+    heroToolOne: "スマート変換", heroToolTwo: "トリミング", heroToolThree: "クロップ", heroToolFour: "回転",
+    download: "無料でダウンロード", exploreTools: "4つの機能を見る", heroSystemNote: "macOS 13+ · AppleシリコンとIntel", installGuide: "FFmpegをインストール",
+    stageLive: "このMacで処理中", stageStatus: "MP4Flow の作業画面", stageCaption: "実際の MP4Flow の作業画面：動画を追加し、処理方法を選び、この Mac で書き出します。", stageAlt: "MP4Flow がこの Mac 上で動画を変換している実際の画面",
+    proofOneTitle: "可能な限り高速", proofOneBody: "可能なときは再エンコードせずに直接再格納します。エンコードが必要な場合は、利用できる Apple のハードウェア機能を優先します。",
+    proofTwoTitle: "Mac ネイティブ", proofTwoBody: "macOS 13+、Appleシリコン、Intel Mac 向けに設計。軽く、作業に集中できるインターフェースです。",
+    proofThreeTitle: "ローカル処理", proofThreeBody: "アカウント登録もアップロードも不要です。動画の読み込み、処理、書き出しはすべてこの Mac で行います。",
+    toolsEyebrow: "FOUR TOOLS. ONE CLEAR WORKFLOW.", toolsTitle: "変換だけではない。<br />4つの基本機能。", toolsIntro: "どの機能も、少ない設定で理解しやすく、すぐ完了できるように設計しています。編集したいときだけ編集し、それ以外は変換するだけです。",
+    toolOneTitle: "スマート変換", toolOneBody: "適切な MP4 の処理方法を選び、可能なときは直接再格納します。互換性が必要な場合にだけ、ハードウェアまたはソフトウェアでエンコードします。", toolOneDetail: "互換性 · 明瞭 · コンパクト",
+    toolTwoTitle: "トリミング", toolTwoBody: "範囲を指定し、開始点と終了点を前後に細かく調整して、必要な場面だけを書き出します。", toolTwoDetail: "範囲を正確に選択",
+    toolThreeTitle: "クロップ", toolThreeBody: "クロップ枠をドラッグするか、位置とサイズを数値で入力します。アスペクト比の選択で一般的な画角も簡単に設定できます。", toolThreeDetail: "ドラッグ · 数値 · アスペクト比",
+    toolFourTitle: "回転", toolFourBody: "向きが合わない映像を正しい方向に直します。表示比率を保ったまま 90° または 180° 回転できます。", toolFourDetail: "90° / 180° · 引き伸ばさない",
+    workflowEyebrow: "FROM FILE TO MP4", workflowTitle: "3ステップで動画を処理。", stepOneTitle: "動画を追加", stepOneBody: "ファイルをドロップするか、Finder から素材を選びます。",
+    stepTwoTitle: "変換または編集", stepTwoBody: "スマート変換を選ぶか、開始前にトリミング、クロップ、回転を行います。", stepThreeTitle: "このMacで書き出し", stepThreeBody: "分かりやすい進行状況を確認し、完了したファイルを Finder で開きます。",
+    downloadEyebrow: "FREE. OPEN SOURCE. ON YOUR MAC.", downloadTitle: "最初の1本から。<br />動画処理をもっと簡単に。", downloadBody: "最新版をダウンロード。MP4Flow は無料かつオープンソースで、動画はあなたの Mac にとどまります。",
+    getLatest: "最新版を入手", viewSource: "ソースコードを見る <span aria-hidden=\"true\">↗</span>", downloadNote: "macOS 13+ · FFmpeg と ffprobe が必要 · AppleシリコンとIntel対応",
+    footerTagline: "スマート変換、トリミング、クロップ、回転。すべて Mac 上で完結します。", footerGithub: "GitHub", footerPrivacy: "プライバシー", footerLicense: "MIT ライセンス",
+    pageTitle: "MP4Flow｜macOSで動画をMP4に変換・トリミング・クロップ・回転", pageDescription: "MP4Flow は、スマート変換、トリミング、クロップ、回転を備えた、無料・オープンソースのネイティブ macOS 動画 MP4 変換アプリです。すべてローカルで処理します。",
+    ogTitle: "MP4Flow｜Macで動画をスマート変換、トリミング、クロップ、回転", ogDescription: "無料・オープンソースのネイティブ macOS 動画 MP4 変換アプリ。可能な限り高速で、アップロードもアカウント登録も不要です。", ogLocale: "ja_JP", socialImageAlt: "Mac上でローカル処理するMP4Flowの実際の作業画面",
+    installEyebrow: "変換を始める前に", installTitle: "FFmpegをインストール", installIntro: "MP4Flow は動画の読み込みと変換に FFmpeg と ffprobe を使用します。Homebrew でインストールすると、両方のツールが追加されます。", installStepOne: "「ターミナル」アプリを開きます。", installStepTwo: "次のコマンドを実行します：", installStepThree: "完了したら MP4Flow を開き直します。", installHelp: "Homebrew がまだない場合は、<a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> から先にインストールしてください。",
+    homeLabel: "MP4Flow ホーム", navLabel: "メインナビゲーション", languagePickerLabel: "言語選択", featureListLabel: "MP4Flow の主な機能", stageLabel: "MP4Flow アプリのデモ", closeInstall: "インストールガイドを閉じる", privacyURL: "https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY.ja.md"
   }
 };
 
-const languageButton = document.querySelector(".language-switch");
-const languageLabel = document.querySelector("#language-label");
+const languageOptions = document.querySelectorAll(".language-option");
 const heroAppScreen = document.querySelector("#hero-app-screen");
-let language = navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+const privacyLink = document.querySelector("#privacy-link");
+const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
+const browserLanguage = navigator.language.toLowerCase();
+let language = ["zh", "en", "ja"].includes(requestedLanguage)
+  ? requestedLanguage
+  : browserLanguage.startsWith("zh") ? "zh" : browserLanguage.startsWith("ja") ? "ja" : "en";
 
 function setMeta(selector, value) {
   const meta = document.querySelector(selector);
@@ -62,7 +93,7 @@ function setMeta(selector, value) {
 function applyLanguage(nextLanguage) {
   language = nextLanguage;
   const translations = copy[language];
-  document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  document.documentElement.lang = language === "zh" ? "zh-CN" : language;
   document.title = translations.pageTitle;
   setMeta('meta[name="description"]', translations.pageDescription);
   setMeta('meta[property="og:title"]', translations.ogTitle);
@@ -72,7 +103,7 @@ function applyLanguage(nextLanguage) {
   setMeta('meta[name="twitter:title"]', translations.ogTitle);
   setMeta('meta[name="twitter:description"]', translations.ogDescription);
   setMeta('meta[name="twitter:image:alt"]', translations.socialImageAlt);
-  heroAppScreen.src = language === "zh" ? heroAppScreen.dataset.srcZh : heroAppScreen.dataset.srcEn;
+  heroAppScreen.src = language === "zh" ? heroAppScreen.dataset.srcZh : language === "ja" ? heroAppScreen.dataset.srcJa : heroAppScreen.dataset.srcEn;
   heroAppScreen.alt = translations.stageAlt;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     element.innerHTML = translations[element.dataset.i18n];
@@ -80,11 +111,22 @@ function applyLanguage(nextLanguage) {
   document.querySelectorAll("[data-i18n-html]").forEach((element) => {
     element.innerHTML = translations[element.dataset.i18nHtml];
   });
-  languageLabel.textContent = language === "zh" ? "EN" : "中文";
-  languageButton.setAttribute("aria-label", language === "zh" ? "Switch to English" : "切换到中文");
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+    element.setAttribute("aria-label", translations[element.dataset.i18nAriaLabel]);
+  });
+  privacyLink.href = translations.privacyURL;
+  languageOptions.forEach((option) => {
+    const isCurrent = option.dataset.language === language;
+    option.setAttribute("aria-pressed", String(isCurrent));
+    option.tabIndex = isCurrent ? -1 : 0;
+  });
+  const url = new URL(window.location.href);
+  if (language === "zh") url.searchParams.delete("lang");
+  else url.searchParams.set("lang", language);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
-languageButton.addEventListener("click", () => applyLanguage(language === "zh" ? "en" : "zh"));
+languageOptions.forEach((option) => option.addEventListener("click", () => applyLanguage(option.dataset.language)));
 const installDialog = document.querySelector("#install-dialog");
 document.querySelector("#install-guide-trigger").addEventListener("click", () => installDialog.showModal());
 document.querySelector("#install-dialog-close").addEventListener("click", () => installDialog.close());

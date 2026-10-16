@@ -3,19 +3,19 @@
 Keep these settings in sync with the repository's **About** panel. They are part
 of the product's public download path, not optional decoration.
 
-**Description:** `MP4Flow — Free, open-source macOS video converter to MP4. Process locally: convert, trim, crop, rotate, and merge. 不上传视频。`
+**Description:** `MP4Flow — Free, open-source macOS video converter to MP4. Process locally: convert, trim, crop, rotate, and merge. No upload. ローカル処理。`
 
 **Homepage:** <https://ixiehao.github.io/MP4Flow/>
 
-**Topics:** `macos`, `macos-app`, `apple-silicon`, `swift`, `swiftui`, `ffmpeg`, `video-converter`, `video-transcoder`, `video-editing`, `video-processing`, `mp4`, `h264`, `hevc`, `videotoolbox`, `local-first`, `privacy`, `open-source`, `chinese`
+**Topics:** `macos`, `macos-app`, `apple-silicon`, `swift`, `swiftui`, `ffmpeg`, `video-converter`, `video-transcoder`, `video-editing`, `video-processing`, `mp4`, `h264`, `hevc`, `videotoolbox`, `local-first`, `privacy`, `open-source`, `chinese`, `japanese`
 
 ## Public project surfaces
 
 - Keep the README's first screen focused on the value proposition, latest
   release, system requirement, and official download path.
-- Keep [README.md](../README.md) and [README.zh-CN.md](../README.zh-CN.md)
-  equivalent in scope. English aids global discovery; Chinese serves the
-  existing primary user base.
+- Keep [README.md](../README.md), [README.ja.md](../README.ja.md), and
+  [README.zh-CN.md](../README.zh-CN.md) equivalent in scope. English aids
+  global discovery; Japanese and Chinese serve native-language users.
 - Link the latest release rather than a versioned DMG in README text. This
   avoids leaving visitors on a stale installer after the next release.
 - Attach a `.dmg` and matching `.sha256` file to every stable release. Do not
