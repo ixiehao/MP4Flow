@@ -23,6 +23,7 @@ const copy = {
     downloadBody: "下载最新版本，或从源代码构建。<br />MP4Flow 免费、开源，在你的 Mac 上运行。",
     getLatest: "获取最新版本", starGithub: "在 GitHub 关注 <span aria-hidden=\"true\">↗</span>",
     footerTagline: "原生 macOS 视频转 MP4 工具。", footerGithub: "GitHub", footerPrivacy: "隐私", footerLicense: "MIT 许可证", pageTitle: "MP4Flow｜免费开源的 macOS 视频转 MP4 工具", pageDescription: "MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。本地处理、不上传视频，支持批量转换、剪切、裁切与旋转。",
+    ogTitle: "MP4Flow｜免费、开源、本地处理的视频转 MP4 工具", ogDescription: "MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。本地处理、不上传视频，支持批量转换、剪切、裁切与旋转。", ogLocale: "zh_CN", socialImageAlt: "MP4Flow 真实软件工作界面，展示本地完成的视频转换",
     installEyebrow: "开始转换前", installTitle: "安装 FFmpeg", installIntro: "MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。", installStepOne: "打开「终端」应用。", installStepTwo: "输入以下命令：", installStepThree: "安装完成后，重新打开 MP4Flow。", installHelp: "还没有 Homebrew？请先访问 <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> 安装。"
   },
   en: {
@@ -49,6 +50,7 @@ const copy = {
     downloadBody: "Download the latest release or build it from source. MP4Flow is free, open source, and runs on your Mac.",
     getLatest: "Get the latest release", starGithub: "Follow on GitHub <span aria-hidden=\"true\">↗</span>",
     footerTagline: "Native video-to-MP4 conversion for macOS.", footerGithub: "GitHub", footerPrivacy: "Privacy", footerLicense: "MIT License", pageTitle: "MP4Flow — Free, private video to MP4 for macOS", pageDescription: "MP4Flow is a free, open-source, native macOS video-to-MP4 converter. Process video locally with batch conversion, trim, crop, and rotate tools.",
+    ogTitle: "MP4Flow — Video to MP4. Seriously simple.", ogDescription: "A free, open-source native macOS video-to-MP4 converter. Process video locally with batch conversion, trim, crop, and rotate tools.", ogLocale: "en_US", socialImageAlt: "MP4Flow's real macOS workspace showing a video conversion completed locally",
     installEyebrow: "BEFORE YOU CONVERT", installTitle: "Install FFmpeg", installIntro: "MP4Flow uses FFmpeg and ffprobe to read and convert video. Installing with Homebrew adds both tools.", installStepOne: "Open the Terminal app.", installStepTwo: "Run this command:", installStepThree: "When it finishes, reopen MP4Flow.", installHelp: "Need Homebrew first? Install it from <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a>."
   }
 };
@@ -58,12 +60,24 @@ const languageLabel = document.querySelector("#language-label");
 const heroAppScreen = document.querySelector("#hero-app-screen");
 let language = navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
 
+function setMeta(selector, value) {
+  const meta = document.querySelector(selector);
+  if (meta) meta.setAttribute("content", value);
+}
+
 function applyLanguage(nextLanguage) {
   language = nextLanguage;
   const translations = copy[language];
   document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   document.title = translations.pageTitle;
   document.querySelector('meta[name="description"]').setAttribute("content", translations.pageDescription);
+  setMeta('meta[property="og:title"]', translations.ogTitle);
+  setMeta('meta[property="og:description"]', translations.ogDescription);
+  setMeta('meta[property="og:locale"]', translations.ogLocale);
+  setMeta('meta[property="og:image:alt"]', translations.socialImageAlt);
+  setMeta('meta[name="twitter:title"]', translations.ogTitle);
+  setMeta('meta[name="twitter:description"]', translations.ogDescription);
+  setMeta('meta[name="twitter:image:alt"]', translations.socialImageAlt);
   heroAppScreen.src = language === "zh" ? heroAppScreen.dataset.srcZh : heroAppScreen.dataset.srcEn;
   heroAppScreen.alt = translations.stageAlt;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
