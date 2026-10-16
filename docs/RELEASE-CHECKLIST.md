@@ -7,6 +7,8 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 - [x] Create the canonical GitHub repository and replace the clone URL in both README files.
 - [ ] Enable GitHub Private Vulnerability Reporting and replace the reporting instruction in [SECURITY.md](../SECURITY.md) with the repository's private reporting link.
 - [ ] Confirm the repository description, topics, licence, default branch protection, and release notes follow [GITHUB_METADATA.md](GITHUB_METADATA.md).
+- [ ] Confirm the repository homepage, bilingual README download links, issue chooser, and social preview still point to the current official project surfaces.
+- [ ] Confirm the latest Release has a human-readable title, bilingual user-facing notes, a signed/notarized DMG, and a matching SHA-256 file.
 - [ ] Check that `.gitignore` is effective and that the branch contains no signing certificates, provisioning profiles, private keys, `.env` files, test media, DMGs, or build products.
 - [ ] Review issues, pull requests, screenshots, and logs for private file paths, personal data, or unlicensed media.
 

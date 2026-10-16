@@ -1,8 +1,15 @@
 # MP4Flow
 
-**一款本地运行的 macOS 视频转 MP4 工具。**
+> **一款免费、开源、原生的 macOS 视频转 MP4 工具，把转换这件事变得特别简单。**
 
-MP4Flow 将常见视频格式转换为易播放的 MP4。它把复杂的编码参数换成直观选择：保留原画、节省空间、兼容播放、剪辑、裁切、旋转和合并。文件不会上传。
+[![最新版本](https://img.shields.io/github/v/release/ixiehao/MP4Flow?display_name=tag&sort=semver&label=release)](https://github.com/ixiehao/MP4Flow/releases/latest)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
+[![许可证](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/ixiehao/MP4Flow?style=flat)](https://github.com/ixiehao/MP4Flow/stargazers)
+
+[下载 MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/) · [English](README.md) · [反馈问题](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+
+MP4Flow 将常见视频格式转换为易播放的 MP4，所有处理都在 **你的 Mac 本机** 完成。它把复杂的编码参数换成直观选择：保留原画、节省空间、兼容播放、剪辑、裁切、旋转和合并。无需登录、不会上传视频，且完全免费。
 
 除了转换为 MP4 格式这一核心功能外，你可以用它把视频剪成片段、裁切视频画面，还可以旋转视频画面。我们努力打造一款在 macOS 上好用、快速、轻量、免费且开源的视频格式转换工具。
 
@@ -10,7 +17,30 @@ MP4Flow 将常见视频格式转换为易播放的 MP4。它把复杂的编码�
 
 *添加视频、快速剪辑、裁切或旋转，然后在本地转换。*
 
-[English](README.md) · [安装包构建](docs/INSTALLER-BUILD.md) · [媒体回归测试](docs/MEDIA-REGRESSION.md) · [发布检查清单](docs/RELEASE-CHECKLIST.md) · [隐私](PRIVACY.md) · [安全](SECURITY.md)
+[下载与安装](docs/DOWNLOAD.md) · [安装包构建](docs/INSTALLER-BUILD.md) · [媒体回归测试](docs/MEDIA-REGRESSION.md) · [发布检查清单](docs/RELEASE-CHECKLIST.md) · [隐私](PRIVACY.md) · [安全](SECURITY.md)
+
+## 下载与安装
+
+1. 打开 [GitHub 最新版本](https://github.com/ixiehao/MP4Flow/releases/latest)，下载 `.dmg` 和与之对应的 `.sha256` 校验文件。
+2. 打开 DMG，把 **MP4Flow** 拖入 **Applications（应用程序）**。
+3. 首次使用前安装 FFmpeg 与 ffprobe；随后在应用中打开「环境体检」确认状态：
+
+   ```sh
+   brew install ffmpeg
+   ```
+
+本仓库和 Release 页面是官方发布渠道。如需在打开前校验下载文件，请查看[校验说明](docs/DOWNLOAD.md#可选校验下载文件)。
+
+**兼容设备：**macOS 13 Ventura 或更高版本，支持 Apple 芯片与 Intel Mac。硬件加速是否可用取决于设备和源视频编码。
+
+## MP4Flow 能做什么
+
+| 你的需求 | MP4Flow 的方式 |
+| --- | --- |
+| 将视频转换为 MP4 | 直观选择智能转换、H.264 兼容播放、HEVC 节省空间或软件兼容模式。 |
+| 尽可能快速处理 | 能直接封装 MP4 就不重编码；兼容时剪辑可直接复制流。 |
+| 快速剪辑视频 | 修剪片段、裁切画面、旋转 90°/180°，或合并视频后再导出。 |
+| 让视频留在自己手里 | 媒体处理全部在 Mac 本机完成；没有账户、分析追踪或视频上传服务。 |
 
 ## 功能特点
 

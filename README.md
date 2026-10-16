@@ -1,16 +1,46 @@
 # MP4Flow
 
-**A local, native macOS video-to-MP4 converter.**
+> **A free, open-source, native macOS video converter that makes MP4 simple.**
 
-MP4Flow converts common video files to playable MP4 on your Mac. It replaces codec jargon with clear choices: keep the original, save space, use a compatible format, trim, crop, rotate, or merge clips. Nothing is uploaded.
+[![Latest release](https://img.shields.io/github/v/release/ixiehao/MP4Flow?display_name=tag&sort=semver&label=release)](https://github.com/ixiehao/MP4Flow/releases/latest)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
+[![License](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/ixiehao/MP4Flow?style=flat)](https://github.com/ixiehao/MP4Flow/stargazers)
 
-Beyond MP4 conversion, use MP4Flow to trim clips, crop the frame, and rotate video. We are building a fast, lightweight, free, and open-source video conversion tool that feels at home on macOS.
+[Download MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [中文说明](README.zh-CN.md) · [Report a problem](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+
+MP4Flow converts common video files to playable MP4 **on your Mac**. It replaces codec jargon with clear choices: keep the original, save space, use a compatible format, trim, crop, rotate, or merge clips. Your videos are never uploaded, no account is required, and the app is free to use.
+
+Beyond MP4 conversion, use MP4Flow to trim clips, crop the frame, and rotate video. We are building a fast, lightweight, free, and open-source macOS video conversion tool that feels at home on macOS.
 
 ![MP4Flow feature demo](docs/assets/mp4flow-demo.gif)
 
 *Add a video, make quick edits, and convert it locally.*
 
-[中文说明](README.zh-CN.md) · [Installer guide](docs/INSTALLER-BUILD.md) · [Media regression](docs/MEDIA-REGRESSION.md) · [Release checklist](docs/RELEASE-CHECKLIST.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md)
+[Download guide](docs/DOWNLOAD.md) · [Build an installer](docs/INSTALLER-BUILD.md) · [Media regression](docs/MEDIA-REGRESSION.md) · [Release checklist](docs/RELEASE-CHECKLIST.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md)
+
+## Download and install
+
+1. Open the [latest GitHub Release](https://github.com/ixiehao/MP4Flow/releases/latest) and download the `.dmg` and its matching `.sha256` file.
+2. Open the DMG and drag **MP4Flow** to **Applications**.
+3. Install FFmpeg and ffprobe once, then use the in-app **Environment Check** to confirm they are ready:
+
+   ```sh
+   brew install ffmpeg
+   ```
+
+The release page and this repository are the official download locations. If you need to verify a download before opening it, follow the short [checksum instructions](docs/DOWNLOAD.md#verify-a-download-optional).
+
+**Compatible Macs:** macOS 13 Ventura or later, on Apple Silicon or Intel. Hardware acceleration depends on the Mac and source codec.
+
+## What MP4Flow does
+
+| Need | MP4Flow approach |
+| --- | --- |
+| Convert a video to MP4 | Clear presets for Smart Convert, H.264 compatibility, HEVC efficiency, or a software fallback. |
+| Keep processing fast | Direct MP4 remuxing and stream-copy trimming avoid re-encoding when the source allows it. |
+| Make a quick edit | Trim a range, crop the frame, rotate 90°/180°, or merge clips before exporting. |
+| Keep videos private | All media processing stays on the Mac. MP4Flow has no account, analytics, or video upload service. |
 
 ## Highlights
 

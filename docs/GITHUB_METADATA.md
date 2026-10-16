@@ -1,8 +1,30 @@
-# Suggested GitHub metadata
+# GitHub metadata and discovery
 
-**Description:** MP4Flow — a free, open-source native macOS video-to-MP4 converter. Local processing, clear presets, trimming, cropping, rotation, and lossless or compatible merge.
+Keep these settings in sync with the repository's **About** panel. They are part
+of the product's public download path, not optional decoration.
 
-**Topics:** `macos`, `swiftui`, `swift`, `ffmpeg`, `video-converter`, `mp4`, `videotoolbox`, `privacy`, `chinese`, `localization`
+**Description:** `MP4Flow — Free, open-source macOS video converter to MP4. Process locally: convert, trim, crop, rotate, and merge. 不上传视频。`
+
+**Homepage:** <https://ixiehao.github.io/MP4Flow/>
+
+**Topics:** `macos`, `macos-app`, `apple-silicon`, `swift`, `swiftui`, `ffmpeg`, `video-converter`, `video-transcoder`, `video-editing`, `video-processing`, `mp4`, `h264`, `hevc`, `videotoolbox`, `local-first`, `privacy`, `open-source`, `chinese`
+
+## Public project surfaces
+
+- Keep the README's first screen focused on the value proposition, latest
+  release, system requirement, and official download path.
+- Keep [README.md](../README.md) and [README.zh-CN.md](../README.zh-CN.md)
+  equivalent in scope. English aids global discovery; Chinese serves the
+  existing primary user base.
+- Link the latest release rather than a versioned DMG in README text. This
+  avoids leaving visitors on a stale installer after the next release.
+- Attach a `.dmg` and matching `.sha256` file to every stable release. Do not
+  call a test, ad-hoc-signed, or unnotarized build a public release.
+- Use the [issue chooser](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+  for reproducible bugs and feature requests. Keep security reports out of
+  public issues.
+- Keep the repository social preview and the website Open Graph image aligned;
+  both should use the original project social card described below.
 
 ## Social preview
 

@@ -1,0 +1,20 @@
+changelog:
+  categories:
+    - title: ✨ New features / 新功能
+      labels:
+        - enhancement
+    - title: 🐛 Fixes / 修复
+      labels:
+        - bug
+    - title: ♿ Accessibility / 无障碍
+      labels:
+        - accessibility
+    - title: 📚 Documentation / 文档
+      labels:
+        - documentation
+  exclude:
+    labels:
+      - dependencies
+      - skip-changelog
+    authors:
+      - dependabot[bot]

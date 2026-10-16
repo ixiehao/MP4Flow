@@ -3,6 +3,7 @@
 ## English
 
 - Download the current stable build from [GitHub Releases](https://github.com/ixiehao/MP4Flow/releases/latest).
+- For first-time setup, follow the short [download and FFmpeg guide](docs/DOWNLOAD.md) and confirm the result in **Environment Check**.
 - For a reproducible bug or a feature idea, use the [issue forms](https://github.com/ixiehao/MP4Flow/issues/new/choose).
 - Before reporting a conversion problem, confirm `ffmpeg -version` works, try a short file, and check that the output folder is writable.
 - For Smart Enhance Upscale, confirm that the Mac has Apple silicon, runs macOS 27 or later, and uses a supported source/target scale. If a video is unsupported, use **Smart Convert** first, then add the new file and try again.
@@ -11,6 +12,7 @@
 ## 中文
 
 - 请从 [GitHub Releases](https://github.com/ixiehao/MP4Flow/releases/latest) 下载当前稳定版。
+- 首次使用请查看[下载与 FFmpeg 安装说明](docs/DOWNLOAD.md)，并在应用的「环境体检」中确认状态。
 - 如需报告可复现的问题或提出功能建议，请使用 [Issue 表单](https://github.com/ixiehao/MP4Flow/issues/new/choose)。
 - 报告转换问题前，请确认 `ffmpeg -version` 可运行；用短视频复现一次，并确认输出文件夹可写。
 - 使用智能增强放大时，请确认 Mac 为 Apple 芯片、系统为 macOS 27 或更高版本，且源视频与目标分辨率符合系统支持的倍率。不支持时，请先使用「智能转换」生成新文件，再添加新文件重试。
