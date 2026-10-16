@@ -1,13 +1,14 @@
 ---
 name: Feature request
 about: Suggest an improvement
+title: "[Feature] "
 labels: enhancement
 ---
 
-## Problem
+## Problem / 要解决的问题
 
-## Proposed solution
+## Proposed solution / 建议的方案
 
-## Alternatives considered
+## Alternatives considered / 考虑过的替代方案
 
-## Additional context
+## Additional context / 补充信息
