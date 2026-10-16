@@ -8,6 +8,13 @@ MP4Flow invokes an FFmpeg installation supplied by the user. FFmpeg is not bundl
 
 The bundled Noto Sans SC font file is distributed under the SIL Open Font License 1.1. The complete licence text is in [AppResources/OFL.txt](AppResources/OFL.txt). See [AppResources/ASSET_NOTICES.md](AppResources/ASSET_NOTICES.md) for bundled-artwork and demonstration-asset notes.
 
+## Tabler Icons Outline
+
+MP4Flow includes a selected subset of Tabler Icons Outline SVGs from
+[`tabler/tabler-icons` v3.49.0](https://github.com/tabler/tabler-icons/tree/v3.49.0),
+licensed under the MIT License. The bundled source files and the complete
+attribution are in [AppResources/ASSET_NOTICES.md](AppResources/ASSET_NOTICES.md).
+
 ## Media rights and brands
 
 You are responsible for having the rights and permissions needed to convert, edit, merge, store, or share media with MP4Flow. MP4Flow does not grant rights in third-party video, audio, subtitles, trademarks, or other content.

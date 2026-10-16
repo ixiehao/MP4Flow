@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation, FFmpeg, and usage help / インストール、FFmpeg、使い方 / 安装、依赖与使用帮助
+    url: https://github.com/ixiehao/MP4Flow/blob/main/SUPPORT.md
+    about: Check supported macOS versions, FFmpeg setup, and safe diagnostic details before opening an issue. / Issue を作成する前に、対応 macOS、FFmpeg の設定、安全な診断情報を確認してください。
+  - name: Security vulnerability / セキュリティ脆弱性 / 安全漏洞
+    url: https://github.com/ixiehao/MP4Flow/security/policy
+    about: Do not disclose exploitable security details in a public issue. / 悪用可能なセキュリティの詳細を公開 Issue に記載しないでください。

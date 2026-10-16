@@ -237,6 +237,16 @@
 "发现新版本 v%@，可前往 GitHub 下载。" = "Version v%@ is available. Download it from GitHub.";
 "MP4Flow 已是最新版本（v%@）。" = "MP4Flow is up to date (v%@).";
 "暂时无法检查更新。请确认网络连接，或稍后重试。" = "Could not check for updates. Check your connection and try again later.";
+"正在检查更新…" = "Checking for updates…";
+"更新设置" = "Update Settings";
+"自动检查更新" = "Automatically check for updates";
+"更新不会自动下载或安装。" = "Updates are never downloaded or installed automatically.";
+"首次启动不联网；从第二次启动起，每天最多检查一次 GitHub 公开发布信息。" = "The first launch stays offline. From the second launch, public GitHub release metadata is checked at most once a day.";
+"自动检查已关闭。你仍可随时通过“帮助 > 检查更新”手动检查。" = "Automatic checks are off. You can still check any time from Help > Check for Updates.";
+"更新检查只读取 GitHub 公开发布信息，不上传视频或使用数据。" = "Update checks read public GitHub release metadata only; no video or usage data is uploaded.";
+"可在 GitHub Release 查看更新说明并下载。" = "View release notes and downloads on GitHub Releases.";
+"查看更新与下载" = "View Update";
+"暂不提醒此版本" = "Hide This Version";
 "MIT License" = "MIT License";
 "FFmpeg 长时间无进度，已安全停止。" = "FFmpeg made no progress for too long and was stopped safely.";
 "仅保留第一路视频和第一路音频。" = "Only the first video and audio track will be kept.";

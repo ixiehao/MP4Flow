@@ -7,6 +7,8 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 - [x] Create the canonical GitHub repository and replace the clone URL in both README files.
 - [ ] Enable GitHub Private Vulnerability Reporting and replace the reporting instruction in [SECURITY.md](../SECURITY.md) with the repository's private reporting link.
 - [ ] Confirm the repository description, topics, licence, default branch protection, and release notes follow [GITHUB_METADATA.md](GITHUB_METADATA.md).
+- [ ] Confirm the repository homepage, trilingual README download links, issue chooser, and social preview still point to the current official project surfaces.
+- [ ] Confirm the latest Release has a human-readable title, English, Japanese, and Simplified Chinese user-facing notes, a signed/notarized DMG, and a matching SHA-256 file.
 - [ ] Check that `.gitignore` is effective and that the branch contains no signing certificates, provisioning profiles, private keys, `.env` files, test media, DMGs, or build products.
 - [ ] Review issues, pull requests, screenshots, and logs for private file paths, personal data, or unlicensed media.
 
@@ -35,7 +37,7 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 - [ ] Re-sign the app and every nested executable with a Developer ID Application certificate. Verify with `codesign --verify --deep --strict --verbose=2 MP4Flow.app`.
 - [ ] Submit the final DMG for Apple notarization, staple the ticket, then assess it on a clean Mac with `spctl --assess --type open --context context:primary-signature <DMG>`.
 - [ ] Generate and publish the SHA-256 file for the exact notarized DMG. Treat a checksum as integrity information, not as a signing substitute.
-- [ ] Install the final DMG on a clean Intel Mac and Apple-silicon Mac when both architectures are claimed. Test first launch, Gatekeeper, English, Simplified Chinese, FFmpeg missing, conversion, trim, crop, rotation, and both merge modes.
+- [ ] Install the final DMG on a clean Intel Mac and Apple-silicon Mac when both architectures are claimed. Test first launch, Gatekeeper, English, Japanese, Simplified Chinese, FFmpeg missing, conversion, trim, crop, rotation, and both merge modes.
 
 ## Release notes and support
 
