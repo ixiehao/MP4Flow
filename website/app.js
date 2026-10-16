@@ -79,6 +79,12 @@ const copy = {
 const languageOptions = document.querySelectorAll(".language-option");
 const heroAppScreen = document.querySelector("#hero-app-screen");
 const privacyLink = document.querySelector("#privacy-link");
+const siteURL = "https://ixiehao.github.io/MP4Flow/";
+const localeURLs = {
+  zh: siteURL,
+  en: `${siteURL}?lang=en`,
+  ja: `${siteURL}?lang=ja`
+};
 const requestedLanguage = new URLSearchParams(window.location.search).get("lang");
 const browserLanguage = navigator.language.toLowerCase();
 let language = ["zh", "en", "ja"].includes(requestedLanguage)
@@ -90,6 +96,21 @@ function setMeta(selector, value) {
   if (meta) meta.setAttribute("content", value);
 }
 
+function setLink(selector, value) {
+  const link = document.querySelector(selector);
+  if (link) link.setAttribute("href", value);
+}
+
+function updateSoftwareSchema(translations) {
+  const schemaNode = document.querySelector("#software-schema");
+  if (!schemaNode) return;
+  const schema = JSON.parse(schemaNode.textContent);
+  schema.url = localeURLs[language];
+  schema.description = translations.pageDescription;
+  schema.inLanguage = language === "zh" ? "zh-CN" : language;
+  schemaNode.textContent = JSON.stringify(schema);
+}
+
 function applyLanguage(nextLanguage) {
   language = nextLanguage;
   const translations = copy[language];
@@ -98,11 +119,14 @@ function applyLanguage(nextLanguage) {
   setMeta('meta[name="description"]', translations.pageDescription);
   setMeta('meta[property="og:title"]', translations.ogTitle);
   setMeta('meta[property="og:description"]', translations.ogDescription);
+  setMeta('meta[property="og:url"]', localeURLs[language]);
   setMeta('meta[property="og:locale"]', translations.ogLocale);
   setMeta('meta[property="og:image:alt"]', translations.socialImageAlt);
   setMeta('meta[name="twitter:title"]', translations.ogTitle);
   setMeta('meta[name="twitter:description"]', translations.ogDescription);
   setMeta('meta[name="twitter:image:alt"]', translations.socialImageAlt);
+  setLink('link[rel="canonical"]', localeURLs[language]);
+  updateSoftwareSchema(translations);
   heroAppScreen.src = language === "zh" ? heroAppScreen.dataset.srcZh : language === "ja" ? heroAppScreen.dataset.srcJa : heroAppScreen.dataset.srcEn;
   heroAppScreen.alt = translations.stageAlt;
   document.querySelectorAll("[data-i18n]").forEach((element) => {
