@@ -5,5 +5,14 @@ let package = Package(
     name: "MP4Flow",
     platforms: [.macOS(.v13)],
     products: [.executable(name: "MP4Flow", targets: ["FastConvert"])],
-    targets: [.executableTarget(name: "FastConvert")]
+    targets: [
+        .executableTarget(
+            name: "FastConvert",
+            resources: [.copy("Resources/TablerOutline")]
+        ),
+        .testTarget(
+            name: "FastConvertTests",
+            dependencies: ["FastConvert"]
+        )
+    ]
 )

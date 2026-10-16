@@ -3,29 +3,56 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#0a1b3a" />
-    <meta name="description" content="MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。本地处理、不上传视频，支持批量转换、剪切、裁切与旋转。" />
-    <meta name="keywords" content="macOS 视频转 MP4, Mac 视频转换器, 免费视频转换器, 开源视频转换器, FFmpeg, MP4Flow" />
+    <meta name="theme-color" content="#071a3e" />
+    <meta name="description" content="MP4Flow：免费开源的原生 macOS 视频转 MP4 工具。智能转换、剪切、裁切、旋转，全部本地完成。" />
+    <meta name="keywords" content="macOS 视频转 MP4, Mac 视频转换器, 智能转换, 视频剪切, 视频裁切, 视频旋转, 免费视频转换器, 开源视频转换器, FFmpeg, MP4Flow" />
+    <meta name="author" content="ixiehao" />
     <meta name="robots" content="index,follow,max-image-preview:large" />
-    <link rel="canonical" href="https://ixiehao.github.io/MP4Flow/" />
-    <title>MP4Flow｜免费开源的 macOS 视频转 MP4 工具</title>
+    <link id="canonical-url" rel="canonical" href="https://ixiehao.github.io/MP4Flow/" />
+    <link rel="alternate" hreflang="zh-CN" href="https://ixiehao.github.io/MP4Flow/" />
+    <link rel="alternate" hreflang="en" href="https://ixiehao.github.io/MP4Flow/?lang=en" />
+    <link rel="alternate" hreflang="ja" href="https://ixiehao.github.io/MP4Flow/?lang=ja" />
+    <link rel="alternate" hreflang="x-default" href="https://ixiehao.github.io/MP4Flow/" />
+    <meta property="og:type" content="website" />
+    <meta id="og-url" property="og:url" content="https://ixiehao.github.io/MP4Flow/" />
+    <meta property="og:site_name" content="MP4Flow" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="ja_JP" />
+    <meta property="og:title" content="MP4Flow｜智能转换、剪切、裁切、旋转，全部在 Mac 本地完成" />
+    <meta property="og:description" content="免费开源的原生 macOS 视频转 MP4 工具。极速处理、不上传视频、不用登录。" />
+    <meta property="og:image" content="https://ixiehao.github.io/MP4Flow/assets/social-preview.jpg?v=1" />
+    <meta property="og:image:secure_url" content="https://ixiehao.github.io/MP4Flow/assets/social-preview.jpg?v=1" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:image:alt" content="MP4Flow 真实软件工作界面，展示在 Mac 本地完成的视频转换" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MP4Flow｜智能转换、剪切、裁切、旋转，全部在 Mac 本地完成" />
+    <meta name="twitter:description" content="免费开源的原生 macOS 视频转 MP4 工具。极速处理、不上传视频、不用登录。" />
+    <meta name="twitter:image" content="https://ixiehao.github.io/MP4Flow/assets/social-preview.jpg?v=1" />
+    <meta name="twitter:image:alt" content="MP4Flow 真实软件工作界面，展示在 Mac 本地完成的视频转换" />
+    <title>MP4Flow｜智能转换、剪切、裁切、旋转的 macOS 视频转 MP4 工具</title>
     <link rel="icon" type="image/png" sizes="1024x1024" href="assets/mp4flow-app-icon.png" />
     <link rel="apple-touch-icon" href="assets/mp4flow-app-icon.png" />
-    <link rel="stylesheet" href="styles.css" />
-    <script type="application/ld+json">
+    <link rel="stylesheet" href="styles.css?v=20261016.4" />
+    <script id="software-schema" type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
+        "@id": "https://ixiehao.github.io/MP4Flow/#software",
         "name": "MP4Flow",
         "applicationCategory": "UtilitiesApplication",
         "operatingSystem": "macOS 13 or later",
-        "description": "A free and open-source native macOS video-to-MP4 converter that processes files locally.",
+        "description": "A free and open-source native macOS video-to-MP4 converter with Smart Convert, trim, crop, rotate, and local processing.",
         "url": "https://ixiehao.github.io/MP4Flow/",
         "downloadUrl": "https://github.com/ixiehao/MP4Flow/releases/latest",
+        "codeRepository": "https://github.com/ixiehao/MP4Flow",
         "license": "https://github.com/ixiehao/MP4Flow/blob/main/LICENSE",
         "isAccessibleForFree": true,
-        "inLanguage": ["zh-CN", "en"],
-        "featureList": "Local video conversion, batch conversion, trim, crop, rotate, merge, and Apple VideoToolbox acceleration.",
+        "inLanguage": ["zh-CN", "en", "ja"],
+        "author": { "@type": "Person", "name": "ixiehao", "url": "https://github.com/ixiehao" },
+        "featureList": "Smart video conversion, trim, crop, rotate, batch conversion, local processing, and Apple VideoToolbox acceleration.",
         "offers": {
           "@type": "Offer",
           "price": "0",
@@ -37,145 +64,151 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="wordmark" href="#top" aria-label="MP4Flow home">
+      <a class="wordmark" href="#top" aria-label="MP4Flow home" data-i18n-aria-label="homeLabel">
         <img class="wordmark-icon" src="assets/mp4flow-app-icon.png" width="1024" height="1024" alt="" />
         <span class="wordmark-name">MP4<span>Flow</span></span>
       </a>
-      <nav aria-label="Primary navigation">
-        <a href="#features" data-i18n="navFeatures">功能</a>
+      <nav aria-label="Primary navigation" data-i18n-aria-label="navLabel">
+        <a href="#tools" data-i18n="navTools">四大功能</a>
         <a href="#workflow" data-i18n="navWorkflow">使用方式</a>
         <a href="#download" data-i18n="navDownload">下载</a>
       </nav>
-      <button class="language-switch" type="button" aria-label="Switch language">
+      <div class="language-picker" role="group" aria-label="Language" data-i18n-aria-label="languagePickerLabel">
         <svg class="language-globe" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <circle cx="12" cy="12" r="8.5"></circle>
           <path d="M3.8 12h16.4M12 3.5c2.3 2.3 3.5 5.1 3.5 8.5S14.3 18.2 12 20.5C9.7 18.2 8.5 15.4 8.5 12S9.7 5.8 12 3.5Z"></path>
         </svg>
-        <span id="language-label">EN</span>
-      </button>
+        <button class="language-option" type="button" data-language="zh" aria-label="切换到中文" aria-pressed="true">中</button>
+        <button class="language-option" type="button" data-language="en" aria-label="Switch to English" aria-pressed="false">EN</button>
+        <button class="language-option" type="button" data-language="ja" aria-label="日本語に切り替える" aria-pressed="false">日</button>
+      </div>
     </header>
 
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="eyebrow">为 macOS 而做的视频转换</p>
-          <h1 id="hero-title" data-i18n="heroTitle">把视频变成 MP4，<br />特别简单。</h1>
-          <p class="hero-intro" data-i18n="heroIntro">
-            免费、开源、本地处理。<br />不用登录、不用上传、不用会看参数。
-          </p>
+          <p class="eyebrow" data-i18n="eyebrow">MP4FLOW FOR MAC</p>
+          <h1 id="hero-title" data-i18n="heroTitle">视频转 MP4，<br />一款就够。</h1>
+          <p class="hero-intro" data-i18n="heroIntro">智能转换，也能剪切、裁切、旋转。把常用的视频处理放进一个轻量、好懂的 Mac 工具。</p>
+          <ul class="hero-tools" aria-label="Core MP4Flow features" data-i18n-aria-label="featureListLabel">
+            <li data-i18n="heroToolOne">智能转换</li>
+            <li data-i18n="heroToolTwo">剪切</li>
+            <li data-i18n="heroToolThree">裁切</li>
+            <li data-i18n="heroToolFour">旋转</li>
+          </ul>
           <div class="hero-actions">
             <a class="button button-primary" href="https://github.com/ixiehao/MP4Flow/releases/latest" data-i18n="download">免费下载</a>
-            <a class="button button-quiet" href="https://github.com/ixiehao/MP4Flow" data-i18n="viewSource">查看源代码 <span aria-hidden="true">↗</span></a>
+            <a class="button button-quiet" href="#tools" data-i18n="exploreTools">查看四大功能</a>
           </div>
-          <p class="hero-note"><span data-i18n="heroSystemNote">macOS 13+</span><span aria-hidden="true"> · </span><button class="install-guide-trigger" id="install-guide-trigger" type="button" data-i18n="installGuide">安装 FFmpeg</button></p>
+          <p class="hero-note"><span data-i18n="heroSystemNote">macOS 13+ · Apple 芯片与 Intel</span><span aria-hidden="true"> · </span><button class="install-guide-trigger" id="install-guide-trigger" type="button" data-i18n="installGuide">安装 FFmpeg</button></p>
         </div>
 
-        <figure class="hero-stage hero-stage-real" aria-label="MP4Flow app demonstration">
-          <div class="stage-media">
-            <img id="hero-app-screen" src="assets/mp4flow-working-screen.png" data-src-zh="assets/mp4flow-working-screen.png" data-src-en="assets/mp4flow-working-screen-en.png" width="1600" height="1108" alt="MP4Flow running a local video conversion" decoding="async" fetchpriority="high" />
+        <figure class="hero-stage" aria-label="MP4Flow app demonstration" data-i18n-aria-label="stageLabel">
+          <div class="hero-stage-bar">
+            <span class="stage-live"><i></i><span data-i18n="stageLive">正在本机处理</span></span>
+            <span data-i18n="stageStatus">MP4Flow workspace</span>
           </div>
-          <figcaption class="stage-caption" data-i18n="stageCaption">MP4Flow 正在本机转换视频。</figcaption>
+          <div class="stage-media">
+            <img id="hero-app-screen" src="assets/mp4flow-working-screen.png" data-src-zh="assets/mp4flow-working-screen.png" data-src-en="assets/mp4flow-working-screen-en.png" data-src-ja="assets/mp4flow-working-screen-ja.png" width="1600" height="1108" alt="MP4Flow running a local video conversion" decoding="async" fetchpriority="high" />
+          </div>
+          <figcaption class="stage-caption" data-i18n="stageCaption">真实 MP4Flow 工作界面：添加视频，选择处理方式，在本机完成导出。</figcaption>
         </figure>
       </section>
 
-      <section class="principles" aria-label="MP4Flow principles">
-        <article>
-          <span class="principle-number">01</span>
-          <h2 data-i18n="principleOneTitle">视频留在你的 Mac</h2>
-          <p data-i18n="principleOneBody">转换在本机完成；MP4Flow 不上传你的素材。</p>
-        </article>
-        <article>
-          <span class="principle-number">02</span>
-          <h2 data-i18n="principleTwoTitle">能快就不重编码</h2>
-          <p data-i18n="principleTwoBody">兼容时直接封装；需要转码时优先使用 Apple 硬件能力。</p>
-        </article>
-        <article>
-          <span class="principle-number">03</span>
-          <h2 data-i18n="principleThreeTitle">没有订阅与水印</h2>
-          <p data-i18n="principleThreeBody">项目以 MIT 许可证开源，功能没有付费墙。</p>
-        </article>
+      <section class="tools-section" id="tools" aria-labelledby="tools-title">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="toolsEyebrow">FOUR TOOLS. ONE CLEAR WORKFLOW.</p>
+          <h2 id="tools-title" data-i18n="toolsTitle">不只转换，<br />四种核心处理。</h2>
+          <p data-i18n="toolsIntro">每个功能都围绕“少设置、看得懂、能完成”设计。需要时编辑，不需要时只管转换。</p>
+        </div>
+        <div class="tool-grid">
+          <article class="tool-card tool-card-convert">
+            <div class="tool-card-top"><span class="tool-index">01</span></div>
+            <h3 data-i18n="toolOneTitle">智能转换</h3>
+            <p data-i18n="toolOneBody">自动选择合适的 MP4 路径，尽可能直接封装；需要兼容时再使用硬件或软件转码。</p>
+            <span class="tool-detail" data-i18n="toolOneDetail">兼容、清晰、节省空间</span>
+          </article>
+          <article class="tool-card tool-card-trim">
+            <div class="tool-card-top"><span class="tool-index">02</span></div>
+            <h3 data-i18n="toolTwoTitle">剪切</h3>
+            <p data-i18n="toolTwoBody">拖动时间范围，配合前后步进，找到更准确的起止画面，再导出需要的片段。</p>
+            <span class="tool-detail" data-i18n="toolTwoDetail">精确选择起止范围</span>
+          </article>
+          <article class="tool-card tool-card-crop">
+            <div class="tool-card-top"><span class="tool-index">03</span></div>
+            <h3 data-i18n="toolThreeTitle">裁切</h3>
+            <p data-i18n="toolThreeBody">直接拖动裁切框，或输入位置和尺寸；宽高比选项让常用画幅更容易确定。</p>
+            <span class="tool-detail" data-i18n="toolThreeDetail">拖动、数值、宽高比</span>
+          </article>
+          <article class="tool-card tool-card-rotate">
+            <div class="tool-card-top"><span class="tool-index">04</span></div>
+            <h3 data-i18n="toolFourTitle">旋转</h3>
+            <p data-i18n="toolFourBody">把方向不对的画面转正；支持 90° 和 180° 旋转，并保持视频画面比例。</p>
+            <span class="tool-detail" data-i18n="toolFourDetail">90° / 180°，不拉伸</span>
+          </article>
+        </div>
       </section>
 
-      <section class="feature-section" id="features" aria-labelledby="features-title">
-        <div class="section-intro">
-          <p class="eyebrow" data-i18n="featuresEyebrow">日常需要的，刚刚好</p>
-          <h2 id="features-title" data-i18n="featuresTitle">少一点设置，<br />多一点确定性。</h2>
-        </div>
-        <div class="feature-grid">
-          <article class="feature-card feature-card-featured">
-            <span class="feature-symbol" aria-hidden="true">→</span>
-            <h3 data-i18n="featureOneTitle">智能转换</h3>
-            <p data-i18n="featureOneBody">为常见视频选择兼容的 MP4 路径，尽可能避免多余的重编码。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-symbol" aria-hidden="true">✂</span>
-            <h3 data-i18n="featureTwoTitle">剪切、裁切、旋转</h3>
-            <p data-i18n="featureTwoBody">在队列中完成轻量编辑，精确到帧地选择剪切范围。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-symbol" aria-hidden="true">⌘</span>
-            <h3 data-i18n="featureThreeTitle">批量而可靠</h3>
-            <p data-i18n="featureThreeBody">查看进度、重试失败任务、取消任务，并安全地保留原文件。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-symbol" aria-hidden="true">▣</span>
-            <h3 data-i18n="featureFourTitle">适合你的分辨率</h3>
-            <p data-i18n="featureFourBody">保持原画，或按视频自身尺寸选择 480P、720P、1080P 与更高目标。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-symbol" aria-hidden="true">△</span>
-            <h3 data-i18n="featureFiveTitle">实验性智能增强</h3>
-            <p data-i18n="featureFiveBody">在兼容的 Apple 芯片与 macOS 27+ 上，可使用系统 VideoToolbox 超分能力。</p>
-          </article>
-          <article class="feature-card">
-            <span class="feature-symbol" aria-hidden="true">＋</span>
-            <h3 data-i18n="featureSixTitle">持续改进</h3>
-            <p data-i18n="featureSixBody">开源开发，欢迎提交问题、测试边缘素材，或一起完善工具。</p>
-          </article>
-        </div>
+      <section class="proof-strip" aria-label="MP4Flow advantages">
+        <article>
+          <span class="proof-kicker">01</span>
+          <h2 data-i18n="proofOneTitle">极速处理</h2>
+          <p data-i18n="proofOneBody">能直接封装就不重编码；需要转码时优先使用可用的 Apple 硬件能力。</p>
+        </article>
+        <article>
+          <span class="proof-kicker">02</span>
+          <h2 data-i18n="proofTwoTitle">原生 Mac</h2>
+          <p data-i18n="proofTwoBody">为 macOS 13+ 设计，支持 Apple 芯片与 Intel Mac，界面和操作都保持轻量。</p>
+        </article>
+        <article>
+          <span class="proof-kicker">03</span>
+          <h2 data-i18n="proofThreeTitle">本地转码</h2>
+          <p data-i18n="proofThreeBody">不登录、不上传；视频始终在你的 Mac 上读取、处理与导出。</p>
+        </article>
       </section>
 
       <section class="workflow" id="workflow" aria-labelledby="workflow-title">
-        <div>
-          <p class="eyebrow" data-i18n="workflowEyebrow">从文件到可播放 MP4</p>
-          <h2 id="workflow-title" data-i18n="workflowTitle">三步完成。</h2>
+        <div class="workflow-intro">
+          <p class="eyebrow" data-i18n="workflowEyebrow">FROM FILE TO MP4</p>
+          <h2 id="workflow-title" data-i18n="workflowTitle">三步，完成视频处理。</h2>
         </div>
         <ol>
           <li>
-            <span>1</span>
+            <span>01</span>
             <div><h3 data-i18n="stepOneTitle">添加视频</h3><p data-i18n="stepOneBody">拖入文件，或从 Finder 选择素材。</p></div>
           </li>
           <li>
-            <span>2</span>
-            <div><h3 data-i18n="stepTwoTitle">选择结果</h3><p data-i18n="stepTwoBody">用清晰的预设选择质量、尺寸与输出位置。</p></div>
+            <span>02</span>
+            <div><h3 data-i18n="stepTwoTitle">转换或编辑</h3><p data-i18n="stepTwoBody">选择智能转换，或在开始前剪切、裁切、旋转。</p></div>
           </li>
           <li>
-            <span>3</span>
-            <div><h3 data-i18n="stepThreeTitle">开始转换</h3><p data-i18n="stepThreeBody">进度清晰可见，完成后可直接在 Finder 中查看。</p></div>
+            <span>03</span>
+            <div><h3 data-i18n="stepThreeTitle">在本机导出</h3><p data-i18n="stepThreeBody">查看清晰的进度，完成后直接在 Finder 中打开文件。</p></div>
           </li>
         </ol>
       </section>
 
       <section class="download-panel" id="download" aria-labelledby="download-title">
-        <p class="eyebrow" data-i18n="downloadEyebrow">从 GitHub 获取</p>
-        <h2 id="download-title" data-i18n="downloadTitle">让视频转换回归简单。</h2>
-        <p data-i18n="downloadBody">下载最新版本，或从源代码构建。<br />MP4Flow 免费、开源，在你的 Mac 上运行。</p>
+        <p class="eyebrow" data-i18n="downloadEyebrow">FREE. OPEN SOURCE. ON YOUR MAC.</p>
+        <h2 id="download-title" data-i18n="downloadTitle">从第一个视频开始，<br />让处理变简单。</h2>
+        <p data-i18n="downloadBody">下载最新版本。MP4Flow 免费、开源；视频只在你的 Mac 上处理。</p>
         <div class="hero-actions">
           <a class="button button-primary" href="https://github.com/ixiehao/MP4Flow/releases/latest" data-i18n="getLatest">获取最新版本</a>
-          <a class="button button-quiet button-light" href="https://github.com/ixiehao/MP4Flow" data-i18n="starGithub">在 GitHub 关注 <span aria-hidden="true">↗</span></a>
+          <a class="button button-quiet" href="https://github.com/ixiehao/MP4Flow" data-i18n="viewSource">查看源代码 <span aria-hidden="true">↗</span></a>
         </div>
+        <p class="download-note" data-i18n="downloadNote">macOS 13+ · 需要 FFmpeg 与 ffprobe · 支持 Apple 芯片与 Intel</p>
       </section>
     </main>
 
     <footer>
-      <a class="wordmark" href="#top" aria-label="MP4Flow home">
+      <a class="wordmark" href="#top" aria-label="MP4Flow home" data-i18n-aria-label="homeLabel">
         <img class="wordmark-icon" src="assets/mp4flow-app-icon.png" width="1024" height="1024" alt="" />
         <span class="wordmark-name">MP4<span>Flow</span></span>
       </a>
-      <p data-i18n="footerTagline">原生 macOS 视频转 MP4 工具。</p>
+      <p data-i18n="footerTagline">智能转换、剪切、裁切、旋转，全部在 Mac 本地完成。</p>
       <div class="footer-links">
         <a href="https://github.com/ixiehao/MP4Flow" data-i18n="footerGithub">GitHub</a>
-        <a href="https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY.md" data-i18n="footerPrivacy">隐私</a>
+        <a id="privacy-link" href="https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY.md" data-i18n="footerPrivacy">隐私</a>
         <a href="https://github.com/ixiehao/MP4Flow/blob/main/LICENSE" data-i18n="footerLicense">MIT 许可证</a>
       </div>
     </footer>
@@ -183,7 +216,7 @@
     <dialog class="install-dialog" id="install-dialog" aria-labelledby="install-dialog-title">
       <div class="dialog-header">
         <p class="eyebrow" data-i18n="installEyebrow">开始转换前</p>
-        <button class="dialog-close" id="install-dialog-close" type="button" aria-label="Close installation guide">×</button>
+        <button class="dialog-close" id="install-dialog-close" type="button" aria-label="Close installation guide" data-i18n-aria-label="closeInstall">×</button>
       </div>
       <h2 id="install-dialog-title" data-i18n="installTitle">安装 FFmpeg</h2>
       <p class="dialog-intro" data-i18n="installIntro">MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。</p>
@@ -198,6 +231,6 @@
       <p class="install-help" data-i18n-html="installHelp">还没有 Homebrew？请先访问 <a href="https://brew.sh/" target="_blank" rel="noreferrer">brew.sh</a> 安装。</p>
     </dialog>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20261016.5"></script>
   </body>
 </html>
