@@ -1,6 +1,6 @@
 const copy = {
   zh: {
-    navTools: "四大功能", navWhy: "为什么是 MP4Flow", navDownload: "下载",
+    navTools: "四大功能", navWorkflow: "使用方式", navDownload: "下载",
     eyebrow: "MP4FLOW FOR MAC", heroTitle: "视频转 MP4，<br />一款就够。",
     heroIntro: "智能转换，也能剪切、裁切、旋转。把常用的视频处理放进一个轻量、好懂的 Mac 工具。",
     heroToolOne: "智能转换", heroToolTwo: "剪切", heroToolThree: "裁切", heroToolFour: "旋转",
@@ -14,9 +14,6 @@ const copy = {
     toolTwoTitle: "剪切", toolTwoBody: "拖动时间范围，配合前后步进，找到更准确的起止画面，再导出需要的片段。", toolTwoDetail: "精确选择起止范围",
     toolThreeTitle: "裁切", toolThreeBody: "直接拖动裁切框，或输入位置和尺寸；宽高比选项让常用画幅更容易确定。", toolThreeDetail: "拖动、数值、宽高比",
     toolFourTitle: "旋转", toolFourBody: "把方向不对的画面转正；支持 90° 和 180° 旋转，并保持视频画面比例。", toolFourDetail: "90° / 180°，不拉伸",
-    whyTagOne: "无需登录", whyTagTwo: "保留原文件", whyTagThree: "可查看进度",
-    whyEyebrow: "BUILT FOR THE EVERYDAY CASE", whyTitle: "少讲参数，<br />多给确定性。", whyBody: "添加文件后，你看到的是容易理解的质量、尺寸与输出位置；转换过程中，状态会说明正在检测、直封装、硬件转码或收尾验证。",
-    whyPointOne: "批量队列、失败重试、安全取消", whyPointTwo: "保持视频比例，不用担心画面拉伸", whyPointThree: "免费、开源，MIT 许可证",
     workflowEyebrow: "FROM FILE TO MP4", workflowTitle: "三步，完成视频处理。", stepOneTitle: "添加视频", stepOneBody: "拖入文件，或从 Finder 选择素材。",
     stepTwoTitle: "转换或编辑", stepTwoBody: "选择智能转换，或在开始前剪切、裁切、旋转。", stepThreeTitle: "在本机导出", stepThreeBody: "查看清晰的进度，完成后直接在 Finder 中打开文件。",
     downloadEyebrow: "FREE. OPEN SOURCE. ON YOUR MAC.", downloadTitle: "从第一个视频开始，<br />让处理变简单。", downloadBody: "下载最新版本。MP4Flow 免费、开源；视频只在你的 Mac 上处理。",
@@ -27,7 +24,7 @@ const copy = {
     installEyebrow: "开始转换前", installTitle: "安装 FFmpeg", installIntro: "MP4Flow 使用 FFmpeg 与 ffprobe 读取和转换视频。通过 Homebrew 安装时，两者会一并安装。", installStepOne: "打开「终端」应用。", installStepTwo: "输入以下命令：", installStepThree: "安装完成后，重新打开 MP4Flow。", installHelp: "还没有 Homebrew？请先访问 <a href=\"https://brew.sh/\" target=\"_blank\" rel=\"noreferrer\">brew.sh</a> 安装。"
   },
   en: {
-    navTools: "Four tools", navWhy: "Why MP4Flow", navDownload: "Download",
+    navTools: "Four tools", navWorkflow: "How it works", navDownload: "Download",
     eyebrow: "MP4FLOW FOR MAC", heroTitle: "Video to MP4.<br />One app is enough.",
     heroIntro: "Smart Convert, plus trim, crop, and rotate. Everyday video work in one lightweight Mac app that makes sense at a glance.",
     heroToolOne: "Smart Convert", heroToolTwo: "Trim", heroToolThree: "Crop", heroToolFour: "Rotate",
@@ -41,9 +38,6 @@ const copy = {
     toolTwoTitle: "Trim", toolTwoBody: "Set a time range, nudge the start or end point, and export just the piece of video you need.", toolTwoDetail: "Choose a precise range",
     toolThreeTitle: "Crop", toolThreeBody: "Drag the crop box or enter exact position and size. Aspect-ratio options make common frames easier to set.", toolThreeDetail: "Drag · numbers · aspect ratio",
     toolFourTitle: "Rotate", toolFourBody: "Correct an orientation that is not right. Rotate 90° or 180° while preserving the video's displayed proportions.", toolFourDetail: "90° / 180° · no stretching",
-    whyTagOne: "No account", whyTagTwo: "Original kept", whyTagThree: "Visible progress",
-    whyEyebrow: "BUILT FOR THE EVERYDAY CASE", whyTitle: "Less codec talk.<br />More certainty.", whyBody: "After adding a file, choose clear quality, size, and output options. While converting, MP4Flow explains whether it is inspecting, remuxing, hardware encoding, or verifying the export.",
-    whyPointOne: "Batch queue, retry failed work, and safe cancellation", whyPointTwo: "Preserve proportions without stretching the frame", whyPointThree: "Free and open source under the MIT License",
     workflowEyebrow: "FROM FILE TO MP4", workflowTitle: "Three steps to handle video.", stepOneTitle: "Add video", stepOneBody: "Drop in a file or choose media from Finder.",
     stepTwoTitle: "Convert or edit", stepTwoBody: "Choose Smart Convert, or trim, crop, and rotate before starting.", stepThreeTitle: "Export locally", stepThreeBody: "Follow a clear progress state, then open the completed file in Finder.",
     downloadEyebrow: "FREE. OPEN SOURCE. ON YOUR MAC.", downloadTitle: "Start with one video.<br />Make handling it simple.", downloadBody: "Download the latest release. MP4Flow is free and open source, and your video stays on your Mac.",
