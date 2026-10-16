@@ -17,7 +17,7 @@ MP4 変換に加えて、動画の一部を切り出し、画面をクロップ�
 
 *動画を追加し、必要なら簡単に編集して、Mac 上で変換します。*
 
-[ダウンロードとインストール](docs/DOWNLOAD.md) · [インストーラをビルド](docs/INSTALLER-BUILD.md) · [メディア回帰テスト](docs/MEDIA-REGRESSION.md) · [リリースチェックリスト](docs/RELEASE-CHECKLIST.md) · [プライバシー](PRIVACY.ja.md) · [セキュリティ](SECURITY.ja.md)
+[ダウンロードとインストール](docs/DOWNLOAD.md) · [インストーラをビルド](docs/INSTALLER-BUILD.md) · [メディア回帰テスト](docs/MEDIA-REGRESSION.md) · [リリースチェックリスト](docs/RELEASE-CHECKLIST.md) · [サポート](SUPPORT.md) · [プライバシー](PRIVACY.ja.md) · [セキュリティ](SECURITY.ja.md)
 
 ## ダウンロードとインストール
 
