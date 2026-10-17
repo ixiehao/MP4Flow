@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.1 — 2026-10-17
+
+### English
+
+- Improved conversion reliability for stream-rich and occasionally unavailable media. Inspection now drains `ffprobe` output while it runs, and only transient cloud or non-local read failures receive one bounded retry.
+- Preserved an explicit software H.264 or HEVC choice when trimming, cropping, or rotating. Cancellation cannot publish an output before final verification; missing sources, permissions, and disk-space errors skip redundant fallback attempts.
+- Hardened experimental Smart Enhance around cancellation, audio finalisation, slow frame processing, and late VideoToolbox callbacks. Dependency checks now coalesce and reuse recent results while the queue changes.
+- Added generated-media regression coverage for real conversion, retry behaviour, trim/crop/rotation, high-output `ffprobe`, and native enhancement where supported.
+
+### 日本語
+
+- ストリーム数が多い素材や、一時的に読み取りに失敗する素材の変換信頼性を改善しました。検査中に `ffprobe` の出力を逐次読み取り、クラウドまたはローカルではない場所での一時的な読み取り失敗に限って、上限付きで1回だけ再試行します。
+- トリミング、クロップ、回転時にも、明示したソフトウェア H.264/HEVC の選択を維持します。最終検証前の出力公開をキャンセル時に防ぎ、入力ファイルなし、権限、空き容量のエラーでは不要なフォールバックを繰り返しません。
+- 実験的なスマート高画質拡大のキャンセル、音声の終了処理、遅いフレーム処理、遅延する VideoToolbox コールバックを堅牢化しました。キューの変更中は依存関係の確認を集約し、直近の結果を再利用します。
+- 実変換、再試行、トリミング/クロップ/回転、大量出力の `ffprobe`、対応環境でのネイティブ拡大を対象とする生成メディア回帰テストを追加しました。
+
+### 中文
+
+- 提升多流素材和偶发读取失败素材的转换可靠性：检测阶段会持续读取 `ffprobe` 输出；仅对云盘或非本地位置的临时读取失败进行一次有上限的重试。
+- 剪切、裁切或旋转时，会保留用户明确选择的软件 H.264/HEVC 编码；取消任务不会在最终校验前发布输出，源文件缺失、权限和磁盘空间错误也不会重复执行无效降级。
+- 加固实验性智能增强放大的取消、音频收尾、慢帧处理与 VideoToolbox 延迟回调处理。转换队列变化时，环境检查会合并请求并复用近期结果。
+- 新增生成媒体回归覆盖：真实转换、重试行为、剪切/裁切/旋转、大输出 `ffprobe`，以及支持环境下的原生智能增强。
+
 ## 1.2.0 — 2026-10-16
 
 ### English
