@@ -427,6 +427,18 @@ private final class ErrorBuffer: @unchecked Sendable {
     func read() -> String { lock.lock(); defer { lock.unlock() }; return value }
 }
 
+private final class ProbeOutput: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = Data()
+    private let maximumBytes = 8_000_000
+    func append(_ data: Data) {
+        lock.lock()
+        if value.count < maximumBytes { value.append(data.prefix(maximumBytes - value.count)) }
+        lock.unlock()
+    }
+    func read() -> Data { lock.lock(); defer { lock.unlock() }; return value }
+}
+
 /// `-progress pipe:1` is FFmpeg's liveness contract. Keep its clock behind a
 /// lock because pipe callbacks and the main actor watchdog run independently.
 private final class ProcessActivity: @unchecked Sendable {
@@ -487,6 +499,7 @@ final class ConverterStore: ObservableObject {
     private var queueIDs: [UUID] = []
     private var progressTimes: [UUID: Double] = [:]
     private var progressBuffers: [UUID: String] = [:]
+    private var progressGeneration: [UUID: UUID] = [:]
     private var lastProgressUpdate: [UUID: Date] = [:]
     private var mergeItemIDs: [UUID] = []
     private var mergeDurations: [Double?] = []
@@ -607,7 +620,7 @@ final class ConverterStore: ObservableObject {
         statusText = ""
     }
     func retryIncomplete() {
-        guard !isRunning else { return }
+        guard !isBusy else { return }
         for index in items.indices {
             if case .failed = items[index].state {
                 items[index].state = .waiting
@@ -623,7 +636,7 @@ final class ConverterStore: ObservableObject {
     }
 
     func start() {
-        guard !isMerging else { return }
+        guard !isBusy else { return }
         guard let binary = locateFFmpeg() else { showFFmpegSetup = true; return }
         guard locateFFprobe(for: binary) != nil else {
             statusText = L10n.text("未检测到 ffprobe，请安装完整的 FFmpeg 后重试。")
@@ -719,7 +732,7 @@ final class ConverterStore: ObservableObject {
         cancellationRequested = true
         statusText = L10n.text("正在停止转换并清理临时文件")
         let processes = Array(activeProcesses.values)
-        processes.forEach { $0.terminate() }
+        processes.filter(\.isRunning).forEach { $0.terminate() }
         Task { [weak self] in
             guard let self else { return }
             try? await Task.sleep(nanoseconds: self.ffmpegTerminationGrace)
@@ -887,6 +900,8 @@ final class ConverterStore: ObservableObject {
             process.terminationHandler = { finished in
                 progress.fileHandleForReading.readabilityHandler = nil
                 errors.fileHandleForReading.readabilityHandler = nil
+                let trailingError = errors.fileHandleForReading.readDataToEndOfFile()
+                if !trailingError.isEmpty { stderr.append(String(decoding: trailingError, as: UTF8.self)) }
                 Task { @MainActor [store] in
                     if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
                     else { continuation.resume(returning: .failure(store.friendlyMergeError(stderr.read(), code: finished.terminationStatus))) }
@@ -969,6 +984,8 @@ final class ConverterStore: ObservableObject {
             process.terminationHandler = { finished in
                 progress.fileHandleForReading.readabilityHandler = nil
                 errors.fileHandleForReading.readabilityHandler = nil
+                let trailingError = errors.fileHandleForReading.readDataToEndOfFile()
+                if !trailingError.isEmpty { stderr.append(String(decoding: trailingError, as: UTF8.self)) }
                 Task { @MainActor [store] in
                     if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
                     else { continuation.resume(returning: .failure(store.friendlyMergeError(stderr.read(), code: finished.terminationStatus))) }
@@ -1095,7 +1112,7 @@ final class ConverterStore: ObservableObject {
             }.count
             statusText = failures == 0 ? L10n.text("转换完成") : L10n.format("队列处理结束，%d 项失败。", failures)
         }
-        activeProcesses.removeAll(); activeTemporaryOutputs.removeAll(); progressBuffers.removeAll(); progressTimes.removeAll(); lastProgressUpdate.removeAll(); queueIDs.removeAll(); isRunning = false
+        activeProcesses.removeAll(); activeTemporaryOutputs.removeAll(); progressBuffers.removeAll(); progressGeneration.removeAll(); progressTimes.removeAll(); lastProgressUpdate.removeAll(); queueIDs.removeAll(); isRunning = false
         presentationQueue.isSuspended = false
     }
 
@@ -1108,11 +1125,26 @@ final class ConverterStore: ObservableObject {
         let rotation = item.rotation
         let crop = item.crop
         setPhase(.inspecting, for: id, progress: nil, count: count)
-        let info = await probe(source, ffmpegURL: ffmpegURL)
+        var info = await probe(source, ffmpegURL: ffmpegURL)
+        // A transient file-provider or network-volume read may make ffprobe
+        // fail once before the same source is readable. Retry inspection once,
+        // without launching an encoder against unknown stream metadata.
+        if !info.probeSucceeded && !cancellationRequested && shouldRetryProbe(for: source) {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if !cancellationRequested { info = await probe(source, ffmpegURL: ffmpegURL) }
+        }
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
         guard !cancellationRequested else {
             items[index].state = .cancelled
             items[index].phase = nil
+            return
+        }
+        guard info.probeSucceeded else {
+            markFailed(id, failure: ConversionFailure(
+                reason: L10n.text("无法读取此视频的媒体数据"),
+                solution: L10n.text("请确认文件可播放，或使用「智能转换」生成新文件后重试。"),
+                diagnostic: "probe:unavailable"
+            ), count: count)
             return
         }
         guard info.hasVideo else {
@@ -1132,7 +1164,10 @@ final class ConverterStore: ObservableObject {
         if preset == .smartEnhanceUpscale {
             effectivePreset = preset
         } else if rotation != nil || crop != nil || resolution.requiresReencode {
-            effectivePreset = (preset == .qualityTop || preset == .h264Cap8) ? preset : .h264Hardware
+            // Edits require re-encoding, but retain an explicitly selected
+            // software or HEVC encoder. Only copy/automatic presets need a
+            // concrete H.264 encoding path here.
+            effectivePreset = (preset == .remux || preset == .smartMP4) ? .h264Hardware : preset
         } else if trim != nil, info.canDirectRemuxToMP4 {
             effectivePreset = .remux
         } else if preset == .smartMP4 {
@@ -1178,6 +1213,7 @@ final class ConverterStore: ObservableObject {
         // at the same target bitrate. Retries are per-item and bounded.
         if case .failure = result,
            !cancellationRequested,
+           !isTerminalFFmpegFailure(result),
            effectivePreset != .smartEnhanceUpscale,
            canUseVideoToolboxPipeline(info: info, preset: effectivePreset, crop: crop) {
             setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件处理失败，正在使用兼容方式重试"))
@@ -1185,6 +1221,7 @@ final class ConverterStore: ObservableObject {
         }
         if case .failure = result,
            !cancellationRequested,
+           !isTerminalFFmpegFailure(result),
            effectivePreset != .smartEnhanceUpscale,
            usesVideoToolboxEncoder(effectivePreset) {
             setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件编码不可用，正在使用兼容编码重试"))
@@ -1199,6 +1236,9 @@ final class ConverterStore: ObservableObject {
                 }
             }
         }
+        // Cancellation can arrive after FFmpeg exits or while ffprobe verifies
+        // the temporary result. Never publish an unchecked output in that gap.
+        if cancellationRequested { result = .cancelled }
         guard let current = items.firstIndex(where: { $0.id == id }) else { return }
         switch result {
         case .success:
@@ -1217,6 +1257,7 @@ final class ConverterStore: ObservableObject {
         case .cancelled:
             items[current].state = .cancelled
             items[current].phase = nil
+            items[current].failure = nil
             try? FileManager.default.removeItem(at: temporary)
         case .failure(let message):
             try? FileManager.default.removeItem(at: temporary)
@@ -1227,6 +1268,16 @@ final class ConverterStore: ObservableObject {
     }
 
     private enum ProcessResult { case success, cancelled, failure(String) }
+
+    private func isTerminalFFmpegFailure(_ result: ProcessResult) -> Bool {
+        guard case .failure(let message) = result else { return false }
+        return message == "MP4Flow:disk-full" || message == "MP4Flow:permission" || message == "MP4Flow:missing-source"
+    }
+
+    private func shouldRetryProbe(for source: URL) -> Bool {
+        guard let values = try? source.resourceValues(forKeys: [.isUbiquitousItemKey, .volumeIsLocalKey]) else { return false }
+        return values.isUbiquitousItem == true || values.volumeIsLocal == false
+    }
 
     private func setPhase(_ phase: ConversionPhase, for id: UUID, progress: Double?, count: Int, detail: String? = nil) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
@@ -1273,6 +1324,12 @@ final class ConverterStore: ObservableObject {
     }
 
     private func failure(from message: String) -> ConversionFailure {
+        if message == "MP4Flow:disk-full" {
+            return ConversionFailure(reason: L10n.text("输出磁盘空间不足"), solution: L10n.text("请释放空间或选择其他输出位置后重试。"), diagnostic: "ffmpeg:disk-full")
+        }
+        if message == "MP4Flow:permission" || message == "MP4Flow:missing-source" {
+            return ConversionFailure(reason: L10n.text("没有读取或写入文件的权限"), solution: L10n.text("请检查文件和输出文件夹权限后重试。"), diagnostic: message == "MP4Flow:permission" ? "ffmpeg:permission" : "ffmpeg:missing-source")
+        }
         let text = message.lowercased()
         if text.contains("无进度") || text.contains("未响应") || text.contains("timed out") || text.contains("timeout") {
             return ConversionFailure(
@@ -1329,7 +1386,11 @@ final class ConverterStore: ObservableObject {
                 diagnostic: "verify:empty-output"
             )
         }
-        let info = await probe(output, ffmpegURL: ffmpegURL)
+        var info = await probe(output, ffmpegURL: ffmpegURL)
+        if !info.probeSucceeded && !cancellationRequested {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if !cancellationRequested { info = await probe(output, ffmpegURL: ffmpegURL) }
+        }
         guard info.probeSucceeded else {
             return ConversionFailure(
                 reason: L10n.text("无法验证输出文件"),
@@ -1381,6 +1442,11 @@ final class ConverterStore: ObservableObject {
         let process = Process(), progress = Pipe(), errors = Pipe()
         let store = self
         let activity = ProcessActivity()
+        let generation = UUID()
+        progressGeneration[id] = generation
+        progressBuffers[id] = nil
+        progressTimes[id] = nil
+        lastProgressUpdate[id] = nil
         process.executableURL = ffmpegURL
         process.arguments = ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder)
         process.standardOutput = progress; process.standardError = errors
@@ -1388,18 +1454,20 @@ final class ConverterStore: ObservableObject {
         progress.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData; guard !data.isEmpty else { return }
             activity.touch()
-            Task { @MainActor [store] in store.consumeProgress(String(decoding: data, as: UTF8.self), duration: trim.map { $0.end - $0.start } ?? info.duration, id: id, count: count) }
+            Task { @MainActor [store] in store.consumeProgress(String(decoding: data, as: UTF8.self), duration: trim.map { $0.end - $0.start } ?? info.duration, id: id, count: count, generation: generation) }
         }
         errors.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData; guard !data.isEmpty else { return }
-            activity.touch()
             stderr.append(String(decoding: data, as: UTF8.self))
         }
         return await withCheckedContinuation { continuation in
             process.terminationHandler = { finished in
                 progress.fileHandleForReading.readabilityHandler = nil; errors.fileHandleForReading.readabilityHandler = nil
+                let trailingError = errors.fileHandleForReading.readDataToEndOfFile()
+                if !trailingError.isEmpty { stderr.append(String(decoding: trailingError, as: UTF8.self)) }
                 Task { @MainActor [store] in
                     store.activeProcesses.removeValue(forKey: id)
+                    if store.progressGeneration[id] == generation { store.progressGeneration[id] = nil }
                     if store.cancellationRequested { continuation.resume(returning: .cancelled) }
                     else if let timeout = activity.timeout() { continuation.resume(returning: .failure(timeout)) }
                     else if finished.terminationStatus == 0 { continuation.resume(returning: .success) }
@@ -1410,6 +1478,7 @@ final class ConverterStore: ObservableObject {
             do { try process.run() }
             catch {
                 activeProcesses.removeValue(forKey: id)
+                if progressGeneration[id] == generation { progressGeneration[id] = nil }
                 progress.fileHandleForReading.readabilityHandler = nil; errors.fileHandleForReading.readabilityHandler = nil
                 continuation.resume(returning: .failure("无法启动 FFmpeg：\(error.localizedDescription)"))
                 return
@@ -1543,7 +1612,8 @@ final class ConverterStore: ObservableObject {
         return L10n.format("目标码率 %.1f Mbps", Double(info.outputRate(preset: preset, quality: quality, resolution: resolution)) / 1_000_000) + sizeLabel
     }
 
-    private func consumeProgress(_ text: String, duration: Double?, id: UUID, count: Int) {
+    private func consumeProgress(_ text: String, duration: Double?, id: UUID, count: Int, generation: UUID) {
+        guard progressGeneration[id] == generation else { return }
         let combined = (progressBuffers[id] ?? "") + text
         let lines = combined.split(separator: "\n", omittingEmptySubsequences: false)
         progressBuffers[id] = combined.hasSuffix("\n") ? "" : String(lines.last ?? "")
@@ -1585,28 +1655,46 @@ final class ConverterStore: ObservableObject {
         guard let probe = locateFFprobe(for: ffmpegURL) else {
             return Self.unavailableProbeInfo()
         }
+        return await Self.inspectMedia(at: source, using: probe)
+    }
+
+    /// Keep process I/O independent of the store so media inspection can be
+    /// exercised with a stream-rich ffprobe response in integration tests.
+    nonisolated static func inspectMedia(at source: URL, using probe: URL) async -> VideoInfo {
         return await withCheckedContinuation { continuation in
             let process = Process()
             let pipe = Pipe()
+            let output = ProbeOutput()
+            let drain = DispatchGroup()
+            drain.enter()
             process.executableURL = probe
             process.arguments = ["-v", "error", "-show_entries", "stream=codec_type,codec_name,bit_rate,width,height,r_frame_rate,pix_fmt,sample_rate,channels,color_transfer:format=duration,bit_rate", "-of", "json", source.path]
             process.standardOutput = pipe
+            process.standardError = FileHandle.nullDevice
             process.terminationHandler = { finished in
-                let info: VideoInfo
-                guard finished.terminationStatus == 0 else {
-                    info = Self.unavailableProbeInfo()
+                drain.notify(queue: .global(qos: .utility)) {
+                    let info = finished.terminationStatus == 0
+                        ? (Self.decodeProbe(output.read()) ?? Self.unavailableProbeInfo())
+                        : Self.unavailableProbeInfo()
                     Task { @MainActor in continuation.resume(returning: info) }
-                    return
                 }
-                let data = pipe.fileHandleForReading.readDataToEndOfFile()
-                info = Self.decodeProbe(data) ?? Self.unavailableProbeInfo()
-                Task { @MainActor in continuation.resume(returning: info) }
             }
             do {
                 try process.run()
             } catch {
+                drain.leave()
                 continuation.resume(returning: Self.unavailableProbeInfo())
                 return
+            }
+            // Read concurrently with ffprobe: a stream-rich file can produce
+            // more JSON than the pipe buffer holds and otherwise deadlock
+            // before terminationHandler has a chance to run.
+            DispatchQueue.global(qos: .utility).async {
+                let handle = pipe.fileHandleForReading
+                while let chunk = try? handle.read(upToCount: 64 * 1_024), !chunk.isEmpty {
+                    output.append(chunk)
+                }
+                drain.leave()
             }
             Task { [process] in
                 try? await Task.sleep(nanoseconds: 30_000_000_000)
@@ -1621,7 +1709,7 @@ final class ConverterStore: ObservableObject {
     }
 
     nonisolated private static func unavailableProbeInfo() -> VideoInfo {
-        VideoInfo(duration: nil, videoRate: nil, audioRate: nil, width: nil, height: nil, hasVideo: true, videoCodec: nil, audioCodec: nil, frameRate: nil, pixelFormat: nil, audioSampleRate: nil, audioChannels: nil, audioTrackCount: 0, subtitleTrackCount: 0, colorTransfer: nil, probeSucceeded: false)
+        VideoInfo(duration: nil, videoRate: nil, audioRate: nil, width: nil, height: nil, hasVideo: false, videoCodec: nil, audioCodec: nil, frameRate: nil, pixelFormat: nil, audioSampleRate: nil, audioChannels: nil, audioTrackCount: 0, subtitleTrackCount: 0, colorTransfer: nil, probeSucceeded: false)
     }
 
     nonisolated private static func decodeProbe(_ data: Data) -> VideoInfo? {
@@ -1672,8 +1760,10 @@ final class ConverterStore: ObservableObject {
     private func fileNameTime(_ seconds: Double) -> String { String(format: "%02d%02d%02d", Int(seconds) / 3600, (Int(seconds) % 3600) / 60, Int(seconds) % 60) }
     private func friendlyError(_ stderr: String, code: Int32) -> String {
         let text = stderr.lowercased()
+        if text.contains("no space left") || text.contains("disk full") { return "MP4Flow:disk-full" }
+        if text.contains("permission denied") || text.contains("operation not permitted") { return "MP4Flow:permission" }
+        if text.contains("no such file") { return "MP4Flow:missing-source" }
         if text.contains("unknown encoder") || text.contains("videotoolbox") && text.contains("not available") { return L10n.text("硬件编码不可用。请改用“兼容优先：H.264 MP4（软件）”。") }
-        if text.contains("permission denied") || text.contains("no such file") { return L10n.text("无法读取源文件或写入输出位置，请检查文件与权限。") }
         if text.contains("could not write header") || text.contains("muxer") { return L10n.text("该流无法直接封装为 MP4，请改用 H.264 或 HEVC 转码。") }
         return L10n.format("FFmpeg 转换失败（退出码 %d）。", code)
     }

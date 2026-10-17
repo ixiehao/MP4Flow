@@ -6,11 +6,20 @@ deterministic CI signal from the release validation that must happen on real Mac
 
 ## Automated synthetic suite
 
-Run this before every release and on every pull request:
+Run the application integration tests and media fixture checks before every release and on every pull request:
 
 ```sh
+swift test
 ./Scripts/run-media-regression.sh
 ```
+
+`swift test` exercises `ConverterStore` with generated short videos: a complete
+software conversion, failed-source retry, trim/crop/rotation output geometry,
+and a stream-rich `ffprobe` response larger than a pipe buffer. On macOS 27
+machines with supported VideoToolbox hardware, it also exports and decodes a
+short native Smart Enhance video with audio. That test skips on older or
+unsupported Macs; the ordinary converter tests still run. CI installs FFmpeg
+before invoking the Swift tests.
 
 The script generates tiny, deterministic files in a uniquely-created temporary
 directory, asserts stream metadata and decoding contracts with `ffprobe` and
@@ -19,9 +28,9 @@ rate, portrait video, video-only input, multiple audio tracks, subtitles,
 rotation metadata, odd dimensions, HDR signalling, simulated long duration,
 special file names, and truncated input. It does not download or commit media.
 
-Passing this suite means the **test toolchain and fixture contracts** are sound.
-It does not prove that a SwiftUI action, a hardware encoder, or a particular
-customer video is supported.
+Passing these checks confirms the exercised conversion paths and fixture
+contracts. It does not prove that every SwiftUI action, hardware encoder, or
+particular customer video is supported.
 
 ## Required release matrix
 

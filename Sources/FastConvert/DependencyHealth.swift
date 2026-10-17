@@ -15,24 +15,60 @@ final class DependencyHealthMonitor: ObservableObject {
     @Published private(set) var isChecking = false
 
     private var refreshTask: Task<Void, Never>?
+    private var cachedTools: DependencyHealthReport?
+    private var toolProbeTask: Task<DependencyHealthReport, Never>?
 
-    func refresh(outputDirectory: URL?, sourceDirectories: [URL]) {
+    func refresh(outputDirectory: URL?, sourceDirectories: [URL], forceToolCheck: Bool = false) {
         refreshTask?.cancel()
         isChecking = true
+        if forceToolCheck {
+            cachedTools = nil
+            toolProbeTask = nil
+        }
 
         let request = DependencyHealthRequest(
             outputDirectory: outputDirectory,
             sourceDirectories: sourceDirectories
         )
+        let previous = cachedTools
+        if previous == nil && toolProbeTask == nil {
+            // A shared in-flight probe prevents rapid queue edits from starting
+            // overlapping FFmpeg and VideoToolbox checks.
+            toolProbeTask = Task {
+                await DependencyHealthProbe.inspect(
+                    DependencyHealthRequest(outputDirectory: nil, sourceDirectories: []),
+                    previous: nil
+                )
+            }
+        }
+        let probe = toolProbeTask
         refreshTask = Task { [weak self] in
-            let report = await DependencyHealthProbe.inspect(request)
+            // A batch of newly added files can publish several count changes in
+            // succession. Only the last one needs a full directory check.
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            let tools: DependencyHealthReport
+            if let previous {
+                tools = previous
+            } else if let probe {
+                tools = await probe.value
+            } else {
+                return
+            }
+            guard !Task.isCancelled else { return }
+            let report = await DependencyHealthProbe.inspect(request, previous: tools)
             guard !Task.isCancelled else { return }
             self?.report = report
+            self?.cachedTools = report
+            self?.toolProbeTask = nil
             self?.isChecking = false
         }
     }
 
-    deinit { refreshTask?.cancel() }
+    deinit {
+        refreshTask?.cancel()
+        toolProbeTask?.cancel()
+    }
 }
 
 private struct DependencyHealthRequest: Sendable {
@@ -101,26 +137,38 @@ private enum DependencyHealthProbe {
         "/usr/bin"
     ]
 
-    static func inspect(_ request: DependencyHealthRequest) async -> DependencyHealthReport {
+    static func inspect(_ request: DependencyHealthRequest, previous: DependencyHealthReport?) async -> DependencyHealthReport {
         await Task.detached(priority: .utility) {
-            let ffmpeg = inspectExecutable(named: "ffmpeg")
-            let ffprobe = inspectExecutable(named: "ffprobe")
-            let encoders = ffmpeg.path.flatMap { path in
-                let result = run(URL(fileURLWithPath: path), arguments: ["-hide_banner", "-encoders"], timeout: 4)
-                return result.succeeded ? result.output.lowercased() : nil
-            }
+            let ffmpeg: ExecutableHealth
+            let ffprobe: ExecutableHealth
+            let hardware: VideoToolboxHealth
+            if let previous {
+                ffmpeg = previous.ffmpeg
+                ffprobe = previous.ffprobe
+                hardware = previous.videoToolbox
+            } else {
+                ffmpeg = await inspectExecutable(named: "ffmpeg")
+                ffprobe = await inspectExecutable(named: "ffprobe")
+                let encoders: String?
+                if let path = ffmpeg.path {
+                    let result = await run(URL(fileURLWithPath: path), arguments: ["-hide_banner", "-encoders"], timeout: 4)
+                    encoders = result.succeeded ? result.output.lowercased() : nil
+                } else {
+                    encoders = nil
+                }
 
-            // A system codec alone is not enough: FFmpeg must also expose the
-            // matching encoder before MP4Flow can use the hardware path.
-            let h264System = isHardwareEncoderAvailable(codec: kCMVideoCodecType_H264)
-            let hevcSystem = isHardwareEncoderAvailable(codec: kCMVideoCodecType_HEVC)
-            let h264Available = h264System && (encoders?.contains("h264_videotoolbox") == true)
-            let hevcAvailable = hevcSystem && (encoders?.contains("hevc_videotoolbox") == true)
-            let hardware = VideoToolboxHealth(
-                level: h264Available || hevcAvailable ? .ready : .warning,
-                h264Available: h264Available,
-                hevcAvailable: hevcAvailable
-            )
+                // A system codec alone is not enough: FFmpeg must also expose the
+                // matching encoder before MP4Flow can use the hardware path.
+                let h264System = isHardwareEncoderAvailable(codec: kCMVideoCodecType_H264)
+                let hevcSystem = isHardwareEncoderAvailable(codec: kCMVideoCodecType_HEVC)
+                let h264Available = h264System && (encoders?.contains("h264_videotoolbox") == true)
+                let hevcAvailable = hevcSystem && (encoders?.contains("hevc_videotoolbox") == true)
+                hardware = VideoToolboxHealth(
+                    level: h264Available || hevcAvailable ? .ready : .warning,
+                    h264Available: h264Available,
+                    hevcAvailable: hevcAvailable
+                )
+            }
 
             return DependencyHealthReport(
                 ffmpeg: ffmpeg,
@@ -131,14 +179,14 @@ private enum DependencyHealthProbe {
         }.value
     }
 
-    private static func inspectExecutable(named name: String) -> ExecutableHealth {
+    private static func inspectExecutable(named name: String) async -> ExecutableHealth {
         guard let executable = executableDirectories
             .map({ URL(fileURLWithPath: $0).appendingPathComponent(name) })
             .first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
             return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: nil, version: nil)
         }
 
-        let result = run(executable, arguments: ["-version"], timeout: 3)
+        let result = await run(executable, arguments: ["-version"], timeout: 3)
         guard result.succeeded else {
             return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: executable.path, version: nil)
         }
@@ -254,7 +302,7 @@ private enum DependencyHealthProbe {
         return true
     }
 
-    private static func run(_ executable: URL, arguments: [String], timeout: TimeInterval) -> CommandResult {
+    private static func run(_ executable: URL, arguments: [String], timeout: TimeInterval) async -> CommandResult {
         let process = Process()
         let standardOutput = Pipe()
         let standardError = Pipe()
@@ -269,22 +317,30 @@ private enum DependencyHealthProbe {
             return CommandResult(succeeded: false, output: "")
         }
 
+        // Drain both pipes while the child runs. Waiting for exit first can
+        // deadlock if FFmpeg writes more than a pipe can buffer.
+        let outputTask = Task.detached(priority: .utility) {
+            standardOutput.fileHandleForReading.readDataToEndOfFile()
+        }
+        let errorTask = Task.detached(priority: .utility) {
+            standardError.fileHandleForReading.readDataToEndOfFile()
+        }
+
         let deadline = Date().addingTimeInterval(timeout)
         while process.isRunning && Date() < deadline {
-            Thread.sleep(forTimeInterval: 0.025)
+            try? await Task.sleep(for: .milliseconds(25))
         }
         if process.isRunning {
             process.terminate()
             let graceDeadline = Date().addingTimeInterval(0.5)
             while process.isRunning && Date() < graceDeadline {
-                Thread.sleep(forTimeInterval: 0.025)
+                try? await Task.sleep(for: .milliseconds(25))
             }
         }
         if process.isRunning { _ = kill(process.processIdentifier, SIGKILL) }
         process.waitUntilExit()
 
-        let output = standardOutput.fileHandleForReading.readDataToEndOfFile()
-            + standardError.fileHandleForReading.readDataToEndOfFile()
+        let output = await outputTask.value + errorTask.value
         return CommandResult(
             succeeded: process.terminationStatus == 0,
             output: String(data: output, encoding: .utf8) ?? ""

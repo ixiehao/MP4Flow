@@ -14,16 +14,58 @@ private final class ExportCompletionGate: @unchecked Sendable {
         self.continuation = continuation
     }
 
-    func succeed() { resolve(.success(())) }
-    func fail(_ error: Error) { resolve(.failure(error)) }
+    @discardableResult func succeed() -> Bool { resolve(.success(())) }
+    @discardableResult func fail(_ error: Error) -> Bool { resolve(.failure(error)) }
 
-    private func resolve(_ result: Result<Void, Error>) {
+    private func resolve(_ result: Result<Void, Error>) -> Bool {
         lock.lock()
         let continuation = self.continuation
         self.continuation = nil
         lock.unlock()
-        guard let continuation else { return }
+        guard let continuation else { return false }
         continuation.resume(with: result)
+        return true
+    }
+}
+
+/// Cancellation may arrive before a VideoToolbox or writer continuation is
+/// installed. Keep that signal until the bridge is ready to receive it.
+private final class ExportWaitCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var gate: ExportCompletionGate?
+    private var cancelled = false
+    private var submitted = false
+
+    @discardableResult func install(_ gate: ExportCompletionGate) -> Bool {
+        lock.lock()
+        self.gate = gate
+        let cancelled = self.cancelled
+        lock.unlock()
+        if cancelled { gate.fail(CancellationError()) }
+        return !cancelled
+    }
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        let gate = submitted ? self.gate : nil
+        lock.unlock()
+        gate?.fail(CancellationError())
+    }
+
+    /// Finish submitting the framework request before cancellation can resume
+    /// the exporter and tear down the reader, writer or processing session.
+    func submit(_ operation: () -> Void) {
+        lock.lock()
+        guard !cancelled else {
+            let gate = self.gate
+            lock.unlock()
+            gate?.fail(CancellationError())
+            return
+        }
+        submitted = true
+        operation()
+        lock.unlock()
     }
 }
 
@@ -127,6 +169,53 @@ struct SmartEnhancePlan: Sendable {
 #if compiler(>=6.4)
 @available(macOS 27.0, *)
 final class SmartEnhanceExporter {
+    /// A timeout can resume export before VideoToolbox calls back. End the
+    /// processing session only after its last submitted request completes.
+    private final class FrameProcessorSession: @unchecked Sendable {
+        let processor: VTFrameProcessor
+        private let lock = NSLock()
+        private var requestsInFlight = 0
+        private var closing = false
+        private var ended = false
+
+        init(_ processor: VTFrameProcessor) { self.processor = processor }
+
+        func beginRequest() {
+            lock.lock()
+            requestsInFlight += 1
+            lock.unlock()
+        }
+
+        func completeRequest() {
+            lock.lock()
+            requestsInFlight -= 1
+            let shouldEnd = closing && requestsInFlight == 0 && !ended
+            if shouldEnd { ended = true }
+            lock.unlock()
+            if shouldEnd { processor.endSession() }
+        }
+
+        func close() {
+            lock.lock()
+            closing = true
+            let shouldEnd = requestsInFlight == 0 && !ended
+            if shouldEnd { ended = true }
+            lock.unlock()
+            if shouldEnd { processor.endSession() }
+        }
+    }
+
+    /// The callback is Sendable but VideoToolbox's Objective-C parameter type
+    /// is not annotated. This reference owns the per-frame buffers until the
+    /// framework finishes its asynchronous request.
+    private final class FrameParametersReference: @unchecked Sendable {
+        let parameters: VTLowLatencySuperResolutionScalerParameters
+
+        init(_ parameters: VTLowLatencySuperResolutionScalerParameters) {
+            self.parameters = parameters
+        }
+    }
+
     static var isSupported: Bool {
         #if arch(arm64)
         VTLowLatencySuperResolutionScalerConfiguration.isSupported
@@ -238,33 +327,6 @@ final class SmartEnhanceExporter {
             writer.add(audioInput)
         }
 
-        guard writer.startWriting() else { throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to start the enhanced export.") }
-        guard reader.startReading() else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
-        writer.startSession(atSourceTime: trim.map { CMTime(seconds: $0.start, preferredTimescale: 600) } ?? .zero)
-
-        // Asset writers apply interleaving pressure while encoding. Feed audio
-        // alongside enhanced video so a high-resolution video input cannot
-        // wait forever for an audio packet that this exporter held until last.
-        let audioWriteTask: Task<Void, Error>? = if let audioOutput, let audioInput {
-            Task {
-                while let sample = audioOutput.copyNextSampleBuffer() {
-                    if shouldCancel() || Task.isCancelled {
-                        reader.cancelReading()
-                        writer.cancelWriting()
-                        throw CancellationError()
-                    }
-                    try await waitUntilReady(audioInput, writer: writer, reader: reader, shouldCancel: shouldCancel)
-                    guard audioInput.append(sample) else {
-                        throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write source audio.")
-                    }
-                }
-                audioInput.markAsFinished()
-            }
-        } else {
-            nil
-        }
-        defer { audioWriteTask?.cancel() }
-
         let configuration = VTLowLatencySuperResolutionScalerConfiguration(
             frameWidth: plan.sourceWidth,
             frameHeight: plan.sourceHeight,
@@ -272,45 +334,87 @@ final class SmartEnhanceExporter {
         )
         let processor = VTFrameProcessor()
         try processor.startSession(configuration: configuration)
-        defer { processor.endSession() }
+        let processorSession = FrameProcessorSession(processor)
+        defer { processorSession.close() }
 
-        let offset = trim?.start ?? 0
-        while let sample = videoOutput.copyNextSampleBuffer() {
-            if shouldCancel() {
-                reader.cancelReading()
-                writer.cancelWriting()
-                throw CancellationError()
-            }
-            guard let buffer = CMSampleBufferGetImageBuffer(sample),
-                  let sourceFrame = VTFrameProcessorFrame(buffer: buffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)),
-                  let destinationBuffer = makeDestinationBuffer(configuration: configuration),
-                  let destinationFrame = VTFrameProcessorFrame(buffer: destinationBuffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)) else {
-                throw ExportError.pixelBuffer
-            }
-            let parameters = VTLowLatencySuperResolutionScalerParameters(sourceFrame: sourceFrame, destinationFrame: destinationFrame)
-            try await process(processor: processor, parameters: parameters)
-            let outputBuffer: CVPixelBuffer
-            if let pixelTransferSession {
-                guard let resizedBuffer = makeWriterDestinationBuffer(adaptor: pixelBufferAdaptor),
-                      VTPixelTransferSessionTransferImage(pixelTransferSession, from: destinationBuffer, to: resizedBuffer) == noErr else {
-                    throw ExportError.pixelTransfer
+        var audioWriteTask: Task<Void, Error>?
+        do {
+            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            guard writer.startWriting() else { throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to start the enhanced export.") }
+            guard reader.startReading() else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
+            writer.startSession(atSourceTime: trim.map { CMTime(seconds: $0.start, preferredTimescale: 600) } ?? .zero)
+
+            // Feed audio alongside video; the writer may wait for the next
+            // audio packet before accepting a high-resolution video frame.
+            if let audioOutput, let audioInput {
+                audioWriteTask = Task {
+                    do {
+                        while let sample = audioOutput.copyNextSampleBuffer() {
+                            try await waitUntilReady(audioInput, writer: writer, reader: reader, shouldCancel: shouldCancel)
+                            guard audioInput.append(sample) else {
+                                throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write source audio.")
+                            }
+                        }
+                        if shouldCancel() || Task.isCancelled { throw CancellationError() }
+                        guard reader.status != .failed else {
+                            throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read source audio.")
+                        }
+                        audioInput.markAsFinished()
+                    } catch {
+                        // Wake the video producer if audio fails while the
+                        // writer is waiting for interleaved media.
+                        reader.cancelReading()
+                        writer.cancelWriting()
+                        throw error
+                    }
                 }
-                outputBuffer = resizedBuffer
-            } else {
-                outputBuffer = destinationBuffer
             }
-            try await waitUntilReady(videoInput, writer: writer, reader: reader, shouldCancel: shouldCancel)
-            guard pixelBufferAdaptor.append(outputBuffer, withPresentationTime: CMSampleBufferGetPresentationTimeStamp(sample)) else {
-                throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write an enhanced frame.")
-            }
-            onProgress(max(0, CMSampleBufferGetPresentationTimeStamp(sample).seconds - offset))
-        }
-        guard reader.status != .failed else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
-        videoInput.markAsFinished()
 
-        if let audioWriteTask { try await audioWriteTask.value }
-        guard reader.status != .failed else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read source audio.") }
-        try await finish(writer: writer)
+            let offset = trim?.start ?? 0
+            while let sample = videoOutput.copyNextSampleBuffer() {
+                if shouldCancel() || Task.isCancelled { throw CancellationError() }
+                guard let buffer = CMSampleBufferGetImageBuffer(sample),
+                      let sourceFrame = VTFrameProcessorFrame(buffer: buffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)),
+                      let destinationBuffer = makeDestinationBuffer(configuration: configuration),
+                      let destinationFrame = VTFrameProcessorFrame(buffer: destinationBuffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)) else {
+                    throw ExportError.pixelBuffer
+                }
+                let parameters = VTLowLatencySuperResolutionScalerParameters(sourceFrame: sourceFrame, destinationFrame: destinationFrame)
+                try await process(session: processorSession, parameters: parameters, shouldCancel: shouldCancel)
+                if shouldCancel() || Task.isCancelled { throw CancellationError() }
+                let outputBuffer: CVPixelBuffer
+                if let pixelTransferSession {
+                    guard let resizedBuffer = makeWriterDestinationBuffer(adaptor: pixelBufferAdaptor),
+                          VTPixelTransferSessionTransferImage(pixelTransferSession, from: destinationBuffer, to: resizedBuffer) == noErr else {
+                        throw ExportError.pixelTransfer
+                    }
+                    outputBuffer = resizedBuffer
+                } else {
+                    outputBuffer = destinationBuffer
+                }
+                try await waitUntilReady(videoInput, writer: writer, reader: reader, shouldCancel: shouldCancel)
+                guard pixelBufferAdaptor.append(outputBuffer, withPresentationTime: CMSampleBufferGetPresentationTimeStamp(sample)) else {
+                    throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write an enhanced frame.")
+                }
+                onProgress(max(0, CMSampleBufferGetPresentationTimeStamp(sample).seconds - offset))
+            }
+            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            guard reader.status != .failed else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
+            videoInput.markAsFinished()
+
+            if let audioWriteTask { try await waitForAudioCompletion(audioWriteTask, shouldCancel: shouldCancel) }
+            guard reader.status == .completed else {
+                throw ExportError.reader(reader.error?.localizedDescription ?? "The source could not be read completely.")
+            }
+            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            try await finish(writer: writer, shouldCancel: shouldCancel)
+        } catch {
+            audioWriteTask?.cancel()
+            reader.cancelReading()
+            writer.cancelWriting()
+            if let audioWriteTask { await waitForAudioShutdown(audioWriteTask) }
+            throw error
+        }
     }
 
     private func makeDestinationBuffer(configuration: VTLowLatencySuperResolutionScalerConfiguration) -> CVPixelBuffer? {
@@ -344,46 +448,133 @@ final class SmartEnhanceExporter {
         return pixelTransferSession
     }
 
-    private func process(processor: VTFrameProcessor, parameters: VTLowLatencySuperResolutionScalerParameters) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let gate = ExportCompletionGate(continuation)
-            let watchdog = DispatchWorkItem { gate.fail(ExportError.processingTimeout) }
-            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 12, execute: watchdog)
-            processor.process(parameters: parameters) { _, error in
-                watchdog.cancel()
-                if let error { gate.fail(error) }
-                else { gate.succeed() }
+    private func process(session: FrameProcessorSession, parameters: VTLowLatencySuperResolutionScalerParameters, shouldCancel: @escaping () -> Bool) async throws {
+        let cancellation = ExportWaitCancellation()
+        let cancellationMonitor = monitorCancellation(cancellation, shouldCancel: shouldCancel)
+        let parametersReference = FrameParametersReference(parameters)
+        defer { cancellationMonitor.cancel() }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                let gate = ExportCompletionGate(continuation)
+                guard cancellation.install(gate) else { return }
+                let watchdog = DispatchWorkItem { gate.fail(ExportError.processingTimeout) }
+                cancellation.submit {
+                    session.beginRequest()
+                    DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 60, execute: watchdog)
+                    session.processor.process(parameters: parametersReference.parameters) { _, error in
+                        // Retain the buffers and session until VideoToolbox has
+                        // really completed this request, even after a timeout.
+                        withExtendedLifetime(parametersReference) {}
+                        session.completeRequest()
+                        watchdog.cancel()
+                        if let error { gate.fail(error) }
+                        else { gate.succeed() }
+                    }
+                }
             }
+        } onCancel: {
+            cancellation.cancel()
         }
     }
 
     private func waitUntilReady(_ input: AVAssetWriterInput, writer: AVAssetWriter, reader: AVAssetReader, shouldCancel: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(8)
+        let deadline = Date().addingTimeInterval(30)
         while !input.isReadyForMoreMediaData {
             if shouldCancel() || Task.isCancelled { throw CancellationError() }
             if writer.status == .failed { throw ExportError.writer(writer.error?.localizedDescription ?? "The enhanced export failed.") }
+            if writer.status == .cancelled { throw ExportError.writer("The enhanced export was cancelled by the encoder.") }
             if reader.status == .failed { throw ExportError.reader(reader.error?.localizedDescription ?? "The source video could not be read.") }
+            if reader.status == .cancelled { throw ExportError.reader("The source reader was cancelled.") }
             if Date() >= deadline { throw ExportError.writer(L10n.text("编码器未响应。")) }
             try await Task.sleep(for: .milliseconds(4))
         }
+        if shouldCancel() || Task.isCancelled { throw CancellationError() }
     }
 
-    private func finish(writer: AVAssetWriter) async throws {
-        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let gate = ExportCompletionGate(continuation)
-            let writerReference = ExportWriterReference(writer)
-            let watchdog = DispatchWorkItem {
-                writer.cancelWriting()
-                gate.fail(ExportError.finalizationTimeout)
+    private func finish(writer: AVAssetWriter, shouldCancel: @escaping () -> Bool) async throws {
+        let cancellation = ExportWaitCancellation()
+        let cancellationMonitor = monitorCancellation(cancellation, shouldCancel: shouldCancel)
+        defer { cancellationMonitor.cancel() }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                let gate = ExportCompletionGate(continuation)
+                guard cancellation.install(gate) else { return }
+                let writerReference = ExportWriterReference(writer)
+                let watchdog = DispatchWorkItem {
+                    if gate.fail(ExportError.finalizationTimeout) {
+                        writerReference.writer.cancelWriting()
+                    }
+                }
+                cancellation.submit {
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 90, execute: watchdog)
+                    writer.finishWriting {
+                        watchdog.cancel()
+                        let writer = writerReference.writer
+                        guard writer.status == .completed else {
+                            gate.fail(ExportError.writer(writer.error?.localizedDescription ?? "The enhanced export did not complete."))
+                            return
+                        }
+                        gate.succeed()
+                    }
+                }
             }
-            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 12, execute: watchdog)
-            writer.finishWriting {
-                watchdog.cancel()
-                let writer = writerReference.writer
-                guard writer.status == .completed else {
-                    gate.fail(ExportError.writer(writer.error?.localizedDescription ?? "The enhanced export did not complete."))
+        } onCancel: {
+            cancellation.cancel()
+        }
+    }
+
+    private func monitorCancellation(_ cancellation: ExportWaitCancellation, shouldCancel: @escaping () -> Bool) -> Task<Void, Never> {
+        Task {
+            while !Task.isCancelled {
+                if await MainActor.run(body: { shouldCancel() }) {
+                    cancellation.cancel()
                     return
                 }
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+        }
+    }
+
+    /// The audio producer normally finishes before video. A damaged source can
+    /// leave its final read pending, so bound this last join as well.
+    private func waitForAudioCompletion(_ task: Task<Void, Error>, shouldCancel: @escaping () -> Bool) async throws {
+        let cancellation = ExportWaitCancellation()
+        let cancellationMonitor = monitorCancellation(cancellation, shouldCancel: shouldCancel)
+        defer { cancellationMonitor.cancel() }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                let gate = ExportCompletionGate(continuation)
+                guard cancellation.install(gate) else { return }
+                let watchdog = DispatchWorkItem { gate.fail(ExportError.reader("Audio decoding did not complete.")) }
+                cancellation.submit {
+                    DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 90, execute: watchdog)
+                    Task {
+                        do {
+                            try await task.value
+                            watchdog.cancel()
+                            gate.succeed()
+                        } catch {
+                            watchdog.cancel()
+                            gate.fail(error)
+                        }
+                    }
+                }
+            }
+        } onCancel: {
+            cancellation.cancel()
+        }
+    }
+
+    /// AVAssetReader cancellation normally releases a blocked audio read.
+    /// Bound the join so a broken demuxer cannot trap the user's cancel action.
+    private func waitForAudioShutdown(_ task: Task<Void, Error>) async {
+        _ = try? await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let gate = ExportCompletionGate(continuation)
+            let watchdog = DispatchWorkItem { gate.fail(ExportError.reader("Audio reader did not stop.")) }
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 2, execute: watchdog)
+            Task {
+                _ = await task.result
+                watchdog.cancel()
                 gate.succeed()
             }
         }
