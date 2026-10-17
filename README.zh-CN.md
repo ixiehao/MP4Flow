@@ -1,80 +1,70 @@
 # MP4Flow
 
-> **一款免费、开源、原生的 macOS 视频转 MP4 工具，把转换这件事变得特别简单。**
+> **一款免费、开源的原生 macOS 视频转 MP4 工具：把视频变成 MP4，特别简单。**
 
 [![最新版本](https://img.shields.io/github/v/release/ixiehao/MP4Flow?display_name=tag&sort=semver&label=release)](https://github.com/ixiehao/MP4Flow/releases/latest)
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
 [![许可证](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/ixiehao/MP4Flow?style=flat)](https://github.com/ixiehao/MP4Flow/stargazers)
 
-[下载 MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/) · [English](README.md) · [日本語](README.ja.md) · [反馈问题](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+[免费下载](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/) · [English](README.md) · [日本語](README.ja.md) · [获取帮助](SUPPORT.md)
 
-MP4Flow 将常见视频格式转换为易播放的 MP4，所有处理都在 **你的 Mac 本机** 完成。它把复杂的编码参数换成直观选择：保留原画、节省空间、兼容播放、剪辑、裁切、旋转和合并。无需登录、不会上传视频，且完全免费。
-
-除了转换为 MP4 格式这一核心功能外，你可以用它把视频剪成片段、裁切视频画面，还可以旋转视频画面。我们努力打造一款在 macOS 上好用、快速、轻量、免费且开源的视频格式转换工具。
+免费、开源、本地处理。**不用登录、不用上传、不用会看参数。** 添加视频，选择画质，在你的 Mac 上完成转换。
 
 ![MP4Flow 功能演示](docs/assets/mp4flow-demo.gif)
 
-*添加视频、快速剪辑、裁切或旋转，然后在本地转换。*
+## 三步上手
 
-[下载与安装](docs/DOWNLOAD.md) · [安装包构建](docs/INSTALLER-BUILD.md) · [媒体回归测试](docs/MEDIA-REGRESSION.md) · [发布检查清单](docs/RELEASE-CHECKLIST.md) · [隐私](PRIVACY.md) · [安全](SECURITY.md)
-
-## 下载与安装
-
-1. 打开 [GitHub 最新版本](https://github.com/ixiehao/MP4Flow/releases/latest)，下载 `.dmg` 和与之对应的 `.sha256` 校验文件。
-2. 打开 DMG，把 **MP4Flow** 拖入 **Applications（应用程序）**。
-3. 首次使用前安装 FFmpeg 与 ffprobe；随后在应用中打开「环境体检」确认状态：
+1. 在 [GitHub 最新版本](https://github.com/ixiehao/MP4Flow/releases/latest)下载 `.dmg`，打开后把 **MP4Flow** 拖进 **Applications（应用程序）**。
+2. 安装一次本地依赖；它会同时安装 `ffmpeg` 和 `ffprobe`：
 
    ```sh
    brew install ffmpeg
    ```
 
-本仓库和 Release 页面是官方发布渠道。如需在打开前校验下载文件，请查看[校验说明](docs/DOWNLOAD.md#可选校验下载文件)。
+3. 打开 MP4Flow，添加视频，保持「**智能转换（推荐）**」，点击「**开始转换**」。
 
-**兼容设备：**macOS 13 Ventura 或更高版本，支持 Apple 芯片与 Intel Mac。硬件加速是否可用取决于设备和源视频编码。
+大多数情况下，做到这里就可以了。若想确认 FFmpeg 或硬件编码是否可用，请在应用里打开「环境体检」。
 
-## MP4Flow 能做什么
+> 需要 macOS 13 Ventura 或更高版本，支持 Apple 芯片与 Intel Mac。若 macOS 阻止首次打开，请按住 Control 点按 MP4Flow，选择「打开」。需要时可查看简短的[下载与校验说明](docs/DOWNLOAD.md)。
 
-| 你的需求 | MP4Flow 的方式 |
+## 它能做什么
+
+| 功能 | 你会得到什么 |
 | --- | --- |
-| 将视频转换为 MP4 | 直观选择智能转换、H.264 兼容播放、HEVC 节省空间或软件兼容模式。 |
-| 尽可能快速处理 | 能直接封装 MP4 就不重编码；兼容时剪辑可直接复制流。 |
-| 快速剪辑视频 | 修剪片段、裁切画面、旋转 90°/180°，或合并视频后再导出。 |
-| 让视频留在自己手里 | 媒体处理全部在 Mac 本机完成；没有账户、分析追踪或视频上传服务。 |
+| **智能转换** | 推荐的默认选择；MP4Flow 会为当前文件选择合适的处理方式。 |
+| **极速本地处理** | 能直接封装 MP4 或直接剪切流时，就不做不必要的重新编码。 |
+| **剪切、裁切、旋转** | 截取需要的片段、调整画面范围，或修正视频方向后导出。 |
+| **合并视频** | 参数相同可无损合并；参数不同可兼容合并，画面不会被拉伸。 |
+| **选择分辨率** | 保持原画，或选 1080P、720P、576P、480P，始终保持宽高比。 |
+| **隐私优先** | 视频始终在你的 Mac 上处理；没有账户、分析追踪或视频上传服务。 |
 
-## 功能特点
+### 想要不同效果？
 
-- **中文、英文、日文界面**：首次启动跟随系统语言，也可在应用顶部手动切换。
-- **能快则快**：可直接封装 MP4；兼容时剪辑不重新编码；符合条件的 H.264/HEVC 缩放使用 Apple VideoToolbox。
-- **好懂的转换选择**：智能转换、清晰又省空间、尽量保留原画、所有设备都能播放、节省更多空间、软件兼容模式。
-- **分辨率控制**：保持原画，或转为 1080P、720P、576P、480P，并保持原视频比例。放大只改变尺寸，不能补回不存在的细节。
-- **实验性智能增强放大**：Apple 芯片且 macOS 27 或更高版本，可使用系统 VideoToolbox 的超分能力。仅在系统报告支持的精确放大倍率下启用，暂不支持同时裁切或旋转；首次使用可能需要系统下载模型。
-- **简单编辑**：可修剪起止时间、拖动裁切框并输入数值、旋转 90° 或 180°。
-- **两种合并方式**：参数一致时无损合并；参数不同可兼容合并，以队列中最大尺寸为准，小画面等比例放大且不拉伸。
-- **稳定批处理**：显示进度、重排失败项、可取消任务、安全临时文件、不会覆盖已有输出。
-- **隐私优先**：所有处理留在本机。输出会被设置为不复制容器元数据和章节；涉及敏感信息时，请在分享前自行检查导出文件。
+- 想让更多设备都能播放：选 **H.264**。
+- 想让新设备上的文件更小：选 **HEVC**。
+- 遇到难处理的视频、优先求稳：选 **软件兼容模式**。
+- 想放大支持的视频：试试「**智能增强放大**」。它是实验性功能，仅在 Apple 芯片、macOS 27 或更高版本且 VideoToolbox 支持该精确倍率时可用；暂不能同时裁切或旋转，首次使用时 macOS 可能下载系统模型。
 
-## 环境要求
+## 使用前知道这几点
 
-- macOS 13 Ventura 或更高版本
-- 已在 `/opt/homebrew/bin`、`/usr/local/bin`、`/opt/local/bin` 或 `/usr/bin` 中安装 [FFmpeg](https://ffmpeg.org/) 和 `ffprobe`
-- Apple 芯片或 Intel Mac；硬件加速取决于设备与源视频编码
-- **智能增强放大（实验性）**：需要 Apple 芯片、macOS 27 或更高版本，且源尺寸与目标尺寸须匹配 VideoToolbox 支持的放大倍率。系统首次使用时可能下载模型；模型不随 MP4Flow 打包，MP4Flow 也不会将视频上传给开发者或第三方服务。
+- **一条输入，对应一个输出：** 不会覆盖已有文件；完成后可直接在访达中显示。
+- **进度看得懂：** 会显示检测素材、快速直封装、硬件/软件转换和输出校验；失败项可重试。
+- **音轨、字幕与 HDR：** 转换前会提示多音轨、字幕与 HDR。默认输出第一路视频和音频，不复制容器元数据或章节。处理敏感内容后，请在分享前检查导出结果。
+- **普通放大不是“变清晰”：** 普通放大只改变尺寸，不会凭空补细节；系统支持时可尝试上面的智能增强放大。
 
-通过 Homebrew 安装 FFmpeg：
+## 常见问题
 
-```sh
-brew install ffmpeg
-```
+### 提示找不到 FFmpeg 或 ffprobe
 
-## 使用方法
+运行 `brew install ffmpeg`，再到「环境体检」点「重新检查」。MP4Flow 不会自行打包或下载 FFmpeg。
 
-1. 打开 MP4Flow，添加视频或直接拖入队列。
-2. 选择转换方式、画质大小、分辨率和输出位置。
-3. 如有需要，在等待中的文件右侧使用剪辑、裁切、旋转。
-4. 点击“开始转换”；完成后可在访达中查看文件。
+### 某个视频处理失败了
 
-要合并视频时，添加至少两个未编辑的等待中文件，点击“合并”。如果文件参数不同，选择“兼容合并”。
+先点「重试」。仍失败时，用「智能转换」先生成一个新 MP4，再添加这个新文件重试剪辑或增强操作。状态提示会尽可能说明失败发生在哪一步。
+
+### 怎样合并视频？
+
+添加至少两个未编辑、处于等待中的视频，点击「合并」。若编码、帧率或尺寸不同，请选「兼容合并」。
 
 ## 从源码构建
 
@@ -85,24 +75,13 @@ cd MP4Flow
 open MP4Flow.app
 ```
 
-本地构建的应用使用 ad-hoc 签名。制作可发布的 DMG，请查看 [安装包构建说明](docs/INSTALLER-BUILD.md)。
+贡献代码前，请在安装 FFmpeg 后运行 `swift test` 和 `./Scripts/run-media-regression.sh`。开发资料：[参与贡献](CONTRIBUTING.md)、[媒体回归测试](docs/MEDIA-REGRESSION.md)、[安装包构建](docs/INSTALLER-BUILD.md)、[发布检查清单](docs/RELEASE-CHECKLIST.md)。
 
-## 媒体回归测试
+## 隐私、依赖与许可
 
-安装 FFmpeg 后，发布前可运行合成媒体测试：
+- MP4Flow 使用 Swift、SwiftUI 与 Apple 系统框架开发。[隐私政策](PRIVACY.md) · [安全政策](SECURITY.md)
+- FFmpeg 是需单独安装的本地运行时依赖；其许可证取决于你安装的构建。MP4Flow 不会打包或下载它。
+- 智能增强放大在 macOS 支持时调用 Apple 设备端 VideoToolbox；支持倍率和系统模型交付由 macOS 决定。
+- 应用内置 Noto Sans SC，遵循 [SIL Open Font License 1.1](AppResources/OFL.txt)；也内置 [Tabler Icons Outline](https://github.com/tabler/tabler-icons) 的本地精选子集（v3.49.0），遵循 [MIT License](AppResources/ASSET_NOTICES.md)。
 
-```sh
-./Scripts/run-media-regression.sh
-```
-
-它会临时生成并在结束后删除很小的项目自有测试素材，覆盖 H.264、HEVC、可变帧率、竖屏、音轨/字幕变体、旋转、HDR 标记、异常尺寸、长时长调度、特殊文件名和损坏输入。公开发布前仍须按[媒体回归门槛](docs/MEDIA-REGRESSION.md)完成真机测试。
-
-## 依赖与许可
-
-- MP4Flow 使用 Swift、SwiftUI 与 Apple 系统框架开发。
-- FFmpeg 是外部运行时依赖，应用不会打包、下载或为其授权；其许可证取决于你安装的构建版本。
-- 智能增强放大在当前 Mac 与系统支持时调用 Apple VideoToolbox；可用性、支持倍率和模型交付均由操作系统控制。
-- 随应用提供的 Noto Sans SC 字体使用 [SIL Open Font License 1.1](AppResources/OFL.txt)。
-- 应用为界面内置了 [Tabler Icons Outline](https://github.com/tabler/tabler-icons) SVG 的精选子集（v3.49.0）；图标仅在本机使用、没有运行时网络依赖，并遵循 [MIT License](AppResources/ASSET_NOTICES.md)。
-
-请查看 [NOTICE.md](NOTICE.md)、[PRIVACY.md](PRIVACY.md) 和 [LICENSE](LICENSE)。
+归属信息见 [NOTICE.md](NOTICE.md)，项目许可证见 [LICENSE](LICENSE)。

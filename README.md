@@ -1,80 +1,70 @@
 # MP4Flow
 
-> **A free, open-source, native macOS video converter that makes MP4 simple.**
+> **A free, open-source macOS app that turns video into MP4 — seriously simple.**
 
 [![Latest release](https://img.shields.io/github/v/release/ixiehao/MP4Flow?display_name=tag&sort=semver&label=release)](https://github.com/ixiehao/MP4Flow/releases/latest)
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
 [![License](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/ixiehao/MP4Flow?style=flat)](https://github.com/ixiehao/MP4Flow/stargazers)
 
-[Download MP4Flow](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [日本語](README.ja.md) · [中文说明](README.zh-CN.md) · [Report a problem](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+[Download free](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [中文](README.zh-CN.md) · [日本語](README.ja.md) · [Get help](SUPPORT.md)
 
-MP4Flow converts common video files to playable MP4 **on your Mac**. It replaces codec jargon with clear choices: keep the original, save space, use a compatible format, trim, crop, rotate, or merge clips. Your videos are never uploaded, no account is required, and the app is free to use.
-
-Beyond MP4 conversion, use MP4Flow to trim clips, crop the frame, and rotate video. We are building a fast, lightweight, free, and open-source macOS video conversion tool that feels at home on macOS.
+Free, open source, and local. **No account, no upload, no codec jargon.** Add a video, choose a quality, and convert it on your Mac.
 
 ![MP4Flow feature demo](docs/assets/mp4flow-demo.gif)
 
-*Add a video, make quick edits, and convert it locally.*
+## Start in 3 steps
 
-[Download guide](docs/DOWNLOAD.md) · [Build an installer](docs/INSTALLER-BUILD.md) · [Media regression](docs/MEDIA-REGRESSION.md) · [Release checklist](docs/RELEASE-CHECKLIST.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md)
-
-## Download and install
-
-1. Open the [latest GitHub Release](https://github.com/ixiehao/MP4Flow/releases/latest) and download the `.dmg` and its matching `.sha256` file.
-2. Open the DMG and drag **MP4Flow** to **Applications**.
-3. Install FFmpeg and ffprobe once, then use the in-app **Environment Check** to confirm they are ready:
+1. Download the `.dmg` from the [latest release](https://github.com/ixiehao/MP4Flow/releases/latest), open it, and drag **MP4Flow** to **Applications**.
+2. Install the one local dependency. It includes both `ffmpeg` and `ffprobe`:
 
    ```sh
    brew install ffmpeg
    ```
 
-The release page and this repository are the official download locations. If you need to verify a download before opening it, follow the short [checksum instructions](docs/DOWNLOAD.md#verify-a-download-optional).
+3. Open MP4Flow, add videos, keep **Smart Convert (Recommended)** selected, then click **Start Conversion**.
 
-**Compatible Macs:** macOS 13 Ventura or later, on Apple Silicon or Intel. Hardware acceleration depends on the Mac and source codec.
+That is all most people need. Open **Environment Check** in the app if you want to confirm FFmpeg or hardware encoding is ready.
 
-## What MP4Flow does
+> macOS 13 Ventura or later is required. Apple Silicon and Intel Macs are supported. If macOS blocks the first launch, Control-click MP4Flow and choose **Open**. See the short [download and checksum guide](docs/DOWNLOAD.md) if needed.
 
-| Need | MP4Flow approach |
+## What you can do
+
+| Feature | What it means |
 | --- | --- |
-| Convert a video to MP4 | Clear presets for Smart Convert, H.264 compatibility, HEVC efficiency, or a software fallback. |
-| Keep processing fast | Direct MP4 remuxing and stream-copy trimming avoid re-encoding when the source allows it. |
-| Make a quick edit | Trim a range, crop the frame, rotate 90°/180°, or merge clips before exporting. |
-| Keep videos private | All media processing stays on the Mac. MP4Flow has no account, analytics, or video upload service. |
+| **Smart Convert** | The recommended default. MP4Flow chooses the practical route for the file. |
+| **Fast local processing** | Uses direct MP4 remuxing or stream-copy trimming when possible, avoiding unnecessary re-encoding. |
+| **Trim, crop, rotate** | Keep just the clip you need, adjust the frame, or fix orientation before exporting. |
+| **Merge videos** | Use lossless merge for matching files, or compatible merge for different files without stretching the image. |
+| **Choose a size** | Keep the original resolution or select 1080p, 720p, 576p, or 480p while preserving the aspect ratio. |
+| **Private by default** | Video processing stays on your Mac. MP4Flow has no account, analytics, or video-upload service. |
 
-## Highlights
+### Want a different result?
 
-- **English, Japanese, and Simplified Chinese UI** — follows the system language on first launch and can be changed in the app.
-- **Fast when possible** — direct MP4 remuxing and stream-copy trimming avoid re-encoding; supported H.264/HEVC scaling uses Apple VideoToolbox.
-- **Clear choices** — Smart Convert, Clear and Compact, Preserve Original Quality, device-compatible H.264, smaller HEVC, and a software fallback.
-- **Resolution control** — keep original dimensions or convert to 1080p, 720p, 576p, or 480p while preserving aspect ratio. Upscaling enlarges the canvas, not missing detail.
-- **Experimental Smart Enhance Upscale** — on Apple Silicon running macOS 27 or later, use VideoToolbox super resolution for the exact scale factors reported by the system. It is intentionally opt-in, supports no crop or rotation yet, and may require a one-time system model download.
-- **Simple editing** — trim a time range, crop with draggable handles and numeric fields, and rotate 90° or 180°.
-- **Two merge modes** — lossless merging for matching streams; compatible merging normalises clips to the largest source resolution without stretching.
-- **Reliable batches** — progress, retry failed items, cancellation, safe temporary outputs, and no overwrite of existing files.
-- **Privacy by design** — processing stays on your Mac. Outputs are configured not to copy container metadata or chapters; review exports when sensitive redaction matters.
+- Need the widest playback compatibility? Choose **H.264**.
+- Want a smaller file on newer devices? Choose **HEVC**.
+- Need maximum compatibility after a difficult conversion? Choose the **software** option.
+- Need to enlarge a supported video? Try **Smart Enhance Upscale**. It is experimental and available only on Apple Silicon with macOS 27 or later when VideoToolbox supports that exact scale. It does not support crop or rotation at the same time, and macOS may download a system model on first use.
 
-## Requirements
+## Good to know
 
-- macOS 13 Ventura or later
-- [FFmpeg](https://ffmpeg.org/) and `ffprobe` installed together in `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, or `/usr/bin`
-- Apple Silicon or Intel Mac; hardware acceleration depends on the Mac and source codec
-- **Smart Enhance Upscale (experimental):** Apple Silicon, macOS 27 or later, and a source/target pair that matches a VideoToolbox-supported scale factor. The system may download its model before the first use. It is not bundled with MP4Flow and does not send your video to MP4Flow or a third-party service.
+- **One output per input:** existing files are never overwritten; you can reveal completed files in Finder.
+- **Clear progress:** MP4Flow shows inspection, direct remuxing, hardware or software conversion, and final verification. Failed items can be retried.
+- **Tracks and metadata:** before converting, the app reports multi-audio, subtitles, and HDR. The default export keeps the first video and audio track and does not copy container metadata or chapters. Check the result before sharing sensitive material.
+- **No magic enlargement:** normal upscaling changes dimensions, not missing detail. Smart Enhance is the optional system-assisted exception described above.
 
-Install FFmpeg with Homebrew:
+## Common questions
 
-```sh
-brew install ffmpeg
-```
+### “FFmpeg” or “ffprobe” is missing
 
-## Use
+Run `brew install ffmpeg`, then select **Environment Check** → **Check Again**. MP4Flow does not bundle or download FFmpeg for you.
 
-1. Open MP4Flow and add video files or drag them into the queue.
-2. Choose a conversion mode, quality/size, resolution, and output location.
-3. Optionally use Trim, Crop, or Rotate on a waiting item.
-4. Select **Start Conversion**. Completed files can be revealed in Finder.
+### A file failed once
 
-To merge, add at least two untouched waiting files and select **Merge**. Choose **Compatible Merge** when their stream parameters differ.
+Try **Retry** first. If it still fails, use **Smart Convert** to create a new MP4, add that new file, and try the edit or enhancement again. The status message explains the failed stage when possible.
+
+### How do I merge clips?
+
+Add at least two untouched waiting items and choose **Merge**. Use **Compatible Merge** when their codecs, frame rates, or sizes differ.
 
 ## Build from source
 
@@ -85,28 +75,13 @@ cd MP4Flow
 open MP4Flow.app
 ```
 
-The generated app is ad-hoc signed for local development. See [docs/INSTALLER-BUILD.md](docs/INSTALLER-BUILD.md) to create a distributable DMG.
+For contributors, run `swift test` and `./Scripts/run-media-regression.sh` (with FFmpeg installed) before submitting a change. More details: [contributing](CONTRIBUTING.md), [media regression](docs/MEDIA-REGRESSION.md), [installer build](docs/INSTALLER-BUILD.md), and [release checklist](docs/RELEASE-CHECKLIST.md).
 
-## Media regression
+## Privacy, dependencies, and license
 
-With FFmpeg installed, run the synthetic media suite before a release:
+- MP4Flow uses Swift, SwiftUI, and Apple system frameworks. [Privacy policy](PRIVACY.md) · [Security policy](SECURITY.md)
+- FFmpeg is a separately installed local runtime dependency; its licence depends on the build you install. MP4Flow neither bundles nor downloads it.
+- Smart Enhance uses Apple’s on-device VideoToolbox capability when macOS makes it available. Its supported factors and system model delivery are controlled by macOS.
+- The app includes Noto Sans SC under the [SIL Open Font License 1.1](AppResources/OFL.txt), plus a curated local subset of [Tabler Icons Outline](https://github.com/tabler/tabler-icons) (v3.49.0) under the [MIT License](AppResources/ASSET_NOTICES.md).
 
-```sh
-./Scripts/run-media-regression.sh
-```
-
-It creates and removes tiny project-owned fixtures for H.264, HEVC, VFR,
-portrait video, audio/subtitle variants, rotation, HDR signalling, unusual
-dimensions, long-duration scheduling, special file names, and corrupt input.
-See [the media regression gate](docs/MEDIA-REGRESSION.md) for its limits and
-the real-device matrix required for a public release.
-
-## Dependencies and licensing
-
-- MP4Flow uses Swift, SwiftUI, and Apple system frameworks.
-- FFmpeg is an external runtime dependency and is not bundled, downloaded, or licensed by the app. Its licence depends on the build you install.
-- Smart Enhance Upscale uses Apple's on-device VideoToolbox framework when it is supported by the current Mac and macOS. Its availability, supported factors, and model delivery are controlled by the operating system.
-- The bundled Noto Sans SC font is licensed under the [SIL Open Font License 1.1](AppResources/OFL.txt).
-- The app bundles a curated subset of [Tabler Icons Outline](https://github.com/tabler/tabler-icons) SVGs (v3.49.0) for its interface. They are used locally, without a runtime network dependency, under the [MIT License](AppResources/ASSET_NOTICES.md).
-
-See [NOTICE.md](NOTICE.md) for attribution, [PRIVACY.md](PRIVACY.md) for data handling, and [LICENSE](LICENSE) for the project license.
+See [NOTICE.md](NOTICE.md) for attribution and [LICENSE](LICENSE) for the project licence.
