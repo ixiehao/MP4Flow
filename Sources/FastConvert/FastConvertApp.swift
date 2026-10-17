@@ -614,16 +614,17 @@ struct ContentView: View {
     private var dependencyHealthGuide: some View {
         DependencyHealthStatusBar(
             monitor: dependencyHealth,
-            refresh: refreshDependencyHealth,
+            refresh: { refreshDependencyHealth(forceToolCheck: true) },
             copyFFmpegInstallCommand: store.copyFFmpegInstallCommand,
             openHomebrewWebsite: store.openHomebrewWebsite
         )
     }
 
-    private func refreshDependencyHealth() {
+    private func refreshDependencyHealth(forceToolCheck: Bool = false) {
         dependencyHealth.refresh(
             outputDirectory: store.outputDirectory,
-            sourceDirectories: store.items.map(\.source)
+            sourceDirectories: store.items.map(\.source),
+            forceToolCheck: forceToolCheck
         )
     }
 

@@ -17,5 +17,7 @@ jobs:
         run: ./Scripts/validate-localizations.sh
       - name: Install synthetic-media test dependency
         run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+      - name: Run Swift tests
+        run: swift test
       - name: Run synthetic media regression matrix
         run: ./Scripts/run-media-regression.sh
