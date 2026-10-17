@@ -85,3 +85,9 @@ For contributors, run `swift test` and `./Scripts/run-media-regression.sh` (with
 - The app includes Noto Sans SC under the [SIL Open Font License 1.1](AppResources/OFL.txt), plus a curated local subset of [Tabler Icons Outline](https://github.com/tabler/tabler-icons) (v3.49.0) under the [MIT License](AppResources/ASSET_NOTICES.md).
 
 See [NOTICE.md](NOTICE.md) for attribution and [LICENSE](LICENSE) for the project licence.
+
+## Development documentation
+
+[Documentation index](docs/README.md) · [Development and validation](docs/DEVELOPMENT.md) · [Website maintenance](docs/WEBSITE.md).
+
+The official website source lives in `website/`; `docs/` is reserved for maintainer documentation.

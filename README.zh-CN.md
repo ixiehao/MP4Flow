@@ -85,3 +85,9 @@ open MP4Flow.app
 - 应用内置 Noto Sans SC，遵循 [SIL Open Font License 1.1](AppResources/OFL.txt)；也内置 [Tabler Icons Outline](https://github.com/tabler/tabler-icons) 的本地精选子集（v3.49.0），遵循 [MIT License](AppResources/ASSET_NOTICES.md)。
 
 归属信息见 [NOTICE.md](NOTICE.md)，项目许可证见 [LICENSE](LICENSE)。
+
+## 开发与维护文档
+
+[文档索引](docs/README.md) · [开发与验证](docs/DEVELOPMENT.md) · [官网维护](docs/WEBSITE.md)。
+
+官网源码统一位于 `website/`，`docs/` 用于开发与维护文档。

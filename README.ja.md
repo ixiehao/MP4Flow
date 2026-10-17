@@ -85,3 +85,9 @@ open MP4Flow.app
 - アプリには [SIL Open Font License 1.1](AppResources/OFL.txt)の Noto Sans SC と、[MIT License](AppResources/ASSET_NOTICES.md)の [Tabler Icons Outline](https://github.com/tabler/tabler-icons) のローカル厳選セット（v3.49.0）が含まれます。
 
 帰属表示は [NOTICE.ja.md](NOTICE.ja.md)、プロジェクトのライセンスは [LICENSE](LICENSE) を参照してください。
+
+## 開発・保守ドキュメント
+
+[ドキュメント一覧](docs/README.md) · [開発と検証](docs/DEVELOPMENT.md) · [公式サイトの保守](docs/WEBSITE.md)。
+
+公式サイトのソースは `website/` に、開発・保守ドキュメントは `docs/` に置いています。

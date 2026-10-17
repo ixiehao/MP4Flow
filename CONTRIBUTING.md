@@ -4,7 +4,7 @@ Thank you for improving MP4Flow.
 
 1. Discuss substantial changes in an issue before implementation.
 2. Keep English, Japanese, and Simplified Chinese user-facing text clear, short, and consistent. Do not machine-translate codec jargon literally.
-3. Build with `swift build` and run `./Scripts/build-app.sh` before a pull request.
+3. For application changes, follow the build, localization, Swift test and media-regression checks in [the development guide](docs/DEVELOPMENT.md); use the packaging script only when an app bundle needs verification.
 4. Do not add telemetry, network calls, or bundled FFmpeg binaries without explicit discussion.
 5. Keep changes focused and document user-visible behaviour in `CHANGELOG.md`.
 
