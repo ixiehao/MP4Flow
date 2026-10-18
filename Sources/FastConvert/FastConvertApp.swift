@@ -276,7 +276,7 @@ private struct UpdateSettingsView: View {
                 .toggleStyle(.switch)
 
             Text(automaticallyCheckForUpdates
-                 ? L10n.text("首次启动不联网；从第二次启动起，每天最多检查一次 GitHub 公开发布信息。")
+                 ? L10n.text("首次启动不自动检查更新；之后通常每天检查一次，失败后稍后重试。")
                  : L10n.text("自动检查已关闭。你仍可随时通过“帮助 > 检查更新”手动检查。"))
                 .font(.system(size: 12))
                 .foregroundStyle(BrandColor.textSecondary)
@@ -285,10 +285,9 @@ private struct UpdateSettingsView: View {
             Divider()
 
             HStack(spacing: 8) {
-                Circle()
-                    .fill(updateChecker.isChecking ? BrandColor.warning : BrandColor.success)
-                    .frame(width: 8, height: 8)
-                Text(updateChecker.isChecking ? L10n.text("正在检查更新…") : L10n.text("更新检查只读取 GitHub 公开发布信息，不上传视频或使用数据。"))
+                TablerIcon(name: updateChecker.isChecking ? .loader2 : .infoCircle, color: BrandColor.textSecondary)
+                    .frame(width: 14, height: 14)
+                Text(updateChecker.isChecking ? L10n.text("正在检查更新…") : (updateChecker.lastCheckFailed ? L10n.text("上次未能检查更新，可手动重试。") : L10n.text("更新检查只读取 GitHub 公开发布信息，不上传视频或使用数据。")))
                     .font(.system(size: 12))
                     .foregroundStyle(BrandColor.textSecondary)
             }
@@ -343,6 +342,7 @@ struct ContentView: View {
     @State private var isDropTargeted = false
     @StateObject private var dependencyHealth = DependencyHealthMonitor()
     @State private var showUpdateNotice = false
+    @State private var showProcessingPolicy = false
     @State private var updateNoticeMessage = ""
     @State private var updateDownloadURL: URL?
     @State private var clipItem: ConversionItem?
@@ -391,12 +391,12 @@ struct ContentView: View {
                     .allowsHitTesting(false)
             }
         }
-        .alert(L10n.text("需要安装 FFmpeg"), isPresented: $store.showFFmpegSetup) {
+        .alert(L10n.text("转换组件不可用"), isPresented: $store.showFFmpegSetup) {
             Button(L10n.text("复制安装命令")) { store.copyFFmpegInstallCommand() }
             Button(L10n.text("打开 Homebrew 官网")) { store.openHomebrewWebsite() }
             Button(L10n.text("稍后再说"), role: .cancel) {}
         } message: {
-            Text(L10n.text("MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。"))
+            Text(L10n.text("FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。"))
         }
         .alert(L10n.text("检查更新"), isPresented: $showUpdateNotice) {
             if updateDownloadURL != nil {
@@ -418,7 +418,7 @@ struct ContentView: View {
             Button(L10n.text("取消"), role: .cancel) { store.cancelCompatibleMerge() }
             Button(L10n.text("开始兼容合并")) { store.startCompatibleMerge() }
         } message: {
-            Text(L10n.text("检测到片段的分辨率、帧率或音频参数不同，无法安全无损拼接。继续后将以队列中最大分辨率为目标尺寸：较小视频等比例放大；比例不同则居中补边，不会拉伸画面。输出统一编码为 H.264 + AAC MP4。"))
+            Text(L10n.text("这些片段暂不适合直接拼接。建议先做统一规格的转码，再合并。\n\n也可选择「开始兼容合并」，自动统一规格后合并。以最大分辨率为目标，等比例缩放并居中补边，输出 H.264 + AAC MP4。"))
         }
         .sheet(item: $clipItem) { item in
             TrimEditor(source: item.source, initialRange: item.trimRange) { start, end in
@@ -533,13 +533,13 @@ struct ContentView: View {
                         menuWidth: usableWidth * 0.31
                     )
                     .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
-                    Text(store.preset.detail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                    configurationHint(store.preset.detail)
                 }
                 configurationDivider
                 configurationColumn(title: "画质大小", mark: .hardDrive, width: usableWidth * 0.25) {
                     QualitySegmentedControl(selection: $store.quality, isEnabled: !store.isBusy && !store.preset.usesFixedQuality)
                         .frame(height: configurationControlHeight)
-                    Text(store.qualityDescription).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                    configurationHint(store.qualityDescription)
                 }
                 configurationDivider
                 configurationColumn(title: "分辨率", mark: .resolution, width: usableWidth * 0.16) {
@@ -556,8 +556,7 @@ struct ContentView: View {
                             )
                             .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
                         }
-                        Text(store.smartEnhanceTargets.isEmpty ? L10n.text("添加视频后显示可选分辨率。") : L10n.text("最高增强 2 倍。"))
-                            .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                        configurationHint(store.smartEnhanceTargets.isEmpty ? L10n.text("添加视频后显示可选分辨率。") : L10n.text("最高增强 2 倍。"))
                     } else {
                         MP4FlowMenuPicker(
                             selection: $store.outputResolution,
@@ -566,7 +565,7 @@ struct ContentView: View {
                             menuWidth: usableWidth * 0.16
                         )
                         .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
-                        Text(store.outputResolution.detail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                        configurationHint(store.outputResolution.detail)
                     }
                 }
                 configurationDivider
@@ -579,22 +578,30 @@ struct ContentView: View {
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: configurationControlHeight)
-                    Text(store.outputDirectory == nil ? "默认输出至源文件夹" : "已选择自定义输出文件夹")
-                        .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(2)
+                    configurationHint(L10n.text(store.outputDirectory == nil ? "默认输出至源文件夹" : "已选择自定义输出文件夹"))
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 102)
+        .frame(height: 116)
         .padding(.horizontal, 18)
         .padding(.vertical, 16)
-        .frame(height: 134)
+        .frame(height: 148)
         .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(BrandColor.stroke, lineWidth: 1) }
     }
 
     private var configurationDivider: some View {
-        Rectangle().fill(BrandColor.stroke).frame(width: 1, height: 92).padding(.horizontal, 14)
+        Rectangle().fill(BrandColor.stroke).frame(width: 1, height: 106).padding(.horizontal, 14)
+    }
+
+    private func configurationHint(_ text: String) -> some View {
+        Text(text)
+            .font(AppFont.caption)
+            .foregroundStyle(BrandColor.textSecondary)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .help(text)
     }
 
     private func configurationColumn<Content: View>(title: String, mark: MarkKind, width: CGFloat, @ViewBuilder content: () -> Content) -> some View {
@@ -638,11 +645,32 @@ struct ContentView: View {
                         HStack {
                             Text(L10n.format("转换队列（%d）", store.items.count)).font(AppFont.section)
                             Spacer()
+                            Button { showProcessingPolicy.toggle() } label: {
+                                HStack(spacing: 4) {
+                                    TablerIcon(name: .infoCircle, color: BrandColor.textSecondary).frame(width: 12, height: 12)
+                                    Text(L10n.text("处理策略")).font(AppFont.caption)
+                                }
+                                .foregroundStyle(BrandColor.textSecondary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(L10n.text("处理策略"))
+                            .popover(isPresented: $showProcessingPolicy, arrowEdge: .bottom) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(L10n.text("处理策略")).font(AppFont.section)
+                                    Text(L10n.text("默认仅输出第一路视频和音频，并移除容器元数据和章节。开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。"))
+                                        .font(AppFont.body)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    HStack {
+                                        Spacer()
+                                        Button(L10n.text("知道了")) { showProcessingPolicy = false }
+                                            .buttonStyle(.plain)
+                                            .foregroundStyle(BrandColor.blue)
+                                    }
+                                }
+                                .padding(16)
+                                .frame(width: 340)
+                            }
                         }
-                        Text(L10n.text("默认输出第一路视频和音频，并移除容器元数据和章节；开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。"))
-                            .font(AppFont.caption)
-                            .foregroundStyle(BrandColor.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.horizontal, 14).padding(.vertical, 11)
                     Divider().overlay(BrandColor.stroke)
@@ -658,8 +686,11 @@ struct ContentView: View {
                                     canEdit: !store.isBusy,
                                     crop: { cropItem = item },
                                     rotate: { store.scheduleRotation(item, rotation: $0) },
-                                    mergeModeTitle: store.mergeModeTitle
+                                    mergeModeTitle: store.mergeModeTitle,
+                                    isCancelling: store.isCancelling,
+                                    isMergeVerifying: store.isVerifyingMerge
                                 )
+                                .id("\(item.id.uuidString)-\(appLanguageIdentifier)")
                                 if index < store.items.count - 1 {
                                     Divider().overlay(BrandColor.stroke)
                                 }
@@ -691,22 +722,23 @@ struct ContentView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 7) {
                 Text(footerStatus)
                     .font(AppFont.captionMedium)
                     .foregroundStyle(BrandColor.textPrimary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(width: 340, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .help(footerStatus)
                 if store.isRunning, let progress = store.overallProgress {
-                    ProgressView(value: progress).tint(BrandColor.blue).frame(width: 340)
+                    ProgressView(value: progress).tint(BrandColor.blue).frame(maxWidth: .infinity)
                 } else if store.isRunning {
-                    ProgressView().frame(width: 340, alignment: .leading)
+                    ProgressView().frame(maxWidth: .infinity, alignment: .leading)
                 } else if store.isMerging, let progress = store.mergeProgress {
-                    ProgressView(value: progress).tint(BrandColor.blue).frame(width: 340)
+                    ProgressView(value: progress).tint(BrandColor.blue).frame(maxWidth: .infinity)
                 } else if store.isMerging {
-                    ProgressView().frame(width: 340, alignment: .leading)
+                    ProgressView().frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if !store.isBusy {
                     HStack(spacing: 7) {
@@ -727,44 +759,69 @@ struct ContentView: View {
                     }
                     .font(AppFont.caption)
                     .foregroundStyle(BrandColor.textSecondary)
+                    .lineLimit(1)
                 }
             }
-            Spacer()
+            // Keep the summary inside the content inset at the 980 pt minimum
+            // window width; a fixed 340 pt column pushed the whole footer out.
+            .frame(minWidth: 160, idealWidth: 260, maxWidth: 340, alignment: .leading)
+            .layoutPriority(-1)
+            Spacer(minLength: 0)
             Button(L10n.text("清空列表")) { store.clearQueue() }
-                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36))
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36, horizontalPadding: 10))
+                .fixedSize(horizontal: true, vertical: false)
                 .disabled(store.isBusy || store.items.isEmpty)
             Button(L10n.format("清理已完成（%d）", completedCount)) { store.clearCompleted() }
-                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 124, height: 36)).disabled(!store.hasCompleted)
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 124, height: 36, horizontalPadding: 10))
+                .fixedSize(horizontal: true, vertical: false)
+                .disabled(!store.hasCompleted)
             Button(L10n.text("重排失败项")) { store.retryIncomplete() }
-                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 108, height: 36)).disabled(store.isBusy || !store.hasIncomplete)
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 108, height: 36, horizontalPadding: 10))
+                .fixedSize(horizontal: true, vertical: false)
+                .disabled(store.isBusy || !store.hasIncomplete)
             Button(L10n.format("合并（%d）", store.mergeDisplayCount)) { store.mergeWaitingItems() }
-                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36))
+                .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36, horizontalPadding: 10))
+                .fixedSize(horizontal: true, vertical: false)
                 .disabled(!store.canMerge)
-            if store.isRunning {
-                Button(L10n.text("取消任务")) { store.cancel() }
-                    .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36))
+            if store.isBusy {
+                Button(L10n.text(store.isCancelling ? "正在取消…" : "取消任务")) { store.cancel() }
+                    .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36, horizontalPadding: 10))
+                    .fixedSize(horizontal: true, vertical: false)
+                    .disabled(store.isCancelling)
             } else {
                 Button(L10n.text(store.isMerging ? "正在合并" : "开始转换")) { store.start() }
-                    .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 112, height: 36))
+                    .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 112, height: 36, horizontalPadding: 10))
+                    .fixedSize(horizontal: true, vertical: false)
                     .disabled(store.isBusy || !store.hasWaiting)
             }
         }
+        .padding(.horizontal, 14)
         .padding(.top, 14)
         .frame(minHeight: 58)
     }
 
     private var completedCount: Int { store.items.reduce(into: 0) { if case .complete = $1.state { $0 += 1 } } }
     private var footerStatus: String {
+        if store.isCancelling { return L10n.text("正在停止转换并清理临时文件") }
         if store.isMerging {
+            if store.isVerifyingMerge { return L10n.text("正在验证输出") }
             if let progress = store.mergeProgress { return L10n.format("正在%@ %d 个片段 · %d%%", store.mergeModeTitle, store.mergeDisplayCount, Int(progress * 100)) }
             return L10n.text("正在检查片段兼容性")
         }
-        guard store.isRunning else { return store.items.isEmpty ? L10n.text("准备就绪") : L10n.format("已添加 %d 个视频", store.items.count) }
-        let details = [store.activeBatchProgressLabel, store.statusText.isEmpty ? nil : store.statusText]
-            .compactMap { $0 }
-        let detail = details.isEmpty ? L10n.text("处理中") : details.joined(separator: " · ")
-        if let progress = store.overallProgress { return L10n.format("正在转换 · %d%% · %@", Int(progress * 100), detail) }
-        return L10n.format("正在转换 · %@", detail)
+        guard store.isRunning else {
+            if store.items.isEmpty { return L10n.text("准备就绪") }
+            if store.hasWaiting { return L10n.format("已添加 %d 个视频", store.items.count) }
+            let failures = store.items.filter { if case .failed = $0.state { return true }; return false }.count
+            let cancelled = store.items.filter { if case .cancelled = $0.state { return true }; return false }.count
+            if failures > 0 || cancelled > 0 {
+                return L10n.format("完成 %d · 失败 %d · 取消 %d", completedCount, failures, cancelled)
+            }
+            if completedCount == store.items.count { return L10n.text("转换完成") }
+            return L10n.format("已添加 %d 个视频", store.items.count)
+        }
+        let phase = store.items.first { if case .running = $0.state { return true }; return false }?.phase?.title ?? L10n.text("正在转换")
+        let stage = store.overallProgress.map { L10n.format("%@ · %d%%", phase, Int($0 * 100)) } ?? phase
+        return [stage, store.activeBatchProgressLabel].compactMap { $0 }.joined(separator: " · ")
     }
 }
 
@@ -796,6 +853,7 @@ private struct AppActionButtonStyle: ButtonStyle {
     let primary: Bool
     let minWidth: CGFloat
     let height: CGFloat
+    var horizontalPadding: CGFloat = 14
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
@@ -803,7 +861,7 @@ private struct AppActionButtonStyle: ButtonStyle {
             .font(AppFont.medium)
             .foregroundStyle(primary ? Color.white : (isEnabled ? BrandColor.textPrimary : BrandColor.textSecondary))
             .lineLimit(1)
-            .padding(.horizontal, 14)
+            .padding(.horizontal, horizontalPadding)
             .frame(minWidth: minWidth, minHeight: height)
             .background(background(isPressed: configuration.isPressed), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay {
@@ -1034,6 +1092,8 @@ private struct QueueRow: View {
     let crop: () -> Void
     let rotate: (VideoRotation?) -> Void
     let mergeModeTitle: String
+    let isCancelling: Bool
+    let isMergeVerifying: Bool
 
     var body: some View {
         HStack(spacing: 10) {
@@ -1072,6 +1132,7 @@ private struct QueueRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L10n.text("已完成")).font(AppFont.rowTitle).foregroundStyle(BrandColor.success)
                     Text(output.lastPathComponent).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
+                    mediaNotice
                 }
             }
         case .running(let progress):
@@ -1081,29 +1142,20 @@ private struct QueueRow: View {
                     Text(runningTitle(progress))
                         .font(AppFont.rowTitle)
                         .foregroundStyle(BrandColor.blue)
-                    if let progress { ProgressView(value: progress).tint(BrandColor.blue).frame(width: 150) }
+                    if isCancelling || item.phase == .verifying { ProgressView().frame(width: 150, alignment: .leading) }
+                    else if let progress { ProgressView(value: progress).tint(BrandColor.blue).frame(width: 150) }
                     else { ProgressView().frame(width: 150, alignment: .leading) }
-                    if let notice = item.mediaHandling {
-                        Text(notice.summary)
-                            .font(AppFont.caption)
-                            .foregroundStyle(BrandColor.textSecondary)
-                            .lineLimit(1)
-                        if !notice.warnings.isEmpty {
-                            Text(notice.warnings.joined(separator: " · "))
-                                .font(AppFont.caption)
-                                .foregroundStyle(BrandColor.warning)
-                                .lineLimit(2)
-                        }
-                    }
+                    if !isCancelling { mediaNotice }
                 }
             }
         case .merging(let progress):
             HStack(spacing: 9) {
                 StatusMark(state: item.state)
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(progress == nil ? L10n.text("等待合并") : L10n.format("正在%@ · %d%%", mergeModeTitle, Int((progress ?? 0) * 100)))
+                    Text(isCancelling ? L10n.text("正在取消…") : (isMergeVerifying ? L10n.text("正在验证输出") : (progress == nil ? L10n.text("等待合并") : L10n.format("正在%@ · %d%%", mergeModeTitle, Int((progress ?? 0) * 100)))))
                         .font(AppFont.rowTitle).foregroundStyle(BrandColor.blue)
-                    if let progress { ProgressView(value: progress).tint(BrandColor.blue).frame(width: 150) }
+                    if isCancelling || isMergeVerifying { ProgressView().frame(width: 150, alignment: .leading) }
+                    else if let progress { ProgressView(value: progress).tint(BrandColor.blue).frame(width: 150) }
                 }
             }
         case .waiting:
@@ -1111,7 +1163,7 @@ private struct QueueRow: View {
                 HStack(spacing: 9) {
                     StatusMark(state: item.state)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(pendingTitle).font(AppFont.rowTitle).foregroundStyle(BrandColor.warning)
+                        Text(pendingTitle).font(AppFont.rowTitle).foregroundStyle(BrandColor.blue)
                         Text(pendingDetail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
                     }
                 }
@@ -1127,17 +1179,37 @@ private struct QueueRow: View {
                     Text(failure.reason)
                         .font(AppFont.captionMedium)
                         .foregroundStyle(.red)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .help(failure.reason)
                     Text(failure.solution)
                         .font(AppFont.caption)
                         .foregroundStyle(BrandColor.textSecondary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .help(failure.solution)
                 }
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
             }
         case .cancelled:
             HStack(spacing: 9) { StatusMark(state: item.state); Text(L10n.text("已取消")).font(AppFont.rowTitle).foregroundStyle(BrandColor.textSecondary) }
+        }
+    }
+
+    @ViewBuilder private var mediaNotice: some View {
+        if let notice = item.mediaHandling {
+            if !notice.summary.isEmpty {
+                Text(notice.summary)
+                    .font(AppFont.caption)
+                    .foregroundStyle(BrandColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            ForEach(notice.warnings, id: \.self) { warning in
+                Text(warning)
+                    .font(AppFont.caption)
+                    .foregroundStyle(BrandColor.warning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -1148,9 +1220,11 @@ private struct QueueRow: View {
     }
 
     private func runningTitle(_ progress: Double?) -> String {
+        if isCancelling { return L10n.text("正在取消…") }
         let phase = item.phase?.title ?? L10n.text("正在转换")
+        if item.phase == .verifying { return phase }
         if let progress { return L10n.format("%@ · %d%%", phase, Int(progress * 100)) }
-        return L10n.format("%@ · %@", phase, L10n.text("处理中"))
+        return phase
     }
 
     private func timeText(_ seconds: Double) -> String {
@@ -1349,6 +1423,23 @@ private struct EditorActionButtonStyle: ButtonStyle {
     }
 }
 
+private struct EditorLoadFailure: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(message).font(AppFont.rowTitle).foregroundStyle(.red)
+            Text(L10n.text("请确认文件可播放；也可先用「智能转换」转为 MP4，再重新添加。"))
+                .font(AppFont.body)
+                .foregroundStyle(BrandColor.textSecondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 24)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct TrimEditor: View {
     let source: URL
     let initialRange: ClipRange?
@@ -1363,6 +1454,7 @@ private struct TrimEditor: View {
     @State private var player: AVPlayer?
     @State private var loadError: String?
     @State private var isApplyingFrameStep = false
+    @State private var inspectionTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1397,9 +1489,7 @@ private struct TrimEditor: View {
                 .background(BrandColor.selectHover, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectHoverStroke.opacity(0.42), lineWidth: 1) }
             } else if let loadError {
-                Text(loadError)
-                    .font(AppFont.body)
-                    .foregroundStyle(BrandColor.textSecondary)
+                EditorLoadFailure(message: loadError)
                     .frame(maxWidth: .infinity, minHeight: 260)
             } else {
                 HStack(spacing: 10) { ProgressView(); Text(L10n.text("正在加载视频预览")).foregroundStyle(BrandColor.textSecondary) }
@@ -1423,7 +1513,7 @@ private struct TrimEditor: View {
         // height makes macOS animate from an incorrect vertical origin.
         .frame(width: 760, height: 540, alignment: .top)
         .onAppear { loadDuration() }
-        .onDisappear { player?.pause() }
+        .onDisappear { inspectionTask?.cancel(); player?.pause() }
         .onChange(of: start) { value in startText = timeText(value) }
         .onChange(of: end) { value in endText = timeText(value) }
     }
@@ -1483,10 +1573,13 @@ private struct TrimEditor: View {
     }
 
     private func loadDuration() {
-        Task {
+        inspectionTask?.cancel()
+        inspectionTask = Task {
             player = AVPlayer(url: source)
-            guard let media = await EditorMediaProbe.inspect(source: source) else {
-                loadError = L10n.text("无法读取视频信息，请确认文件可播放。")
+            let media = await EditorMediaProbe.inspect(source: source)
+            guard !Task.isCancelled else { return }
+            guard let media else {
+                loadError = L10n.text("无法加载剪辑预览")
                 return
             }
             let seconds = media.duration
@@ -1622,6 +1715,7 @@ private struct CropEditor: View {
     @State private var widthText = "0"
     @State private var heightText = "0"
     @State private var loadError: String?
+    @State private var inspectionTask: Task<Void, Never>?
 
     var body: some View {
         // Scheme A keeps every editing control in one vertical flow: preview,
@@ -1695,13 +1789,19 @@ private struct CropEditor: View {
                 .background(BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
             } else if let loadError {
-                Text(loadError)
-                    .font(AppFont.body)
-                    .foregroundStyle(BrandColor.textSecondary)
+                EditorLoadFailure(message: loadError)
                     .frame(maxWidth: .infinity, minHeight: 280)
             } else {
                 HStack(spacing: 10) { ProgressView(); Text(L10n.text("正在加载裁切预览")).foregroundStyle(BrandColor.textSecondary) }
                     .frame(maxWidth: .infinity, minHeight: 280)
+            }
+            if sourceWidth <= 0 || sourceHeight <= 0 {
+                HStack {
+                    Spacer()
+                    Button(L10n.text("取消")) { dismiss() }
+                        .buttonStyle(EditorActionButtonStyle(primary: false))
+                        .keyboardShortcut(.cancelAction)
+                }
             }
         }
         .padding(20)
@@ -1709,7 +1809,7 @@ private struct CropEditor: View {
         // jumps upward while metadata and the first frame are being prepared.
         .frame(width: 760, height: 570, alignment: .top)
         .onAppear { loadMedia() }
-        .onDisappear { player?.pause() }
+        .onDisappear { inspectionTask?.cancel(); player?.pause() }
     }
 
     private func cropField(_ title: String, text: Binding<String>) -> some View {
@@ -1730,12 +1830,15 @@ private struct CropEditor: View {
     }
 
     private func loadMedia() {
-        Task {
+        inspectionTask?.cancel()
+        inspectionTask = Task {
             let previewPlayer = AVPlayer(url: source)
             previewPlayer.actionAtItemEnd = .pause
             player = previewPlayer
-            guard let media = await EditorMediaProbe.inspect(source: source) else {
-                loadError = L10n.text("无法读取视频尺寸，请确认文件可播放。")
+            let media = await EditorMediaProbe.inspect(source: source)
+            guard !Task.isCancelled else { return }
+            guard let media else {
+                loadError = L10n.text("无法加载裁切预览")
                 return
             }
             sourceWidth = media.width
@@ -1973,7 +2076,7 @@ private struct CropAspectButtonStyle: ButtonStyle {
     }
 }
 
-private struct EditorMediaInfo: Sendable {
+struct EditorMediaInfo: Sendable {
     let duration: Double
     let width: Int
     let height: Int
@@ -1985,7 +2088,7 @@ private struct EditorMediaInfo: Sendable {
 /// Editors must never wait on AVFoundation's lazy duration loading.  FFprobe is
 /// already the conversion engine's source of truth and returns the dimensions
 /// and duration in one bounded process call.
-private enum EditorMediaProbe {
+enum EditorMediaProbe {
     private struct Response: Decodable {
         let streams: [Stream]
         let format: Format?
@@ -2005,38 +2108,27 @@ private enum EditorMediaProbe {
         let duration: String?
     }
 
-    static func inspect(source: URL) async -> EditorMediaInfo? {
+    static func inspect(source: URL, using probeOverride: URL? = nil) async -> EditorMediaInfo? {
         let candidates = ["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/opt/local/bin/ffprobe", "/usr/bin/ffprobe"]
-        guard let binary = candidates
+        guard let binary = probeOverride ?? candidates
             .map(URL.init(fileURLWithPath:))
             .first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else { return nil }
 
-        return await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            let output = Pipe()
-            process.executableURL = binary
-            process.arguments = ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:format=duration", "-of", "json", source.path]
-            process.standardOutput = output
-            process.standardError = Pipe()
-            do {
-                try process.run()
-                // A damaged network file must become an actionable error, never an
-                // editor sheet that spins indefinitely.
-                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 5) {
-                    if process.isRunning { process.terminate() }
-                }
-                process.waitUntilExit()
-                guard process.terminationStatus == 0 else { return nil }
-                let response = try JSONDecoder().decode(Response.self, from: output.fileHandleForReading.readDataToEndOfFile())
-                guard let video = response.streams.first(where: { $0.codecType == "video" }),
-                      let width = video.width, let height = video.height,
-                      width > 0, height > 0,
-                      let duration = Double(response.format?.duration ?? ""), duration.isFinite, duration > 0 else { return nil }
-                return EditorMediaInfo(duration: duration, width: width, height: height, frameRate: parseFrameRate(video.frameRate) ?? 30)
-            } catch {
-                return nil
-            }
-        }.value
+        // Editors share the same bounded, cancellable pipe owner as conversion.
+        // Closing a loading sheet cancels inspection rather than leaving a
+        // detached probe alive, and stderr cannot fill an undrained pipe.
+        let result = await FFmpegProcessRunner(
+            executable: binary,
+            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:format=duration", "-of", "json", source.path],
+            configuration: FFmpegProcessRunner.Configuration(inactivityTimeout: 5, terminationGrace: 0.5, maximumOutputBytes: 1_000_000)
+        ).run()
+        guard !Task.isCancelled, result.succeeded,
+              let response = try? JSONDecoder().decode(Response.self, from: result.standardOutput),
+              let video = response.streams.first(where: { $0.codecType == "video" }),
+              let width = video.width, let height = video.height,
+              width > 0, height > 0,
+              let duration = Double(response.format?.duration ?? ""), duration.isFinite, duration > 0 else { return nil }
+        return EditorMediaInfo(duration: duration, width: width, height: height, frameRate: parseFrameRate(video.frameRate) ?? 30)
     }
 
     private static func parseFrameRate(_ value: String?) -> Double? {
@@ -2088,9 +2180,9 @@ private struct CropPlaybackControls: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            transportButton(icon: .playerSkipBack) { move(by: -5) }
-            transportButton(icon: isPlaying ? .playerPause : .playerPlay) { togglePlayback() }
-            transportButton(icon: .playerSkipForward) { move(by: 5) }
+            transportButton(icon: .playerSkipBack, title: "后退 5 秒") { move(by: -5) }
+            transportButton(icon: isPlaying ? .playerPause : .playerPlay, title: isPlaying ? "暂停" : "播放") { togglePlayback() }
+            transportButton(icon: .playerSkipForward, title: "前进 5 秒") { move(by: 5) }
 
             Text(timeText(currentTime))
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -2098,6 +2190,8 @@ private struct CropPlaybackControls: View {
                 .frame(width: 48, alignment: .trailing)
             Slider(value: Binding(get: { currentTime }, set: { seek(to: $0) }), in: 0...max(0.1, duration))
                 .tint(BrandColor.blue)
+                .accessibilityLabel(L10n.text("播放进度"))
+                .help(L10n.text("播放进度"))
             Text(timeText(duration))
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(BrandColor.textSecondary)
@@ -2111,6 +2205,8 @@ private struct CropPlaybackControls: View {
             }), in: 0...1)
                 .tint(BrandColor.blue)
                 .frame(width: 68)
+                .accessibilityLabel(L10n.text("音量"))
+                .help(L10n.text("音量"))
         }
         .padding(.horizontal, 14)
         .frame(height: 40)
@@ -2120,13 +2216,15 @@ private struct CropPlaybackControls: View {
         .onDisappear { removeTimeObserver() }
     }
 
-    private func transportButton(icon: TablerIconName, action: @escaping () -> Void) -> some View {
+    private func transportButton(icon: TablerIconName, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             TablerIcon(name: icon, color: BrandColor.textPrimary)
                 .frame(width: 16, height: 16)
                 .frame(width: 20, height: 24)
         }
         .buttonStyle(.plain)
+        .help(L10n.text(title))
+        .accessibilityLabel(L10n.text(title))
     }
 
     private func installTimeObserver() {

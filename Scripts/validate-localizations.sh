@@ -17,8 +17,8 @@ while IFS= read -r key; do
       missing=1
     fi
   done
-done < <(rg -o 'L10n\.(text|format)\("[^"]+"' Sources/FastConvert \
-  | sed -E 's/.*L10n\.(text|format)\("([^"]+)".*/\2/' \
+done < <(rg -o 'L10n\.(text|format)\("[^"]+"|(reasonKey|solutionKey): "[^"]+"' Sources/FastConvert \
+  | sed -E 's/.*L10n\.(text|format)\("([^"]+)".*/\2/; s/.*(reasonKey|solutionKey): "([^"]+)".*/\2/' \
   | sort -u)
 
 # Base64 keeps the comparison line-oriented even when an interface key itself

@@ -22,8 +22,9 @@ of the product's public download path, not optional decoration.
   capture.
 - Link the latest release rather than a versioned DMG in README text. This
   avoids leaving visitors on a stale installer after the next release.
-- Attach a `.dmg` and matching `.sha256` file to every stable release. Do not
-  call a test, ad-hoc-signed, or unnotarized build a public release.
+- Attach a verified `.dmg` and matching `.sha256` file to every release.
+  Disclose the actual signing and notarization status; do not present an
+  ad-hoc build as Apple-verified or notarized, or an untested build as stable.
 - Use the [issue chooser](https://github.com/ixiehao/MP4Flow/issues/new/choose)
   for reproducible bugs and feature requests. Keep security reports out of
   public issues.
@@ -52,4 +53,4 @@ The website publishes this same card through Open Graph and Twitter metadata.
 Upload it in the repository's GitHub social-preview setting as well, so GitHub
 links and the website share one recognisable visual identity.
 
-Create GitHub releases from signed and notarized DMGs only. Attach the `.dmg` and its matching `.sha256` file, then include the matching section from `CHANGELOG.md` in the release notes. Complete [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) before publishing.
+The current release workflow uses ad-hoc signing without notarization and does not require a Developer ID certificate. Publish only after the relevant checks in [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md), attach the verified `.dmg` and matching `.sha256` file, and summarize the matching `CHANGELOG.md` section in all three languages. State the unnotarized status and any remaining test limitations accurately.

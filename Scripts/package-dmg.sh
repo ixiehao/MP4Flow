@@ -22,8 +22,9 @@ trap cleanup EXIT
 mkdir -p "$OUTPUT_DIR"
 cd "$PROJECT_DIR"
 
+PACKAGING_PYTHON_OVERRIDE="${PACKAGING_PYTHON:-}"
 PACKAGING_PYTHON=""
-for candidate in "${PACKAGING_PYTHON:-}" /opt/homebrew/opt/python@3.14/bin/python3.14 /opt/homebrew/bin/python3 /usr/local/bin/python3 python3; do
+for candidate in "$PACKAGING_PYTHON_OVERRIDE" /opt/homebrew/opt/python@3.14/bin/python3.14 /opt/homebrew/bin/python3 /usr/local/bin/python3 python3; do
   [[ -n "$candidate" ]] || continue
   if "$candidate" -c 'import sys; raise SystemExit(sys.version_info < (3, 10))' 2>/dev/null; then
     PACKAGING_PYTHON="$candidate"
