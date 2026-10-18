@@ -16,6 +16,10 @@ of the product's public download path, not optional decoration.
 - Keep [README.md](../README.md), [README.ja.md](../README.ja.md), and
   [README.zh-CN.md](../README.zh-CN.md) equivalent in scope. English aids
   global discovery; Japanese and Chinese serve native-language users.
+- Use the matching real, localized app capture from `website/assets/` near the
+  top of each README. When screenshots change, update the website and all three
+  README image references together; keep the social card based on the English
+  capture.
 - Link the latest release rather than a versioned DMG in README text. This
   avoids leaving visitors on a stale installer after the next release.
 - Attach a `.dmg` and matching `.sha256` file to every stable release. Do not
