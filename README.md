@@ -10,7 +10,7 @@
 
 Free, open source, and local. **No account, no upload, no codec jargon.** Add a video, choose a quality, and convert it on your Mac.
 
-![MP4Flow feature demo](docs/assets/mp4flow-demo.gif)
+![MP4Flow running in English](website/assets/mp4flow-working-screen-en.png)
 
 ## Start in 3 steps
 

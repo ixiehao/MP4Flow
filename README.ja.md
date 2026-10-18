@@ -10,7 +10,7 @@
 
 無料、オープンソース、ローカル処理。**ログイン不要、アップロード不要、難しい設定不要。** 動画を追加し、画質を選ぶだけで Mac 上で変換できます。
 
-![MP4Flow の機能デモ](docs/assets/mp4flow-demo.gif)
+![MP4Flow の日本語画面](website/assets/mp4flow-working-screen-ja.png)
 
 ## 3ステップで始める
 

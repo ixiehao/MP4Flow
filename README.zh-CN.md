@@ -10,7 +10,7 @@
 
 免费、开源、本地处理。**不用登录、不用上传、不用会看参数。** 添加视频，选择画质，在你的 Mac 上完成转换。
 
-![MP4Flow 功能演示](docs/assets/mp4flow-demo.gif)
+![MP4Flow 中文界面](website/assets/mp4flow-working-screen.png)
 
 ## 三步上手
 
