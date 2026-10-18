@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.2.2 — 2026-10-18
+
+### English
+
+- Fixed progress displays that could stay at 0% and optimized 1080p-to-720p conversion, late clip seeking, and video copying with audio-only conversion.
+- Improved cancellation, retries, and output verification, with fixes for rotation, aspect ratios, variable frame rates, and merging.
+- Media warnings now focus on actual content changes, and errors provide clearer reasons and recovery steps. Refined English, Chinese, and Japanese layouts and language switching.
+
+### 日本語
+
+- 進捗が0%のままになる問題を修正。1080pから720pへの変換、後半位置のトリミング、映像をコピーして音声のみ変換する処理を最適化しました。
+- キャンセル、再試行、出力検証を強化し、回転・縦横比・可変フレームレート・結合の不整合を修正しました。
+- 実際の内容変更に応じた注意事項を表示し、失敗理由と対処方法を明確にしました。日・英・中のレイアウトと言語切替も改善しました。
+
+### 中文
+
+- 修复转换进度停在 0% 的问题，优化 1080p 转 720p、后段精确剪切，以及保留兼容视频、仅转换音频的处理路径。
+- 加固取消、重试与输出校验，修复旋转、宽高比、可变帧率及合并中的一致性问题。
+- 素材提示聚焦真实内容变化，失败时提供清楚的原因与处理办法；优化中、英、日三语的布局和语言切换。
+
 ## 1.2.1 — 2026-10-17
 
 ### English

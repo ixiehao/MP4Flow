@@ -224,7 +224,7 @@ final class SmartEnhanceExporter {
         #endif
     }
 
-    private enum ExportError: LocalizedError {
+    enum ExportError: LocalizedError {
         case unavailable
         case invalidSource
         case reader(String)

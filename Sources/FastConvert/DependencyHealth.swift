@@ -5,6 +5,20 @@ import Foundation
 import SwiftUI
 import VideoToolbox
 
+/// Match the converter's executable selection exactly: ffprobe must come from
+/// the selected FFmpeg installation, not an unrelated later search directory.
+/// Existing, unusable candidates are retained only for failure diagnostics.
+enum DependencyToolResolver {
+    static func resolve(in directories: [URL]) -> (ffmpeg: URL?, ffprobe: URL?) {
+        let candidates = directories.map { $0.appendingPathComponent("ffmpeg") }
+        let ffmpeg = candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
+            ?? candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+        let sibling = ffmpeg?.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        let ffprobe = sibling.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
+        return (ffmpeg, ffprobe)
+    }
+}
+
 /// A lightweight preflight for the local tools and folders MP4Flow needs.
 ///
 /// This intentionally runs outside `ConverterStore`: checking an executable or
@@ -147,8 +161,9 @@ private enum DependencyHealthProbe {
                 ffprobe = previous.ffprobe
                 hardware = previous.videoToolbox
             } else {
-                ffmpeg = await inspectExecutable(named: "ffmpeg")
-                ffprobe = await inspectExecutable(named: "ffprobe")
+                let tools = DependencyToolResolver.resolve(in: executableDirectories.map { URL(fileURLWithPath: $0) })
+                ffmpeg = await inspectExecutable(named: "ffmpeg", at: tools.ffmpeg)
+                ffprobe = await inspectExecutable(named: "ffprobe", at: tools.ffprobe)
                 let encoders: String?
                 if let path = ffmpeg.path {
                     let result = await run(URL(fileURLWithPath: path), arguments: ["-hide_banner", "-encoders"], timeout: 4)
@@ -179,11 +194,13 @@ private enum DependencyHealthProbe {
         }.value
     }
 
-    private static func inspectExecutable(named name: String) async -> ExecutableHealth {
-        guard let executable = executableDirectories
-            .map({ URL(fileURLWithPath: $0).appendingPathComponent(name) })
-            .first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
+    private static func inspectExecutable(named name: String, at executable: URL?) async -> ExecutableHealth {
+        guard let executable else {
             return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: nil, version: nil)
+        }
+
+        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
+            return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: executable.path, version: nil)
         }
 
         let result = await run(executable, arguments: ["-version"], timeout: 3)
@@ -362,7 +379,7 @@ struct DependencyHealthStatusBar: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            TablerIcon(name: statusIcon(for: monitor.report.overallLevel), color: color(for: monitor.report.overallLevel))
+            TablerIcon(name: statusIcon(for: displayedLevel), color: color(for: displayedLevel))
                 .frame(width: 15, height: 15)
                 .rotationEffect(monitor.isChecking ? .degrees(-75) : .zero)
             Text(compactSummary)
@@ -396,7 +413,7 @@ struct DependencyHealthStatusBar: View {
         .background(backgroundColor, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(color(for: monitor.report.overallLevel).opacity(0.24), lineWidth: 1)
+                .stroke(color(for: displayedLevel).opacity(0.24), lineWidth: 1)
         }
         .sheet(isPresented: $isShowingDetails) {
             DependencyHealthSheet(
@@ -411,19 +428,23 @@ struct DependencyHealthStatusBar: View {
     private var compactSummary: String {
         let report = monitor.report
         if monitor.isChecking { return L10n.text("正在检查转换环境…") }
-        if report.ffmpeg.level == .failed { return L10n.text("需要安装 FFmpeg") }
-        if report.ffprobe.level == .failed { return L10n.text("FFprobe 不可用") }
+        if report.ffmpeg.level == .failed { return L10n.text(report.ffmpeg.path == nil ? "需要安装 FFmpeg" : "FFmpeg 无法运行") }
+        if report.ffprobe.level == .failed { return L10n.text(report.ffprobe.path == nil ? "FFprobe 不可用" : "FFprobe 无法运行") }
         if report.output.level == .failed { return L10n.text("输出位置不可写") }
         if report.output.level == .warning && report.output.checkedDirectoryCount == 0 {
             return L10n.text("添加视频后检查输出位置。")
         }
         if report.output.level == .warning { return L10n.text("可用空间较少") }
-        if report.videoToolbox.level == .warning { return L10n.text("将使用软件编码") }
+        if report.videoToolbox.level == .warning { return L10n.text("硬件加速不可用，仍可转换") }
         return L10n.format("FFmpeg %@ 已就绪", report.ffmpeg.version ?? "—")
     }
 
+    private var displayedLevel: DependencyHealthLevel {
+        monitor.isChecking ? .checking : monitor.report.overallLevel
+    }
+
     private var backgroundColor: Color {
-        switch monitor.report.overallLevel {
+        switch displayedLevel {
         case .failed: BrandColor.warningBackground
         case .warning: BrandColor.warningBackground.opacity(0.62)
         case .ready, .checking: BrandColor.surface
@@ -459,7 +480,7 @@ private struct DependencyHealthSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 10) {
-                Mark(kind: .healthCheck, color: color(for: monitor.report.overallLevel))
+                Mark(kind: .healthCheck, color: color(for: monitor.isChecking ? .checking : monitor.report.overallLevel))
                     .frame(width: 22, height: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(L10n.text("环境体检"))
@@ -494,7 +515,10 @@ private struct DependencyHealthSheet: View {
                 title: "FFmpeg",
                 level: monitor.report.ffmpeg.level,
                 detail: executableDetail(monitor.report.ffmpeg),
-                fix: monitor.report.ffmpeg.level == .failed ? L10n.text("请在终端执行 brew install ffmpeg，然后重新检查。") : nil
+                fix: monitor.report.ffmpeg.level == .failed
+                    ? L10n.text(monitor.report.ffmpeg.path == nil
+                        ? "请在终端执行 brew install ffmpeg，然后重新检查。"
+                        : "请重新安装 FFmpeg：brew reinstall ffmpeg。") : nil
             )
             healthRow(
                 title: "FFprobe",
@@ -506,7 +530,7 @@ private struct DependencyHealthSheet: View {
                 title: "VideoToolbox",
                 level: monitor.report.videoToolbox.level,
                 detail: hardwareDetail,
-                fix: monitor.report.videoToolbox.level == .warning ? L10n.text("将使用软件编码；速度可能较慢。") : nil
+                fix: monitor.report.videoToolbox.level == .warning ? L10n.text("需要重新编码时将使用软件处理，速度可能较慢。") : nil
             )
             if monitor.report.output.checkedDirectoryCount > 0 || monitor.report.output.level == .failed {
                 healthRow(
@@ -531,7 +555,14 @@ private struct DependencyHealthSheet: View {
 
             HStack(spacing: 8) {
                 if monitor.report.needsFFmpegInstall {
-                    Button(L10n.text("复制安装命令")) { copyFFmpegInstallCommand() }
+                    Button(L10n.text("复制安装命令")) {
+                        if monitor.report.ffmpeg.path == nil {
+                            copyFFmpegInstallCommand()
+                        } else {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString("brew reinstall ffmpeg", forType: .string)
+                        }
+                    }
                         .buttonStyle(HealthSheetActionButtonStyle(primary: true))
                     Button(L10n.text("打开 Homebrew 官网")) { openHomebrewWebsite() }
                         .buttonStyle(HealthSheetActionButtonStyle(primary: false))

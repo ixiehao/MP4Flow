@@ -3,6 +3,140 @@ import XCTest
 @testable import FastConvert
 
 final class ConverterStoreTests: XCTestCase {
+    /// Opt-in local benchmark of the actual queue. Media paths are supplied at
+    /// invocation time and never stored in the repository or printed in reports.
+    @MainActor
+    func testAuthorizedMedia720pBenchmark() async throws {
+        guard let input = ProcessInfo.processInfo.environment["MP4FLOW_BENCHMARK_INPUT"], !input.isEmpty else {
+            throw XCTSkip("Set MP4FLOW_BENCHMARK_INPUT to an authorized local video to run the full-media benchmark")
+        }
+        let ffmpeg = try availableFFmpeg()
+        let ffprobe = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        let source = URL(fileURLWithPath: input)
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let sourceDuration = try XCTUnwrap(Double(probeValue(source, ffprobe: ffprobe, entries: "format=duration").trimmingCharacters(in: .whitespacesAndNewlines)))
+        let store = ConverterStore()
+        store.outputResolution = .p720
+        store.outputDirectory = directory
+        store.items = [ConversionItem(source: source)]
+        let started = Date()
+        store.start()
+        try await waitForQueue(store, timeout: 600)
+        let elapsed = Date().timeIntervalSince(started)
+        guard case .complete(let output) = store.items[0].state else {
+            return XCTFail("Authorized benchmark did not complete: \(store.items[0].state)")
+        }
+        let dimensions = try probeValue(output, ffprobe: ffprobe, entries: "stream=width,height", selectStreams: "v:0")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let outputDuration = try XCTUnwrap(Double(probeValue(output, ffprobe: ffprobe, entries: "format=duration").trimmingCharacters(in: .whitespacesAndNewlines)))
+        XCTAssertEqual(outputDuration, sourceDuration, accuracy: 0.15)
+        let sourceFrames = Int(try probeValue(source, ffprobe: ffprobe, entries: "stream=nb_frames", selectStreams: "v:0").trimmingCharacters(in: .whitespacesAndNewlines))
+        let outputFrames = Int(try probeValue(output, ffprobe: ffprobe, entries: "stream=nb_frames", selectStreams: "v:0").trimmingCharacters(in: .whitespacesAndNewlines))
+        if let sourceFrames, let outputFrames { XCTAssertEqual(outputFrames, sourceFrames) }
+        XCTAssertEqual(try decodeVideo(output, ffmpeg: ffmpeg), 0)
+        print(String(format: "Local queue benchmark: source %.3f s; elapsed %.3f s; %.2fx real time; output %@; frames %@", sourceDuration, elapsed, sourceDuration / max(elapsed, 0.001), dimensions, outputFrames.map(String.init) ?? "unknown"))
+    }
+
+    func testHardwareFallbackClassifierRetriesOnlyExplicitVideoToolboxFailures() {
+        XCTAssertEqual(
+            FFmpegHardwareRetryClassifier.hint(
+                stderr: "Impossible to convert between filter Parsed_scale_vt_0 and output format",
+                usedHardwarePipeline: true,
+                usedHardwareEncoder: true
+            ),
+            .cpuDecodeAndFilter
+        )
+        XCTAssertEqual(
+            FFmpegHardwareRetryClassifier.hint(
+                stderr: "Unknown encoder 'h264_videotoolbox'",
+                usedHardwarePipeline: true,
+                usedHardwareEncoder: true
+            ),
+            .softwareEncoder,
+            "A missing VT encoder should skip the intermediate retry with the same encoder"
+        )
+        XCTAssertEqual(
+            FFmpegHardwareRetryClassifier.hint(
+                stderr: "VTCompressionSessionCreate failed with error -12903",
+                usedHardwarePipeline: false,
+                usedHardwareEncoder: true
+            ),
+            .softwareEncoder
+        )
+        for stderr in [
+            "Invalid data found when processing input",
+            "No space left on device",
+            "Error while decoding stream 0:0",
+            "FFmpeg stalled without progress"
+        ] {
+            XCTAssertNil(
+                FFmpegHardwareRetryClassifier.hint(
+                    stderr: stderr,
+                    usedHardwarePipeline: true,
+                    usedHardwareEncoder: true
+                ),
+                "Must not replay an entire video for unrelated failure: \(stderr)"
+            )
+        }
+        let mappedHardwareThenDecodeError = """
+        Stream mapping:
+          Stream #0:0 -> #0:0 (h264 (native) -> h264 (h264_videotoolbox))
+        Error while decoding stream 0:0
+        """
+        XCTAssertNil(FFmpegHardwareRetryClassifier.hint(
+            stderr: mappedHardwareThenDecodeError,
+            usedHardwarePipeline: true,
+            usedHardwareEncoder: true
+        ))
+        let mappedHardwareThenMuxError = """
+        Stream mapping:
+          Stream #0:0 -> #0:0 (h264 (native) -> h264 (h264_videotoolbox))
+        Could not write header for output file #0 (incorrect codec parameters?): Invalid argument
+        """
+        XCTAssertNil(FFmpegHardwareRetryClassifier.hint(
+            stderr: mappedHardwareThenMuxError,
+            usedHardwarePipeline: true,
+            usedHardwareEncoder: true
+        ))
+        let explicitHardwareAndTerminalError = """
+        [Parsed_scale_vt_0] Error applying hardware filter
+        No space left on device
+        """
+        XCTAssertNil(FFmpegHardwareRetryClassifier.hint(
+            stderr: explicitHardwareAndTerminalError,
+            usedHardwarePipeline: true,
+            usedHardwareEncoder: true
+        ), "A terminal disk failure must not trigger another full encode")
+        let cpuPipelineThenDecodeError = """
+        Stream mapping:
+          Stream #0:0 -> #0:0 (h264 (native) -> h264 (h264_videotoolbox))
+        Error while decoding stream 0:0
+        """
+        XCTAssertNil(FFmpegHardwareRetryClassifier.hint(
+            stderr: cpuPipelineThenDecodeError,
+            usedHardwarePipeline: false,
+            usedHardwareEncoder: true
+        ))
+        let mappedHardwareThenOutputError = """
+        Stream mapping:
+          Stream #0:0 -> #0:0 (h264 (native) -> h264 (h264_videotoolbox))
+        Error initializing output stream 0:0
+        """
+        XCTAssertNil(FFmpegHardwareRetryClassifier.hint(
+            stderr: mappedHardwareThenOutputError,
+            usedHardwarePipeline: true,
+            usedHardwareEncoder: true
+        ))
+        XCTAssertNil(
+            FFmpegHardwareRetryClassifier.hint(
+                stderr: "No such filter: 'scale_vt'",
+                usedHardwarePipeline: false,
+                usedHardwareEncoder: false
+            )
+        )
+    }
+
     @MainActor
     func testSoftwareConversionPublishesVerifiedMP4() async throws {
         let ffmpeg = try availableFFmpeg()
@@ -30,6 +164,77 @@ final class ConverterStoreTests: XCTestCase {
         let published = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .filter { $0.pathExtension == "mp4" }
         XCTAssertEqual(published.count, 1, "Repeated start must not publish a duplicate")
+    }
+
+    @MainActor
+    func testRemovingWaitingItemUpdatesBatchCountAndSkipsItsConversion() async throws {
+        let ffmpeg = try availableFFmpeg()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = directory.appendingPathComponent("first.mov")
+        let skipped = directory.appendingPathComponent("skipped.mov")
+        try makeShortVideo(at: first, ffmpeg: ffmpeg)
+        try FileManager.default.copyItem(at: first, to: skipped)
+        let store = ConverterStore()
+        store.preset = .h264Software
+        store.outputDirectory = directory
+        let waiting = ConversionItem(source: skipped)
+        store.items = [ConversionItem(source: first), waiting]
+        store.start()
+        store.remove(waiting)
+        XCTAssertEqual(store.activeBatchProgressLabel, L10n.format("已处理 %d/%d", 0, 1))
+        try await waitForQueue(store)
+        guard let remaining = store.items.first, case .complete = remaining.state else {
+            return XCTFail("The remaining queued item should complete")
+        }
+        let outputs = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "mp4" }
+        XCTAssertEqual(outputs.count, 1)
+        XCTAssertFalse(outputs.contains(where: { $0.lastPathComponent.hasPrefix("skipped") }))
+    }
+
+    @MainActor
+    func testDefault1080pTo720pConversionPreservesGeometryFrameRateAndAudio() async throws {
+        let ffmpeg = try availableFFmpeg()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("1080p source.mp4")
+        guard let sourceEncoder = try availableH264Encoder(ffmpeg: ffmpeg) else {
+            throw XCTSkip("FFmpeg must provide libx264 or h264_videotoolbox to generate the fixture")
+        }
+        try make1080pVideo(at: source, ffmpeg: ffmpeg, encoder: sourceEncoder)
+
+        let store = ConverterStore()
+        store.outputResolution = .p720
+        store.outputDirectory = directory
+        store.items = [ConversionItem(source: source)]
+        store.start()
+        try await waitForQueue(store)
+
+        guard case .complete(let output) = store.items[0].state else {
+            return XCTFail("Expected the default 1080p→720p conversion to complete; got \(store.items[0].state)")
+        }
+        let ffprobe = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        let video = try probeValue(
+            output,
+            ffprobe: ffprobe,
+            entries: "stream=width,height,sample_aspect_ratio,display_aspect_ratio,r_frame_rate",
+            selectStreams: "v:0"
+        ).trimmingCharacters(in: .whitespacesAndNewlines).split(separator: ",").map(String.init)
+        XCTAssertEqual(video.count, 5)
+        XCTAssertEqual(video[0], "1280")
+        XCTAssertEqual(video[1], "720")
+        XCTAssertEqual(video[2], "1:1")
+        XCTAssertEqual(video[3], "16:9")
+        XCTAssertEqual(video[4], "30000/1001")
+
+        let audioCodec = try probeValue(output, ffprobe: ffprobe, entries: "stream=codec_name", selectStreams: "a:0")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertEqual(audioCodec, "aac")
+        let duration = try XCTUnwrap(Double(probeValue(output, ffprobe: ffprobe, entries: "format=duration").trimmingCharacters(in: .whitespacesAndNewlines)))
+        XCTAssertGreaterThan(duration, 1.8)
+        XCTAssertLessThan(duration, 2.2)
+        XCTAssertEqual(try decodeVideo(output, ffmpeg: ffmpeg), 0, "The converted video and audio must decode cleanly")
     }
 
     @MainActor
@@ -143,11 +348,54 @@ final class ConverterStoreTests: XCTestCase {
         guard process.terminationStatus == 0 else { throw FixtureError.generationFailed(process.terminationStatus) }
     }
 
-    private func probeValue(_ source: URL, ffprobe: URL, entries: String) throws -> String {
+    private func availableH264Encoder(ffmpeg: URL) throws -> String? {
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = ffmpeg
+        process.arguments = ["-hide_banner", "-encoders"]
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+        let output = String(decoding: data, as: UTF8.self)
+        if output.contains(" libx264 ") { return "libx264" }
+        if output.contains(" h264_videotoolbox ") { return "h264_videotoolbox" }
+        return nil
+    }
+
+    private func make1080pVideo(at output: URL, ffmpeg: URL, encoder: String) throws {
+        let process = Process()
+        process.executableURL = ffmpeg
+        var arguments = [
+            "-hide_banner", "-loglevel", "error",
+            "-f", "lavfi", "-i", "testsrc2=size=1920x1080:rate=30000/1001:duration=2",
+            "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2",
+            "-c:v", encoder
+        ]
+        if encoder == "libx264" {
+            arguments += ["-preset", "ultrafast", "-crf", "18"]
+        } else {
+            arguments += ["-b:v", "6M"]
+        }
+        arguments += ["-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-y", output.path]
+        process.arguments = arguments
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { throw FixtureError.generationFailed(process.terminationStatus) }
+    }
+
+    private func probeValue(_ source: URL, ffprobe: URL, entries: String, selectStreams: String? = nil) throws -> String {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = ffprobe
-        process.arguments = ["-v", "error", "-show_entries", entries, "-of", "csv=p=0", source.path]
+        var arguments = ["-v", "error"]
+        if let selectStreams { arguments += ["-select_streams", selectStreams] }
+        arguments += ["-show_entries", entries, "-of", "csv=p=0", source.path]
+        process.arguments = arguments
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
         try process.run()
@@ -157,15 +405,26 @@ final class ConverterStoreTests: XCTestCase {
         return String(decoding: data, as: UTF8.self)
     }
 
+    private func decodeVideo(_ source: URL, ffmpeg: URL) throws -> Int32 {
+        let process = Process()
+        process.executableURL = ffmpeg
+        process.arguments = ["-hide_banner", "-v", "error", "-i", source.path, "-f", "null", "-"]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus
+    }
+
     @MainActor
-    private func waitForQueue(_ store: ConverterStore) async throws {
-        let deadline = Date().addingTimeInterval(20)
+    private func waitForQueue(_ store: ConverterStore, timeout: TimeInterval = 20) async throws {
+        let deadline = Date().addingTimeInterval(timeout)
         while store.isRunning && Date() < deadline {
             try await Task.sleep(nanoseconds: 50_000_000)
         }
         if store.isRunning {
             store.cancel()
-            XCTFail("Conversion queue did not complete within 20 seconds")
+            XCTFail("Conversion queue did not complete within \(timeout) seconds")
         }
     }
 }

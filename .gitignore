@@ -14,6 +14,5 @@ dist/
 *.cer
 *.mobileprovision
 *.provisionprofile
-MP4Flow.app/Contents/MacOS/MP4Flow
-MP4Flow.app/Contents/Resources/
+MP4Flow.app/
 Tests/.generated/
