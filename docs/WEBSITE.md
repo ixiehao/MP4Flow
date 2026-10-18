@@ -11,6 +11,13 @@
 
 `website/` is a source directory, not part of the public URL. Keep the public address and existing external links unchanged.
 
+## Interface icons
+
+- Website UI icons use `website/assets/tabler-icons.svg`, a local SVG sprite with paths copied unchanged from the app's curated Tabler Icons Outline v3.49.0 set in `Sources/FastConvert/Resources/TablerOutline/`.
+- Reference icons with `<use href="assets/tabler-icons.svg#icon-name">`; don't add hand-drawn UI glyphs or a second icon family. If a needed icon is not in the app's curated set, add and license it in both places.
+- The MP4Flow brand mark and favicon are product artwork, not interface glyphs, so they remain the real app icon.
+- Attribution and MIT terms are recorded in [`AppResources/ASSET_NOTICES.md`](../AppResources/ASSET_NOTICES.md).
+
 ## Local preview
 
 Run from the repository root:

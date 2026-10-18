@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- Tabler Icons Outline v3.49.0; exact paths reused from the app's curated icon set. -->
+  <symbol id="language" viewBox="0 0 24 24">
+    <path d="M9 6.371c0 4.418 -2.239 6.629 -5 6.629" />
+    <path d="M4 6.371h7" />
+    <path d="M5 9c0 2.144 2.252 3.908 6 4" />
+    <path d="M12 20l4 -9l4 9" />
+    <path d="M19.1 18h-6.2" />
+    <path d="M6.694 3l.793 .582" />
+  </symbol>
+  <symbol id="video" viewBox="0 0 24 24">
+    <path d="M15 10l4.553 -2.276a1 1 0 0 1 1.447 .894v6.764a1 1 0 0 1 -1.447 .894l-4.553 -2.276v-4" />
+    <path d="M3 8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -8" />
+  </symbol>
+  <symbol id="scissors" viewBox="0 0 24 24">
+    <path d="M3 7a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+    <path d="M3 17a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+    <path d="M8.6 8.6l10.4 10.4" />
+    <path d="M8.6 15.4l10.4 -10.4" />
+  </symbol>
+  <symbol id="crop" viewBox="0 0 24 24">
+    <path d="M8 5v10a1 1 0 0 0 1 1h10" />
+    <path d="M5 8h10a1 1 0 0 1 1 1v10" />
+  </symbol>
+  <symbol id="rotate" viewBox="0 0 24 24">
+    <path d="M19.95 11a8 8 0 1 0 -.5 4m.5 5v-5h-5" />
+  </symbol>
+  <symbol id="bolt" viewBox="0 0 24 24">
+    <path d="M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11" />
+  </symbol>
+  <symbol id="download" viewBox="0 0 24 24">
+    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
+    <path d="M7 11l5 5l5 -5" />
+    <path d="M12 4l0 12" />
+  </symbol>
+  <symbol id="external-link" viewBox="0 0 24 24">
+    <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+    <path d="M11 13l9 -9" />
+    <path d="M15 4h5v5" />
+  </symbol>
+</svg>

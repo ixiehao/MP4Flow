@@ -6,7 +6,7 @@ The bundled `NotoSansSC-Variable.ttf` identifies itself as Noto Sans SC and is d
 
 ## Interface icons and installer artwork
 
-MP4Flow ships a curated set of Tabler Icons Outline SVGs in `Sources/FastConvert/Resources/TablerOutline`. They are sourced from [tabler/tabler-icons](https://github.com/tabler/tabler-icons), release `v3.49.0`, and are used unchanged as monochrome interface marks. Tabler Icons are licensed under the MIT License; the copyright notice and full licence are reproduced below.
+MP4Flow ships a curated set of Tabler Icons Outline SVGs in `Sources/FastConvert/Resources/TablerOutline`. The website reuses the same icon paths in `website/assets/tabler-icons.svg`. They are sourced from [tabler/tabler-icons](https://github.com/tabler/tabler-icons), release `v3.49.0`, and are used unchanged as monochrome interface marks. Tabler Icons are licensed under the MIT License; the copyright notice and full licence are reproduced below.
 
 Copyright (c) 2020-2026 Paweł Kuna
 
