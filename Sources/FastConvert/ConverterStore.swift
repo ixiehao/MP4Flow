@@ -1153,7 +1153,13 @@ final class ConverterStore: ObservableObject {
             let geometry = VideoGeometry.displayed(width: normalizedWidth, height: height, sampleAspectRatio: "1:1", rotation: info.displayRotation)
             return (info, even(geometry?.width ?? normalizedWidth), even(geometry?.height ?? height))
         }
-        let largest = displayed.max { Double($0.width) * Double($0.height) < Double($1.width) * Double($1.height) }!
+        // Keep tuple comparison simple enough for the older Swift toolchain
+        // used by CI; area is calculated in Double to avoid Int overflow.
+        let largest = displayed.max { left, right in
+            let leftArea = Double(left.width) * Double(left.height)
+            let rightArea = Double(right.width) * Double(right.height)
+            return leftArea < rightArea
+        }!
         return CompatibleMergeTarget(
             width: largest.width,
             height: largest.height,
