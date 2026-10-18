@@ -10,7 +10,8 @@ The bundled Noto Sans SC font file is distributed under the SIL Open Font Licens
 
 ## Tabler Icons Outline
 
-MP4Flow includes a selected subset of Tabler Icons Outline SVGs from
+MP4Flow includes a selected subset of Tabler Icons Outline SVGs in the app and
+website (`website/assets/tabler-icons.svg`) from
 [`tabler/tabler-icons` v3.49.0](https://github.com/tabler/tabler-icons/tree/v3.49.0),
 licensed under the MIT License. The bundled source files and the complete
 attribution are in [AppResources/ASSET_NOTICES.md](AppResources/ASSET_NOTICES.md).
