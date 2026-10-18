@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.3 — 2026-10-18
+
+### English
+
+- Check for updates once, about 60 seconds after each launch. The footer now shows an update link only when a new version is found, and the update banner follows language changes.
+- Manual checks remain in Help; automatic checks can still be turned off in Settings. Updates are never downloaded or installed automatically.
+
+### 日本語
+
+- 起動から約60秒後に更新を1回確認します。新しいバージョンがある場合のみ画面左下にリンクを表示し、更新バナーも言語切替に対応します。
+- 手動確認はヘルプから利用でき、自動確認は設定でオフにできます。更新のダウンロードやインストールは自動では行いません。
+
+### 中文
+
+- 每次启动约 60 秒后自动检查一次更新；仅在发现新版本时于左下角显示入口，更新横幅也会跟随语言切换。
+- 仍可从“帮助”手动检查，也可在“设置”中关闭自动检查；不会自动下载或安装更新。
+
 ## 1.2.2 — 2026-10-18
 
 ### English

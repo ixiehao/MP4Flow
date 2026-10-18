@@ -52,17 +52,63 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertNil(release(url: "https://github.com/ixiehao/other/releases/tag/v1.1.2").update(newerThan: installed))
     }
 
-    func testAutomaticScheduleSkipsFirstLaunchAndPersistsDailyBackoff() {
-        let now = Date(timeIntervalSince1970: 1_700_000_000)
-        XCTAssertFalse(UpdateCheckSchedule.registerLaunchAndShouldCheck(in: defaults, now: now))
-        XCTAssertTrue(UpdateCheckSchedule.registerLaunchAndShouldCheck(in: defaults, now: now.addingTimeInterval(30)))
+    @MainActor
+    func testAutomaticCheckWaits60SecondsAndRunsOncePerProcessIncludingFirstLaunch() async throws {
+        let delayGate = StartupDelayGate()
+        StubURLProtocol.handler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "tag_name": "v1.1.2",
+                "html_url": "https://github.com/ixiehao/MP4Flow/releases/tag/v1.1.2",
+                "draft": false,
+                "prerelease": false
+            ])
+            return (try Self.response(for: request, statusCode: 200), data)
+        }
+        let checker = UpdateChecker(
+            currentVersion: try XCTUnwrap(ReleaseVersion(tag: "1.1.1")),
+            session: makeStubSession(),
+            defaults: defaults,
+            pause: { delay in try await delayGate.pause(for: delay) }
+        )
 
-        UpdateCheckSchedule.recordSuccessfulCheck(in: defaults, now: now)
-        XCTAssertFalse(UpdateCheckSchedule.registerLaunchAndShouldCheck(in: defaults, now: now.addingTimeInterval(23 * 60 * 60)))
-        XCTAssertTrue(UpdateCheckSchedule.registerLaunchAndShouldCheck(in: defaults, now: now.addingTimeInterval(24 * 60 * 60)))
+        let scheduledCheck = Task { await checker.checkAfterStartupDelay() }
+        let requestedDelay = await delayGate.waitUntilStarted()
+        XCTAssertEqual(requestedDelay, 60)
+        XCTAssertFalse(checker.isChecking)
+        XCTAssertFalse(checker.hasUpdate)
+        await delayGate.release()
 
+        guard case let .available(update)? = await scheduledCheck.value else {
+            return XCTFail("Expected an update on the first launch")
+        }
+        XCTAssertEqual(update.version, "1.1.2")
+        let repeatedCheck = await checker.checkAfterStartupDelay()
+        XCTAssertNil(repeatedCheck)
+    }
+
+    @MainActor
+    func testDisabledAutomaticCheckDoesNotRequestReleaseButManualCheckStillWorks() async throws {
         defaults.set(false, forKey: UpdateCheckSchedule.automaticChecksEnabledKey)
-        XCTAssertFalse(UpdateCheckSchedule.registerLaunchAndShouldCheck(in: defaults, now: now.addingTimeInterval(48 * 60 * 60)))
+        let checker = UpdateChecker(
+            currentVersion: try XCTUnwrap(ReleaseVersion(tag: "1.1.1")),
+            session: makeStubSession(),
+            defaults: defaults,
+            pause: { delay in XCTAssertEqual(delay, 60) }
+        )
+        let automaticCheck = await checker.checkAfterStartupDelay()
+        XCTAssertNil(automaticCheck)
+
+        StubURLProtocol.handler = { request in
+            let data = try JSONSerialization.data(withJSONObject: [
+                "tag_name": "v1.1.1",
+                "html_url": "https://github.com/ixiehao/MP4Flow/releases/tag/v1.1.1",
+                "draft": false,
+                "prerelease": false
+            ])
+            return (try Self.response(for: request, statusCode: 200), data)
+        }
+        let manualCheck = await checker.checkForUpdate()
+        XCTAssertEqual(manualCheck, .upToDate)
     }
 
     @MainActor
@@ -81,9 +127,9 @@ final class UpdateCheckerTests: XCTestCase {
             currentVersion: try XCTUnwrap(ReleaseVersion(tag: "1.1.1")),
             session: makeStubSession(),
             defaults: defaults,
-            now: { Date(timeIntervalSince1970: 1_700_000_000) }
+            pause: { _ in }
         )
-        let result = await checker.checkForUpdate(force: true)
+        let result = await checker.checkForUpdate()
 
         guard case let .available(update) = result else {
             return XCTFail("Expected an available update, got \(result)")
@@ -100,13 +146,13 @@ final class UpdateCheckerTests: XCTestCase {
             (try Self.response(for: request, statusCode: 429), Data())
         }
         var checker = UpdateChecker(currentVersion: installed, session: makeStubSession(), defaults: defaults)
-        let httpFailureResult = await checker.checkForUpdate(force: true)
+        let httpFailureResult = await checker.checkForUpdate()
         XCTAssertEqual(httpFailureResult, .failed)
         XCTAssertTrue(checker.lastCheckFailed)
 
         StubURLProtocol.handler = { _ in throw URLError(.timedOut) }
         checker = UpdateChecker(currentVersion: installed, session: makeStubSession(), defaults: defaults)
-        let timeoutFailureResult = await checker.checkForUpdate(force: true)
+        let timeoutFailureResult = await checker.checkForUpdate()
         XCTAssertEqual(timeoutFailureResult, .failed)
         XCTAssertTrue(checker.lastCheckFailed)
     }
@@ -119,6 +165,29 @@ final class UpdateCheckerTests: XCTestCase {
 
     private static func response(for request: URLRequest, statusCode: Int) throws -> HTTPURLResponse {
         try XCTUnwrap(HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: statusCode, httpVersion: nil, headerFields: nil))
+    }
+}
+
+private actor StartupDelayGate {
+    private var requestedDelay: TimeInterval?
+    private var started: CheckedContinuation<TimeInterval, Never>?
+    private var pending: CheckedContinuation<Void, Error>?
+
+    func pause(for delay: TimeInterval) async throws {
+        requestedDelay = delay
+        started?.resume(returning: delay)
+        started = nil
+        try await withCheckedThrowingContinuation { pending = $0 }
+    }
+
+    func waitUntilStarted() async -> TimeInterval {
+        if let requestedDelay { return requestedDelay }
+        return await withCheckedContinuation { started = $0 }
+    }
+
+    func release() {
+        pending?.resume()
+        pending = nil
     }
 }
 
