@@ -28,14 +28,15 @@ struct MP4FlowApp: App {
                     appDelegate.showHelpPanel(updateChecker: updateChecker)
                 }
                 Divider()
-                Button(updateChecker.hasUpdate ? L10n.format("发现新版本 v%@", updateChecker.availableUpdate?.version ?? "") : (updateChecker.isChecking ? L10n.text("正在检查…") : L10n.text("检查更新…"))) {
-                    if updateChecker.hasUpdate {
-                        updateChecker.openDownloadPage()
-                    } else {
-                        appDelegate.requestManualUpdateCheck?()
-                    }
+                Button(updateChecker.isChecking ? L10n.text("正在检查…") : L10n.text("检查更新…")) {
+                    appDelegate.requestManualUpdateCheck?()
                 }
                 .disabled(updateChecker.isChecking)
+                if let update = updateChecker.availableUpdate {
+                    Button(L10n.format("发现新版本 v%@", update.version)) {
+                        updateChecker.openDownloadPage()
+                    }
+                }
                 Divider()
                 Button(L10n.text("在 GitHub 查看项目")) { NSWorkspace.shared.open(ProjectLinks.repository) }
                 Button(L10n.text("反馈问题或建议")) { NSWorkspace.shared.open(ProjectLinks.issues) }
@@ -276,7 +277,7 @@ private struct UpdateSettingsView: View {
                 .toggleStyle(.switch)
 
             Text(automaticallyCheckForUpdates
-                 ? L10n.text("首次启动不自动检查更新；之后通常每天检查一次，失败后稍后重试。")
+                 ? L10n.text("每次启动约 60 秒后自动检查一次；不会自动下载或安装。")
                  : L10n.text("自动检查已关闭。你仍可随时通过“帮助 > 检查更新”手动检查。"))
                 .font(.system(size: 12))
                 .foregroundStyle(BrandColor.textSecondary)
@@ -299,27 +300,29 @@ private struct UpdateSettingsView: View {
 
 private struct UpdateAvailableBanner: View {
     @ObservedObject var updateChecker: UpdateChecker
+    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
 
     var body: some View {
         if let update = updateChecker.availableUpdate, updateChecker.shouldShowUpdateBanner {
+            let language = AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault
             HStack(spacing: 12) {
                 TablerIcon(name: .download, color: BrandColor.blue)
                     .frame(width: 18, height: 18)
                     .padding(7)
                     .background(BrandColor.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.format("发现新版本 v%@", update.version))
+                    Text(language.format("发现新版本 v%@", arguments: [update.version]))
                         .font(.system(size: 13, weight: .semibold))
-                    Text(L10n.text("可在 GitHub Release 查看更新说明并下载。"))
+                    Text(language.text("可在 GitHub Release 查看更新说明并下载。"))
                         .font(.system(size: 11))
                         .foregroundStyle(BrandColor.textSecondary)
                 }
                 Spacer(minLength: 12)
-                Button(L10n.text("查看更新与下载")) {
+                Button(language.text("查看更新与下载")) {
                     updateChecker.openDownloadPage()
                 }
                 .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 126, height: 32))
-                Button(L10n.text("暂不提醒此版本")) {
+                Button(language.text("暂不提醒此版本")) {
                     updateChecker.dismissAvailableUpdateBanner()
                 }
                 .buttonStyle(.plain)
@@ -372,7 +375,7 @@ struct ContentView: View {
         .onAppear {
             appDelegate.openMainWindow = { openWindow(id: "main") }
             appDelegate.requestManualUpdateCheck = checkForUpdates
-            Task { _ = await updateChecker.checkAtLaunchIfEligible() }
+            Task { _ = await updateChecker.checkAfterStartupDelay() }
             refreshDependencyHealth()
         }
         .onChange(of: store.outputDirectory) { _ in refreshDependencyHealth() }
@@ -435,7 +438,7 @@ struct ContentView: View {
     private func checkForUpdates() {
         guard !updateChecker.isChecking else { return }
         Task { @MainActor in
-            let result = await updateChecker.checkForUpdate(force: true)
+            let result = await updateChecker.checkForUpdate()
             switch result {
             case .available(let update):
                 updateNoticeMessage = L10n.format("发现新版本 v%@，可前往 GitHub 下载。", update.version)
@@ -743,18 +746,12 @@ struct ContentView: View {
                 if !store.isBusy {
                     HStack(spacing: 7) {
                         Text("v\(appVersion)")
-                        Text("·").foregroundStyle(BrandColor.textSecondary.opacity(0.65))
-                        if let update = updateChecker.availableUpdate {
+                        if let update = updateChecker.availableUpdate, updateChecker.shouldShowUpdateBanner {
+                            Text("·").foregroundStyle(BrandColor.textSecondary.opacity(0.65))
                             Button(L10n.format("发现新版本 v%@", update.version)) { updateChecker.openDownloadPage() }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(BrandColor.blue)
                                 .accessibilityLabel(L10n.format("发现新版本 v%@", update.version))
-                        } else {
-                            Button(updateChecker.isChecking ? L10n.text("正在检查…") : L10n.text("检查更新")) { checkForUpdates() }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(BrandColor.blue)
-                                .accessibilityLabel(L10n.format("检查更新，当前版本 v%@", appVersion))
-                                .disabled(updateChecker.isChecking)
                         }
                     }
                     .font(AppFont.caption)

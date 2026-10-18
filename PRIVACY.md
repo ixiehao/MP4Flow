@@ -5,13 +5,13 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 ## Data MP4Flow handles
 
 - The app reads the video files and folders that you add or choose. It may create an in-memory thumbnail and read media properties needed to show the queue and perform conversion.
-- It stores the interface language, update preferences (including the version whose notice was dismissed), and update-check scheduling state in macOS user defaults. Scheduling state records whether the app has launched before and the last successful and failed check times. It does not persist a queue, video paths, conversion settings, diagnostics, account data, or a media library.
+- It stores the interface language and update preferences (including the version whose notice was dismissed) in macOS user defaults. It does not persist a queue, video paths, conversion settings, diagnostics, account data, or a media library.
 - Standard conversion, probing, trimming, cropping, rotation, and merging use the local `ffmpeg` and `ffprobe` executables. Experimental Smart Enhance uses Apple's AVFoundation and VideoToolbox frameworks on this Mac. This app release contains no telemetry, analytics, advertising SDK, or media-upload code.
 
 ## Update checks
 
 - MP4Flow can check `https://api.github.com/repos/ixiehao/MP4Flow/releases/latest` for the latest stable release. The request includes only a fixed MP4Flow User-Agent and normal network metadata handled by GitHub and the network connection; it does not include video content, file paths, conversion settings, account data, or usage data.
-- Automatic checks are enabled by default, but the first launch does not perform an automatic update check. On later launches, automatic checks wait at least 24 hours after the last successful check and at least one hour after the last failed check. You can turn automatic checks off in **Settings** and still use **Help > Check for Updates** at any time, including the first launch.
+- Automatic checks are enabled by default and run once about 60 seconds after each launch, including the first launch. You can turn automatic checks off in **Settings** and still use **Help > Check for Updates** at any time.
 - A found update only opens its public GitHub release page when you choose to view it. MP4Flow never downloads, installs, or executes an update automatically.
 
 ## Files created locally
