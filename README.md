@@ -49,7 +49,7 @@ That is all most people need. Open **Environment Check** in the app if you want 
 
 - **One output per input:** existing files are never overwritten; you can reveal completed files in Finder.
 - **Clear progress:** MP4Flow shows inspection, direct remuxing, hardware or software conversion, and final verification. Failed items can be retried.
-- **Tracks and metadata:** before converting, the app reports multi-audio, subtitles, and HDR. The default export keeps the first video and audio track and does not copy container metadata or chapters. Check the result before sharing sensitive material.
+- **Tracks and metadata:** the app skips embedded cover art and thumbnails, then keeps the first video and audio track. It reports extra tracks, subtitles, and HDR handling, and does not copy container metadata or chapters. Check the result before sharing sensitive material.
 - **No magic enlargement:** normal upscaling changes dimensions, not missing detail. Smart Enhance is the optional system-assisted exception described above.
 
 ## Common questions
