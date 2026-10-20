@@ -410,6 +410,15 @@ struct VideoInfo: Sendable {
     var displayRotation: Double? = nil
     var videoTrackCount = 0
     var chapterCount = 0
+    var selectedVideoStreamIndex: Int? = nil
+    var selectedVideoTrackID: Int32? = nil
+    var streamLayout: [MediaStreamLayout] = []
+
+    /// Use the exact stream inspected above. The fallback also excludes cover
+    /// art, unlike the lowercase `v` selector.
+    var videoStreamSpecifier: String {
+        selectedVideoStreamIndex.map(String.init) ?? "V:0"
+    }
 
     func geometry(crop: CropRect?, rotation: VideoRotation?) -> VideoGeometry? {
         let geometry: VideoGeometry
@@ -451,7 +460,7 @@ struct VideoInfo: Sendable {
         let angle = displayRotation ?? 0
         guard angle.isFinite else { return nil }
         let rotation = (angle.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
-        return MergeSignature(videoCodec: videoCodec.lowercased(), width: width, height: height, frameRate: frameRate, pixelFormat: pixelFormat, timeBase: timeBase, sampleAspectRatio: sampleAspectRatio, displayRotation: rotation, audioCodec: audioCodec?.lowercased(), audioSampleRate: audioSampleRate, audioChannels: audioChannels)
+        return MergeSignature(videoCodec: videoCodec.lowercased(), width: width, height: height, frameRate: frameRate, pixelFormat: pixelFormat, timeBase: timeBase, sampleAspectRatio: sampleAspectRatio, displayRotation: rotation, audioCodec: audioCodec?.lowercased(), audioSampleRate: audioSampleRate, audioChannels: audioChannels, streamLayout: streamLayout)
     }
     fileprivate var mergePixelAspectRatio: Double {
         guard let sampleAspectRatio else { return 1 }
@@ -497,6 +506,7 @@ private struct MergeSignature: Hashable, Sendable {
     let audioCodec: String?
     let audioSampleRate: String?
     let audioChannels: Int?
+    let streamLayout: [MediaStreamLayout]
 }
 
 private struct CompatibleMergeTarget: Sendable {
@@ -510,20 +520,35 @@ private struct CompatibleMergeTarget: Sendable {
 private struct ProbeResponse: Decodable, Sendable { let streams: [ProbeStream]; let format: ProbeFormat?; let chapters: [ProbeChapter]? }
 private struct ProbeChapter: Decodable, Sendable {}
 private struct ProbeStream: Decodable, Sendable {
+    let index: Int?, id: String?, disposition: MediaStreamDisposition?
     let codecType: String?, codecName: String?, bitRate: String?, width: Int?, height: Int?
     let rFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?, colorTransfer: String?
     let sampleAspectRatio: String?, timeBase: String?, sideDataList: [ProbeSideData]?, tags: [String: String]?
     enum CodingKeys: String, CodingKey {
+        case index, id, disposition
         case codecType = "codec_type", codecName = "codec_name", bitRate = "bit_rate"
         case rFrameRate = "r_frame_rate", pixelFormat = "pix_fmt", sampleRate = "sample_rate", channels, width, height
         case colorTransfer = "color_transfer"
         case sampleAspectRatio = "sample_aspect_ratio", timeBase = "time_base", sideDataList = "side_data_list", tags
     }
+
+    var isMovieVideo: Bool { codecType == "video" && disposition?.isAuxiliaryImage != true }
+
+    var nativeTrackID: Int32? {
+        guard let id else { return nil }
+        let value = id.lowercased()
+        let parsed = value.hasPrefix("0x") ? UInt32(value.dropFirst(2), radix: 16) : UInt32(value)
+        return parsed.flatMap { $0 != 0 ? Int32(bitPattern: $0) : nil }
+    }
 }
 private struct ProbeSideData: Decodable, Sendable { let rotation: Double? }
 private struct ProbeFormat: Decodable, Sendable {
-    let duration: String?, bitRate: String?
-    enum CodingKeys: String, CodingKey { case duration, bitRate = "bit_rate" }
+    let duration: String?, bitRate: String?, name: String?
+    enum CodingKeys: String, CodingKey { case duration, bitRate = "bit_rate", name = "format_name" }
+
+    // MPEG-TS IDs are PIDs, not AVFoundation persistent track IDs. Only the
+    // MOV/MP4 family guarantees that these identifiers refer to the same track.
+    var usesNativeTrackIDs: Bool { name?.split(separator: ",").contains("mov") == true }
 }
 
 /// Only retry a full transcode when FFmpeg clearly identifies a VideoToolbox
@@ -967,7 +992,7 @@ final class ConverterStore: ObservableObject {
             return
         }
 
-        var result = await runMergeFFmpeg(ffmpegURL: ffmpegURL, listURL: listURL, output: temporary)
+        var result = await runMergeFFmpeg(ffmpegURL: ffmpegURL, listURL: listURL, info: infos[0], output: temporary)
         try? FileManager.default.removeItem(at: listURL)
         if case .success = result, !cancellationRequested {
             isVerifyingMerge = true
@@ -1034,10 +1059,10 @@ final class ConverterStore: ObservableObject {
         showCompatibleMergePrompt = true
     }
 
-    private func runMergeFFmpeg(ffmpegURL: URL, listURL: URL, output: URL) async -> ProcessResult {
+    private func runMergeFFmpeg(ffmpegURL: URL, listURL: URL, info: VideoInfo, output: URL) async -> ProcessResult {
         await runMergeProcess(
             ffmpegURL: ffmpegURL,
-            arguments: ["-hide_banner", "-nostdin", "-y", "-f", "concat", "-safe", "0", "-i", listURL.path, "-map", "0:v:0?", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1", "-c", "copy", "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", output.path],
+            arguments: ["-hide_banner", "-nostdin", "-y", "-f", "concat", "-safe", "0", "-i", listURL.path, "-map", "0:\(info.videoStreamSpecifier)", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1", "-c", "copy", "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", output.path],
             usesHardwareEncoder: false
         )
     }
@@ -1176,7 +1201,7 @@ final class ConverterStore: ObservableObject {
             // Fit/pad works in encoded pixels. Normalize each autorotated
             // input's pixel aspect ratio first so setsar=1 cannot stretch it.
             // The explicit scale expression also works with older FFmpeg.
-            filters.append("[\(index):v:0]scale=w='max(2,trunc(iw*if(gt(sar,0),sar,1)/2)*2)':h=ih,setsar=1,scale=\(target.width):\(target.height):force_original_aspect_ratio=decrease:force_divisible_by=2,pad=\(target.width):\(target.height):(ow-iw)/2:(oh-ih)/2:color=black,fps=\(target.frameRate),setsar=1,format=yuv420p[v\(index)]")
+            filters.append("[\(index):\(info.videoStreamSpecifier)]scale=w='max(2,trunc(iw*if(gt(sar,0),sar,1)/2)*2)':h=ih,setsar=1,scale=\(target.width):\(target.height):force_original_aspect_ratio=decrease:force_divisible_by=2,pad=\(target.width):\(target.height):(ow-iw)/2:(oh-ih)/2:color=black,fps=\(target.frameRate),setsar=1,format=yuv420p[v\(index)]")
             if info.audioCodec != nil {
                 filters.append("[\(index):a:0]aresample=48000,aformat=channel_layouts=stereo[a\(index)]")
             } else {
@@ -1617,7 +1642,7 @@ final class ConverterStore: ObservableObject {
                 diagnostic: "verify:unreadable-output"
             )
         }
-        guard info.hasVideo else {
+        guard info.hasVideo, (info.width ?? 0) > 0, (info.height ?? 0) > 0 else {
             return ConversionFailure(
                 reasonKey: "输出文件缺少视频流",
                 solutionKey: "请使用「最稳妥转换」重试。",
@@ -1639,6 +1664,7 @@ final class ConverterStore: ObservableObject {
                 plan: plan,
                 trim: trim,
                 videoBitRate: info.outputRate(preset: .smartEnhanceUpscale, quality: quality, resolution: .original),
+                videoTrackID: info.selectedVideoTrackID,
                 shouldCancel: { [weak self] in self?.cancellationRequested ?? true },
                 onProgress: { [weak self] seconds in
                     guard let self, let index = self.items.firstIndex(where: { $0.id == id }) else { return }
@@ -1747,7 +1773,7 @@ final class ConverterStore: ObservableObject {
         } else {
             args += ["-i", source.path]
         }
-        args += ["-map", "0:v:0?", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1"]
+        args += ["-map", "0:\(info.videoStreamSpecifier)", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1"]
         if let trim {
             args += ["-t", ffmpegTime(trim.end - trim.start)]
         }
@@ -1913,7 +1939,7 @@ final class ConverterStore: ObservableObject {
     }
 
     nonisolated private static func probeArguments(for source: URL) -> [String] {
-        ["-v", "error", "-show_entries", "stream=codec_type,codec_name,bit_rate,width,height,r_frame_rate,time_base,pix_fmt,sample_rate,channels,color_transfer,sample_aspect_ratio:stream_side_data=rotation:stream_tags=rotate:chapter=id:format=duration,bit_rate", "-of", "json", source.path]
+        ["-v", "error", "-show_entries", "stream=index,id,codec_type,codec_name,bit_rate,width,height,r_frame_rate,time_base,pix_fmt,sample_rate,channels,color_transfer,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:chapter=id:format=duration,bit_rate,format_name", "-of", "json", source.path]
     }
 
     nonisolated private static func unavailableProbeInfo() -> VideoInfo {
@@ -1922,7 +1948,7 @@ final class ConverterStore: ObservableObject {
 
     nonisolated private static func decodeProbe(_ data: Data) -> VideoInfo? {
         guard let response = try? JSONDecoder().decode(ProbeResponse.self, from: data) else { return nil }
-        let videoStreams = response.streams.filter { $0.codecType == "video" }
+        let videoStreams = response.streams.filter(\.isMovieVideo)
         let video = videoStreams.first
         let audioStreams = response.streams.filter { $0.codecType == "audio" }
         let subtitleStreams = response.streams.filter { $0.codecType == "subtitle" }
@@ -1941,6 +1967,11 @@ final class ConverterStore: ObservableObject {
         info.sampleAspectRatio = video?.sampleAspectRatio
         info.displayRotation = rotation
         info.videoTrackCount = videoStreams.count
+        info.selectedVideoStreamIndex = video?.index.flatMap { $0 >= 0 ? $0 : nil }
+        info.selectedVideoTrackID = response.format?.usesNativeTrackIDs == true ? video?.nativeTrackID : nil
+        info.streamLayout = response.streams.map {
+            MediaStreamLayout(index: $0.index, type: $0.codecType, codec: $0.codecName, isAuxiliaryImage: $0.disposition?.isAuxiliaryImage == true)
+        }
         info.chapterCount = response.chapters?.count ?? 0
         return info
     }

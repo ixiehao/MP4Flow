@@ -2092,10 +2092,12 @@ enum EditorMediaProbe {
     }
     private struct Stream: Decodable {
         let codecType: String?
+        let disposition: MediaStreamDisposition?
         let width: Int?
         let height: Int?
         let frameRate: String?
         enum CodingKeys: String, CodingKey {
+            case disposition
             case codecType = "codec_type"
             case width, height
             case frameRate = "r_frame_rate"
@@ -2116,12 +2118,12 @@ enum EditorMediaProbe {
         // detached probe alive, and stderr cannot fill an undrained pipe.
         let result = await FFmpegProcessRunner(
             executable: binary,
-            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:format=duration", "-of", "json", source.path],
+            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:stream_disposition=attached_pic,timed_thumbnails:format=duration", "-of", "json", source.path],
             configuration: FFmpegProcessRunner.Configuration(inactivityTimeout: 5, terminationGrace: 0.5, maximumOutputBytes: 1_000_000)
         ).run()
         guard !Task.isCancelled, result.succeeded,
               let response = try? JSONDecoder().decode(Response.self, from: result.standardOutput),
-              let video = response.streams.first(where: { $0.codecType == "video" }),
+              let video = response.streams.first(where: { $0.codecType == "video" && $0.disposition?.isAuxiliaryImage != true }),
               let width = video.width, let height = video.height,
               width > 0, height > 0,
               let duration = Double(response.format?.duration ?? ""), duration.isFinite, duration > 0 else { return nil }

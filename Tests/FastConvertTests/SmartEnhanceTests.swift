@@ -37,7 +37,9 @@ final class SmartEnhanceTests: XCTestCase {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("mp4flow-enhance-test-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let source = directory.appendingPathComponent("source.mp4")
+        let original = directory.appendingPathComponent("original.mp4")
+        let source = directory.appendingPathComponent("source-with-cover.mp4")
+        let cover = directory.appendingPathComponent("cover.jpg")
         let output = directory.appendingPathComponent("enhanced.mp4")
         let generator = Process()
         generator.executableURL = URL(fileURLWithPath: ffmpeg)
@@ -46,7 +48,7 @@ final class SmartEnhanceTests: XCTestCase {
             "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=12",
             "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000",
             "-t", "1", "-c:v", "mpeg4", "-q:v", "5",
-            "-c:a", "aac", "-shortest", source.path
+            "-c:a", "aac", "-shortest", original.path
         ]
         try generator.run()
         generator.waitUntilExit()
@@ -55,10 +57,23 @@ final class SmartEnhanceTests: XCTestCase {
             return
         }
 
+        let tool = URL(fileURLWithPath: ffmpeg)
+        let picture = await FFmpegProcessRunner(executable: tool, arguments: [
+            "-v", "error", "-f", "lavfi", "-i", "color=red:size=640x480", "-frames:v", "1", cover.path
+        ]).run()
+        let attach = await FFmpegProcessRunner(executable: tool, arguments: [
+            "-v", "error", "-i", original.path, "-i", cover.path, "-map", "0", "-map", "1:v",
+            "-c", "copy", "-disposition:v:1", "attached_pic", source.path
+        ]).run()
+        XCTAssertTrue(picture.succeeded && attach.succeeded)
+        let inspected = await ConverterStore.inspectMedia(at: source, using: tool.deletingLastPathComponent().appendingPathComponent("ffprobe"))
+        XCTAssertEqual(inspected.videoTrackCount, 1)
+        let trackID = try XCTUnwrap(inspected.selectedVideoTrackID)
+
         let started = ProcessInfo.processInfo.systemUptime
         try await SmartEnhanceExporter().export(
             source: source, output: output, plan: plan, trim: nil,
-            videoBitRate: 1_000_000, shouldCancel: { false }, onProgress: { _ in }
+            videoBitRate: 1_000_000, videoTrackID: trackID, shouldCancel: { false }, onProgress: { _ in }
         )
         print("Smart Enhance native export completed in \(String(format: "%.3f", ProcessInfo.processInfo.systemUptime - started)) seconds")
 
@@ -91,7 +106,7 @@ final class SmartEnhanceTests: XCTestCase {
         do {
             try await SmartEnhanceExporter().export(
                 source: source, output: cancelledOutput, plan: plan, trim: nil,
-                videoBitRate: 1_000_000,
+                videoBitRate: 1_000_000, videoTrackID: trackID,
                 shouldCancel: { cancellation.isCancelled() },
                 onProgress: { _ in cancellation.cancel() }
             )
@@ -102,7 +117,7 @@ final class SmartEnhanceTests: XCTestCase {
         try? FileManager.default.removeItem(at: cancelledOutput)
         try await SmartEnhanceExporter().export(
             source: source, output: cancelledOutput, plan: plan, trim: nil,
-            videoBitRate: 1_000_000, shouldCancel: { false }, onProgress: { _ in }
+            videoBitRate: 1_000_000, videoTrackID: trackID, shouldCancel: { false }, onProgress: { _ in }
         )
         XCTAssertGreaterThan(try cancelledOutput.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0, 0)
         let retryAsset = AVURLAsset(url: cancelledOutput)

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.4 — 2026-10-20
+
+### English
+
+- Important fix: skip embedded cover art and thumbnails when selecting video across conversion, editing, merging, and Smart Enhance.
+- Correct multi-video notices and reject input or output that contains only cover art without a movie. Recommended for all users.
+
+### 日本語
+
+- 重要な修正：変換・編集・結合・スマート拡大で、映像の選択対象からカバー画像とサムネイルを除外します。
+- 複数映像の通知を修正し、動画を含まずカバー画像しかない入力・出力を拒否します。すべてのユーザーに更新をおすすめします。
+
+### 中文
+
+- 重要修复：转换、编辑、合并和智能增强选取视频时，自动排除内嵌封面和缩略图。
+- 修正多路视频提示；没有正片、只有封面的输入或输出将明确报错。建议所有用户更新。
+
 ## 1.2.3 — 2026-10-18
 
 ### English

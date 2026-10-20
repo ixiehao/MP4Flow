@@ -255,13 +255,14 @@ final class SmartEnhanceExporter {
         plan: SmartEnhancePlan,
         trim: ClipRange?,
         videoBitRate: Int,
+        videoTrackID: CMPersistentTrackID? = nil,
         shouldCancel: @escaping () -> Bool,
         onProgress: (Double) -> Void
     ) async throws {
         guard Self.isSupported else { throw ExportError.unavailable }
 
         let asset = AVURLAsset(url: source)
-        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first else {
+        guard let videoTrack = try await NativeVideoTrackSelection.select(from: asset, trackID: videoTrackID) else {
             throw ExportError.invalidSource
         }
         let audioTrack = try await asset.loadTracks(withMediaType: .audio).first
@@ -594,6 +595,7 @@ final class SmartEnhanceExporter {
         plan: SmartEnhancePlan,
         trim: ClipRange?,
         videoBitRate: Int,
+        videoTrackID: CMPersistentTrackID? = nil,
         shouldCancel: @escaping () -> Bool,
         onProgress: (Double) -> Void
     ) async throws {

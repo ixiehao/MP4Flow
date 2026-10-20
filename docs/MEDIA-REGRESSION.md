@@ -35,6 +35,15 @@ a silent process that ignores TERM. Notice tests distinguish ordinary media from
 actual track/subtitle/chapter/HDR consequences; tool tests reject mixed FFmpeg
 and ffprobe installations.
 
+Video-stream tests distinguish embedded cover art and timed thumbnails from
+movie tracks, including a cover-first probe response and genuine MJPEG video.
+Real files with embedded JPEG covers exercise stream copy, software/hardware
+rotation, lossless merge, compatible merge, and native Smart Enhance. Assertions
+check copied movie bytes, frame count, changing decoded frames and duration.
+Cover-only input and output must fail without publishing a final file. Native
+exports use the inspected container track ID and reject an ambiguous fallback;
+lossless concatenation also requires matching stream layouts.
+
 ### Optional local performance check
 
 The queue benchmark is skipped by default. To measure a full authorized local
@@ -76,6 +85,8 @@ the results and tool versions—not the source media or its full path.
 | Variable frame rate | Start/end times, trim result, and duration remain plausible; no audio drift. |
 | Portrait or rotation metadata | The preview and exported display orientation match; no stretching. |
 | Video-only | Conversion works and does not invent or require audio. |
+| Movie with embedded cover / thumbnails | Covers are excluded from movie count and selection; the exported movie has the expected frames and duration. |
+| Audio with cover only | No usable movie is reported; no video output is published. |
 | Multiple audio tracks | The selected policy is displayed before conversion; any dropped tracks are named. |
 | Subtitle / timed text | The selected policy is displayed before conversion; retained subtitles remain selectable. |
 | HDR source | The UI says whether HDR is retained, tone-mapped, or unsupported before start. |

@@ -311,7 +311,7 @@
 "可用空间较少；建议至少保留 1 GB。" = "Free space is low; keep at least 1 GB free.";
 "处理策略" = "Processing Policy";
 "默认保留首路视频和音频；多音轨、字幕及 HDR 的处理将在队列中提示。" = "First video/audio tracks only. The queue flags extra audio tracks, subtitles and HDR.";
-"默认仅输出第一路视频和音频，并移除容器元数据和章节。开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。" = "Smart Convert copies compatible video whenever possible and re-encodes only when needed. Output keeps the first video and audio track and removes container metadata and chapters. Notices appear when extra tracks, subtitles, chapters, or HDR transcoding affect the result.";
+"默认仅输出第一路视频和音频，并移除容器元数据和章节。开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。" = "Smart Convert copies compatible video whenever possible and re-encodes only when needed. It skips cover art and thumbnails, keeps the first video and audio track, and removes container metadata and chapters. Notices appear when extra tracks, subtitles, chapters, or HDR transcoding affect the result.";
 "%@ · %d%%" = "%@ · %d%%";
 "%@ · %@" = "%@ · %@";
 "正在转换" = "Converting";
