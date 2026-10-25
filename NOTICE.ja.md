@@ -4,10 +4,6 @@
 
 MP4Flow は、ユーザーが用意した FFmpeg インストールを呼び出します。FFmpeg はこのリポジトリに同梱、ダウンロード、再配布されません。ユーザーがインストールする FFmpeg ビルドのライセンスは、ビルド方法により LGPL、GPL、またはその他の組み合わせになる場合があります。MP4Flow の MIT ライセンスは FFmpeg をライセンスするものではありません。インストールする FFmpeg ビルドに付属する利用条件と表示を確認してください。
 
-## Noto Sans SC
-
-同梱の Noto Sans SC フォントファイルは、SIL Open Font License 1.1 の下で配布されています。完全なライセンス本文は [AppResources/OFL.txt](AppResources/OFL.txt) にあります。同梱アートワークとデモアセットの表示は [AppResources/ASSET_NOTICES.md](AppResources/ASSET_NOTICES.md) を参照してください。
-
 ## Tabler Icons Outline
 
 MP4Flow は、MIT License の下で提供される [`tabler/tabler-icons` v3.49.0](https://github.com/tabler/tabler-icons/tree/v3.49.0) の Tabler Icons Outline SVG から、選択した一部を使用しています。同梱するソースファイルと完全な帰属表示は [AppResources/ASSET_NOTICES.md](AppResources/ASSET_NOTICES.md) にあります。

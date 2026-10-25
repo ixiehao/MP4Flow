@@ -3,9 +3,11 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/dist}"
+[[ "$OUTPUT_DIR" == /* ]] || OUTPUT_DIR="$PWD/$OUTPUT_DIR"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PROJECT_DIR/AppResources/Info.plist")"
 VOLUME_NAME="MP4Flow $VERSION Installer"
-STAGE_DIR="$(mktemp -d /tmp/mp4flow-dmg.XXXXXX)"
+STAGE_ROOT="${TMPDIR:-/tmp}"
+STAGE_DIR="$(mktemp -d "${STAGE_ROOT%/}/mp4flow-dmg.XXXXXX")"
 VENV_DIR="$STAGE_DIR/venv"
 APP_PATH="$STAGE_DIR/MP4Flow.app"
 DMG_PATH="$OUTPUT_DIR/MP4Flow-$VERSION.dmg"
@@ -19,8 +21,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$OUTPUT_DIR"
 cd "$PROJECT_DIR"
+if [[ -e "$DMG_PATH" || -e "$DMG_PATH.sha256" ]]; then
+  printf 'Refusing to replace an existing installer or checksum: %s\nChoose a new version or OUTPUT_DIR.\n' "$DMG_PATH" >&2
+  exit 1
+fi
+
+mkdir -p "$OUTPUT_DIR"
 
 PACKAGING_PYTHON_OVERRIDE="${PACKAGING_PYTHON:-}"
 PACKAGING_PYTHON=""
@@ -43,6 +50,10 @@ codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 swift Scripts/create-dmg-background.swift "$STAGE_DIR/dmg-background.png"
 "$PACKAGING_PYTHON" -m venv "$VENV_DIR"
 "$VENV_DIR/bin/pip" install --quiet -r Scripts/dmg-requirements.txt
+if [[ -e "$DMG_PATH" || -e "$DMG_PATH.sha256" ]]; then
+  printf 'Refusing to replace an installer or checksum created while packaging: %s\n' "$DMG_PATH" >&2
+  exit 1
+fi
 "$VENV_DIR/bin/dmgbuild" -s Scripts/dmg-settings.py -D app="$APP_PATH" -D background="$STAGE_DIR/dmg-background.png" "$VOLUME_NAME" "$DMG_PATH"
 hdiutil verify "$DMG_PATH"
 VALIDATION_MOUNT="$(mktemp -d /tmp/mp4flow-installer-check.XXXXXX)"

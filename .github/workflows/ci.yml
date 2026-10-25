@@ -13,6 +13,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Build release binary
         run: swift build -c release
+      - name: Install localization validation dependencies
+        run: |
+          brew list --versions ripgrep >/dev/null 2>&1 || brew install ripgrep
+          brew list --versions jq >/dev/null 2>&1 || brew install jq
       - name: Validate localizations and metadata
         run: ./Scripts/validate-localizations.sh
       - name: Install synthetic-media test dependency

@@ -82,7 +82,7 @@ open MP4Flow.app
 - MP4Flow は Swift、SwiftUI、Apple のシステムフレームワークを使用します。[プライバシーポリシー](PRIVACY.ja.md) · [セキュリティポリシー](SECURITY.ja.md)
 - FFmpeg は別途インストールするローカル実行時依存関係です。ライセンスは導入したビルドによって決まり、MP4Flow が同梱またはダウンロードすることはありません。
 - スマート高画質拡大は、macOS が提供する場合に Apple のオンデバイス VideoToolbox を使用します。対応倍率とシステムモデルの配信は macOS により管理されます。
-- アプリには [SIL Open Font License 1.1](AppResources/OFL.txt)の Noto Sans SC と、[MIT License](AppResources/ASSET_NOTICES.md)の [Tabler Icons Outline](https://github.com/tabler/tabler-icons) のローカル厳選セット（v3.49.0）が含まれます。
+- アプリは macOS 標準フォントを使い、[MIT License](AppResources/ASSET_NOTICES.md)の [Tabler Icons Outline](https://github.com/tabler/tabler-icons) のローカル厳選セット（v3.49.0）を同梱します。
 
 帰属表示は [NOTICE.ja.md](NOTICE.ja.md)、プロジェクトのライセンスは [LICENSE](LICENSE) を参照してください。
 

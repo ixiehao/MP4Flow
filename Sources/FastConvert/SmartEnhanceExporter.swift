@@ -117,7 +117,6 @@ struct SmartEnhancePlan: Sendable {
         return SmartEnhanceTarget.allCases.filter { target in
             target.rawValue > sourceHeight
                 && target.rawValue <= maximumHeight
-                && outputWidth(sourceWidth: sourceWidth, sourceHeight: sourceHeight, targetHeight: target.rawValue) >= 2
         }
 #else
         // Xcode versions before 27 do not ship the VideoToolbox super-resolution
@@ -298,6 +297,14 @@ final class SmartEnhanceExporter {
             AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: videoBitRate]
         ])
         videoInput.expectsMediaDataInRealTime = false
+        // Reader samples retain encoded orientation. Preserve the display
+        // matrix and rebase its translation for the enlarged frame bounds.
+        var displayTransform = try await videoTrack.load(.preferredTransform)
+        let outputBounds = CGRect(x: 0, y: 0, width: CGFloat(plan.targetWidth), height: CGFloat(plan.targetHeight))
+            .applying(displayTransform)
+        displayTransform.tx -= outputBounds.minX
+        displayTransform.ty -= outputBounds.minY
+        videoInput.transform = displayTransform
         guard writer.canAdd(videoInput) else { throw ExportError.writer("The enhanced video output could not be created.") }
         writer.add(videoInput)
         let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(

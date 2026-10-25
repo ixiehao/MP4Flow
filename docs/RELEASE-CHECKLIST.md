@@ -4,7 +4,7 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 
 ## Repository and disclosure
 
-- [x] Create the canonical GitHub repository and replace the clone URL in both README files.
+- [x] Create the canonical GitHub repository and replace the clone URL in all three README files.
 - [ ] Enable GitHub Private Vulnerability Reporting and replace the reporting instruction in [SECURITY.md](../SECURITY.md) with the repository's private reporting link.
 - [ ] Confirm the repository description, topics, licence, default branch protection, and release notes follow [GITHUB_METADATA.md](GITHUB_METADATA.md).
 - [ ] Confirm the repository homepage, trilingual README download links, issue chooser, and social preview still point to the current official project surfaces.
@@ -27,9 +27,9 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 
 ## Licences, copyright, and content
 
-- [ ] Review [LICENSE](../LICENSE), [NOTICE.md](../NOTICE.md), and [AppResources/ASSET_NOTICES.md](../AppResources/ASSET_NOTICES.md). Retain the Noto Sans SC OFL notice in the app bundle.
+- [ ] Review [LICENSE](../LICENSE), [NOTICE.md](../NOTICE.md), and [AppResources/ASSET_NOTICES.md](../AppResources/ASSET_NOTICES.md) for the assets included in the app bundle.
 - [ ] Confirm the shipped release does not contain FFmpeg or another binary that changes the project's dependency or licence obligations. If a tool is later bundled, perform a separate licence and source-offer review.
-- [ ] Keep dated provenance records for `AppIcon.icns`, screenshots, the DMG background, the README GIF, and every new asset. Obtain permission before using third-party names, logos, screenshots, audio, or video.
+- [ ] Keep dated provenance records for `AppIcon.icns`, screenshots, the DMG background, the social preview, and every new asset. Obtain permission before using third-party names, logos, screenshots, audio, or video.
 - [ ] Do not present the app as granting rights to convert or distribute copyrighted content. Test only with media you are authorised to use.
 
 ## Build, signing, and distribution
@@ -45,5 +45,5 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 
 - [ ] Add an accurate dated section to [CHANGELOG.md](../CHANGELOG.md), including known limitations and upgrade notes.
 - [ ] Attach the verified final DMG and matching checksum to the GitHub release, with accurate ad-hoc or Developer ID/notarization details.
-- [ ] Verify all README links, the demo GIF, support guidance, privacy policy, notices, and security reporting link after publishing.
+- [ ] Verify all README links, localized screenshots, support guidance, privacy policy, notices, and security reporting link after publishing.
 - [ ] Keep a private release record with macOS version, Xcode/Swift version, FFmpeg version used for tests, signing identity, notarization submission ID, checksum, and validation results. Do not publish sensitive identifiers.

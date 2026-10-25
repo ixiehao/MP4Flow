@@ -1,12 +1,18 @@
 #!/bin/zsh
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd -P)"
 APP_PATH="${APP_OUTPUT_PATH:-$PROJECT_DIR/MP4Flow.app}"
 [[ "$APP_PATH" == *.app && "$APP_PATH" != "/" ]] || {
   printf 'APP_OUTPUT_PATH must name a .app bundle.\n' >&2
   exit 1
 }
+APP_PATH="${APP_PATH:A}"
+TEMP_ROOT="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+if [[ "$APP_PATH" != "$PROJECT_DIR/"* && "$APP_PATH" != "$TEMP_ROOT/"* ]]; then
+  printf 'Refusing to remove an app outside the project or temporary build directory: %s\n' "$APP_PATH" >&2
+  exit 1
+fi
 cd "$PROJECT_DIR"
 BUILD_ARGS=(-c release)
 if [[ -n "${MP4FLOW_ARCHS:-}" ]]; then
@@ -15,12 +21,10 @@ fi
 swift build "${BUILD_ARGS[@]}"
 
 rm -rf "$APP_PATH"
-mkdir -p "$APP_PATH/Contents/MacOS" "$APP_PATH/Contents/Resources/Fonts"
+mkdir -p "$APP_PATH/Contents/MacOS" "$APP_PATH/Contents/Resources"
 cp .build/release/MP4Flow "$APP_PATH/Contents/MacOS/MP4Flow"
 cp AppResources/Info.plist "$APP_PATH/Contents/Info.plist"
 cp AppResources/AppIcon.icns "$APP_PATH/Contents/Resources/AppIcon.icns"
-cp AppResources/NotoSansSC-Variable.ttf "$APP_PATH/Contents/Resources/Fonts/NotoSansSC-Variable.ttf"
-cp AppResources/OFL.txt "$APP_PATH/Contents/Resources/Fonts/OFL.txt"
 cp AppResources/ASSET_NOTICES.md "$APP_PATH/Contents/Resources/ASSET_NOTICES.md"
 cp -R AppResources/en.lproj AppResources/ja.lproj AppResources/zh-Hans.lproj "$APP_PATH/Contents/Resources/"
 # SwiftPM places the curated Tabler Outline SVGs in a resource bundle. Keep it

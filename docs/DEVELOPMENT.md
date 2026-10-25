@@ -5,11 +5,13 @@
 ## Repository layout and environment
 
 - `Package.swift`, `Sources/`, `Tests/` — Swift package, application implementation and tests.
-- `AppResources/` — app metadata, localization, icon, fonts and asset notices.
+- `AppResources/` — app metadata, localization, icon and asset notices. The app uses system fonts and does not bundle font files.
 - `Scripts/` — validation, application packaging and media regression.
 - `website/` — public website source; `docs/` — maintainer guides.
 
 Use macOS and a Swift toolchain compatible with `Package.swift`. Media regression requires local FFmpeg and ffprobe, as described in [MEDIA-REGRESSION.md](MEDIA-REGRESSION.md). Do not bundle an additional media runtime without reviewing distribution rights and product requirements.
+
+Localization validation requires `rg` (ripgrep) and `jq` on `PATH`, plus the macOS command-line tools `plutil`, `perl`, `sed`, `sort`, and `base64`. Install missing external tools with `brew install ripgrep jq`. The validator rejects duplicate keys in all three languages and stops if a required tool or key-extraction command fails.
 
 ## Build and test
 
@@ -29,6 +31,10 @@ Run media regression after its documented dependencies are available. To create 
 ```
 
 The script rebuilds its configured `.app` output; it is not a test or a notarized release. Check existing output before running it.
+
+## Local build cache
+
+After confirming that no Swift or Xcode build or test is using this checkout, run `swift package clean` from the repository root to remove regenerable build products in `.build/`. The next build recompiles the package. Preserve installers and release records in `dist/` and all user media; these are retained outputs rather than cache. Limit cleanup to this checkout, leaving global caches and other projects untouched.
 
 ## Behavioral checks
 

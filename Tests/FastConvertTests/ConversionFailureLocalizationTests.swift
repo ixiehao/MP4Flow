@@ -26,7 +26,7 @@ final class ConversionFailureLocalizationTests: XCTestCase {
                 "[hevc_videotoolbox] Encoder not available",
                 "VTCompressionSessionCreate failed with error -12903"
             ] {
-                let message = ConverterStore.ffmpegFailureMessage(stderr, code: 1)
+                let message = ConverterStore.ffmpegFailureMessage(stderr)
                 XCTAssertEqual(message, "MP4Flow:hardware-encoder", language.rawValue)
                 let hardware = ConverterStore.failure(from: message)
                 XCTAssertEqual(hardware.reasonKey, "硬件编码不可用", language.rawValue)
@@ -35,9 +35,9 @@ final class ConversionFailureLocalizationTests: XCTestCase {
                 XCTAssertEqual(hardware.reason, L10n.text(hardware.reasonKey))
                 XCTAssertEqual(hardware.solution, L10n.text(hardware.solutionKey))
             }
-            let software = ConverterStore.ffmpegFailureMessage("Unknown encoder 'libx264'", code: 1)
+            let software = ConverterStore.ffmpegFailureMessage("Unknown encoder 'libx264'")
             XCTAssertNotEqual(software, "MP4Flow:hardware-encoder", "A missing software encoder must not be described as hardware failure")
-            let disk = ConverterStore.ffmpegFailureMessage("[h264_videotoolbox] Error submitting frame\nNo space left on device", code: 1)
+            let disk = ConverterStore.ffmpegFailureMessage("[h264_videotoolbox] Error submitting frame\nNo space left on device")
             XCTAssertEqual(disk, "MP4Flow:disk-full", "A terminal I/O failure must keep priority over hardware markers")
         }
     }
@@ -96,7 +96,7 @@ final class ConversionFailureLocalizationTests: XCTestCase {
             domain["appLanguage"] = language.rawValue
             defaults.setVolatileDomain(domain, forName: domainName)
             for sample in cases {
-                let message = sample.stderr.map { ConverterStore.ffmpegFailureMessage($0, code: 1) } ?? sample.sentinel
+                let message = sample.stderr.map { ConverterStore.ffmpegFailureMessage($0) } ?? sample.sentinel
                 XCTAssertEqual(message, sample.sentinel, language.rawValue)
                 let failure = ConverterStore.failure(from: message)
                 XCTAssertEqual(failure.reasonKey, sample.reason, language.rawValue)
@@ -107,7 +107,7 @@ final class ConversionFailureLocalizationTests: XCTestCase {
                 XCTAssertEqual(failure.solution, L10n.text(sample.solution))
             }
             XCTAssertEqual(
-                ConverterStore.ffmpegFailureMessage("Could not find tag for codec pcm_s16le\nPermission denied", code: 1),
+                ConverterStore.ffmpegFailureMessage("Could not find tag for codec pcm_s16le\nPermission denied"),
                 "MP4Flow:permission",
                 "Permission failures take priority over codec/container context"
             )

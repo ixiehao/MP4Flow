@@ -635,7 +635,6 @@ final class ConverterStore: ObservableObject {
     private let ffmpegOverride: URL?
     private var ffmpegURL: URL?
     private var activeProcesses: [UUID: FFmpegProcessRunner] = [:]
-    private var activeTemporaryOutputs: [UUID: URL] = [:]
     private var cancellationRequested = false
     // Queue order is held by convertQueue's snapshot; membership checks happen
     // on every progress update and must stay constant-time for large batches.
@@ -776,6 +775,7 @@ final class ConverterStore: ObservableObject {
     /// Removes queue records only. Source files and generated outputs remain untouched.
     func clearQueue() {
         guard !isBusy else { return }
+        presentationQueue.cancelAllOperations()
         items.removeAll()
         statusText = ""
     }
@@ -933,16 +933,19 @@ final class ConverterStore: ObservableObject {
     }
 
     private func loadPresentation(for item: ConversionItem) {
-        let store = self
-        presentationQueue.addOperation {
+        presentationQueue.addOperation { [weak self] in
             // Keep the queue's bounded concurrency while loading modern
             // AVFoundation properties asynchronously.
             let completed = DispatchSemaphore(value: 0)
-            Task {
+            Task { [weak self] in
+                defer { completed.signal() }
+                guard await MainActor.run(body: { [weak self] in
+                    self?.items.contains(where: { $0.id == item.id }) == true
+                }) else { return }
                 let presentation = await VideoPresentation.load(from: item.source)
-                Task { @MainActor [store] in
-                    defer { completed.signal() }
-                    guard let index = store.items.firstIndex(where: { $0.id == item.id }) else { return }
+                await MainActor.run { [weak self] in
+                    guard let store = self,
+                          let index = store.items.firstIndex(where: { $0.id == item.id }) else { return }
                     store.items[index].presentation = presentation
                     store.reconcileSmartEnhanceTarget()
                 }
@@ -1159,7 +1162,7 @@ final class ConverterStore: ObservableObject {
         if result.timedOut { return .failure("MP4Flow:stalled") }
         if result.launchError != nil { return .failure("MP4Flow:launch-failed") }
         if result.succeeded { return .success }
-        let message = friendlyMergeError(result.standardError, code: result.terminationStatus ?? -1)
+        let message = friendlyMergeError(result.standardError)
         if let hint = FFmpegHardwareRetryClassifier.hint(stderr: result.standardError, usedHardwarePipeline: false, usedHardwareEncoder: usesHardwareEncoder) {
             return .retryableFailure(message, hint)
         }
@@ -1279,10 +1282,6 @@ final class ConverterStore: ObservableObject {
                     items[index].phase = nil
                 }
             }
-            // All per-item workers have returned before the queue reaches this
-            // point, so removing their partial files cannot race a live FFmpeg
-            // writer. Final outputs are never listed here.
-            activeTemporaryOutputs.values.forEach { try? FileManager.default.removeItem(at: $0) }
             statusText = L10n.text("转换已取消；可重新排队未完成项目。")
         } else {
             overallProgress = 1
@@ -1293,7 +1292,7 @@ final class ConverterStore: ObservableObject {
             }.count
             statusText = failures == 0 ? L10n.text("转换完成") : L10n.format("队列处理结束，%d 项失败。", failures)
         }
-        activeProcesses.removeAll(); activeTemporaryOutputs.removeAll(); progressBuffers.removeAll(); progressGeneration.removeAll(); progressTimes.removeAll(); lastProgressUpdate.removeAll(); queueIDs.removeAll(); isRunning = false
+        activeProcesses.removeAll(); progressBuffers.removeAll(); progressGeneration.removeAll(); progressTimes.removeAll(); lastProgressUpdate.removeAll(); queueIDs.removeAll(); isRunning = false
         presentationQueue.isSuspended = false
     }
 
@@ -1370,8 +1369,9 @@ final class ConverterStore: ObservableObject {
         setPhase(copyVideoAndEncodeAudio ? .audioTranscoding : phase(for: effectivePreset, preferHardwareEncoder: true), for: id, progress: info.duration == nil ? nil : 0, count: count, detail: copyVideoAndEncodeAudio ? nil : outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution, sourceHeight: editedGeometry?.height))
         let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop)
         let temporary = final.deletingLastPathComponent().appendingPathComponent(".MP4Flow-\(UUID().uuidString).partial.mp4")
-        activeTemporaryOutputs[id] = temporary
-        defer { activeTemporaryOutputs.removeValue(forKey: id) }
+        // The worker owns only its partial file; a successful move leaves the
+        // published output untouched, while every early return also cleans up.
+        defer { try? FileManager.default.removeItem(at: temporary) }
         var result: ProcessResult
         if effectivePreset == .smartEnhanceUpscale {
             guard rotation == nil, crop == nil else {
@@ -1434,7 +1434,6 @@ final class ConverterStore: ObservableObject {
                 items[current].state = .complete(final)
                 items[current].phase = nil
             } catch {
-                try? FileManager.default.removeItem(at: temporary)
                 markFailed(id, failure: ConversionFailure(
                     reasonKey: "无法保存输出文件",
                     solutionKey: "请检查输出文件夹权限和可用空间后重试。",
@@ -1445,9 +1444,7 @@ final class ConverterStore: ObservableObject {
             items[current].state = .cancelled
             items[current].phase = nil
             items[current].failure = nil
-            try? FileManager.default.removeItem(at: temporary)
         case .failure(let message), .retryableFailure(let message, _):
-            try? FileManager.default.removeItem(at: temporary)
             let existingFailure = items[current].failure
             markFailed(id, failure: existingFailure ?? Self.failure(from: message), count: count)
         }
@@ -1731,7 +1728,12 @@ final class ConverterStore: ObservableObject {
         activeProcesses[id] = runner
         defer {
             activeProcesses.removeValue(forKey: id)
-            if progressGeneration[id] == generation { progressGeneration[id] = nil }
+            if progressGeneration[id] == generation {
+                progressGeneration[id] = nil
+                progressBuffers[id] = nil
+                progressTimes[id] = nil
+                lastProgressUpdate[id] = nil
+            }
         }
         let result = await runner.run { [weak self] data in
             Task { @MainActor [weak self] in
@@ -1742,7 +1744,7 @@ final class ConverterStore: ObservableObject {
         if result.timedOut { return .failure("MP4Flow:stalled") }
         if result.launchError != nil { return .failure("MP4Flow:launch-failed") }
         if result.succeeded { return .success }
-        let message = Self.ffmpegFailureMessage(result.standardError, code: result.terminationStatus ?? -1)
+        let message = Self.ffmpegFailureMessage(result.standardError)
         if let hint = FFmpegHardwareRetryClassifier.hint(
             stderr: result.standardError,
             usedHardwarePipeline: usedHardwarePipeline,
@@ -2012,7 +2014,7 @@ final class ConverterStore: ObservableObject {
     }
     private func ffmpegTime(_ seconds: Double) -> String { String(format: "%.3f", seconds) }
     private func fileNameTime(_ seconds: Double) -> String { String(format: "%02d%02d%02d", Int(seconds) / 3600, (Int(seconds) % 3600) / 60, Int(seconds) % 60) }
-    nonisolated static func ffmpegFailureMessage(_ stderr: String, code: Int32) -> String {
+    nonisolated static func ffmpegFailureMessage(_ stderr: String) -> String {
         let text = stderr.lowercased()
         if text.contains("no space left") || text.contains("disk full") { return "MP4Flow:disk-full" }
         if text.contains("permission denied") || text.contains("operation not permitted") { return "MP4Flow:permission" }
@@ -2031,8 +2033,8 @@ final class ConverterStore: ObservableObject {
         if containerFailures.contains(where: text.contains) { return "MP4Flow:container-incompatible" }
         return "MP4Flow:conversion-failed"
     }
-    private func friendlyMergeError(_ stderr: String, code: Int32) -> String {
-        let normalized = Self.ffmpegFailureMessage(stderr, code: code)
+    private func friendlyMergeError(_ stderr: String) -> String {
+        let normalized = Self.ffmpegFailureMessage(stderr)
         guard normalized == "MP4Flow:conversion-failed" else { return normalized }
         let text = stderr.lowercased()
         if text.contains("non monotonous") || text.contains("invalid data") || text.contains("concat") {

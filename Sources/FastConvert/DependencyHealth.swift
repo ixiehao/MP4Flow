@@ -99,7 +99,6 @@ enum DependencyHealthLevel: Sendable {
 
 struct ExecutableHealth: Sendable {
     let level: DependencyHealthLevel
-    let name: String
     let path: String?
     let version: String?
 }
@@ -115,7 +114,6 @@ struct OutputDirectoryHealth: Sendable {
     let checkedDirectoryCount: Int
     let unavailableDirectoryNames: [String]
     let availableBytes: Int64?
-    let usesSourceDirectories: Bool
 }
 
 struct DependencyHealthReport: Sendable {
@@ -125,10 +123,10 @@ struct DependencyHealthReport: Sendable {
     let output: OutputDirectoryHealth
 
     static let checking = DependencyHealthReport(
-        ffmpeg: ExecutableHealth(level: .checking, name: "FFmpeg", path: nil, version: nil),
-        ffprobe: ExecutableHealth(level: .checking, name: "FFprobe", path: nil, version: nil),
+        ffmpeg: ExecutableHealth(level: .checking, path: nil, version: nil),
+        ffprobe: ExecutableHealth(level: .checking, path: nil, version: nil),
         videoToolbox: VideoToolboxHealth(level: .checking, h264Available: false, hevcAvailable: false),
-        output: OutputDirectoryHealth(level: .checking, checkedDirectoryCount: 0, unavailableDirectoryNames: [], availableBytes: nil, usesSourceDirectories: true)
+        output: OutputDirectoryHealth(level: .checking, checkedDirectoryCount: 0, unavailableDirectoryNames: [], availableBytes: nil)
     )
 
     var overallLevel: DependencyHealthLevel {
@@ -196,21 +194,20 @@ private enum DependencyHealthProbe {
 
     private static func inspectExecutable(named name: String, at executable: URL?) async -> ExecutableHealth {
         guard let executable else {
-            return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: nil, version: nil)
+            return ExecutableHealth(level: .failed, path: nil, version: nil)
         }
 
         guard FileManager.default.isExecutableFile(atPath: executable.path) else {
-            return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: executable.path, version: nil)
+            return ExecutableHealth(level: .failed, path: executable.path, version: nil)
         }
 
         let result = await run(executable, arguments: ["-version"], timeout: 3)
         guard result.succeeded else {
-            return ExecutableHealth(level: .failed, name: name == "ffprobe" ? "FFprobe" : "FFmpeg", path: executable.path, version: nil)
+            return ExecutableHealth(level: .failed, path: executable.path, version: nil)
         }
 
         return ExecutableHealth(
             level: .ready,
-            name: name == "ffprobe" ? "FFprobe" : "FFmpeg",
             path: executable.path,
             version: version(in: result.output, toolName: name)
         )
@@ -242,8 +239,7 @@ private enum DependencyHealthProbe {
                 level: .ready,
                 checkedDirectoryCount: 0,
                 unavailableDirectoryNames: [],
-                availableBytes: nil,
-                usesSourceDirectories: request.outputDirectory == nil
+                availableBytes: nil
             )
         }
 
@@ -262,8 +258,7 @@ private enum DependencyHealthProbe {
                 level: .failed,
                 checkedDirectoryCount: directories.count,
                 unavailableDirectoryNames: unavailable,
-                availableBytes: minimumAvailable,
-                usesSourceDirectories: request.outputDirectory == nil
+                availableBytes: minimumAvailable
             )
         }
 
@@ -274,8 +269,7 @@ private enum DependencyHealthProbe {
             level: level,
             checkedDirectoryCount: directories.count,
             unavailableDirectoryNames: [],
-            availableBytes: minimumAvailable,
-            usesSourceDirectories: request.outputDirectory == nil
+            availableBytes: minimumAvailable
         )
     }
 
@@ -431,9 +425,6 @@ struct DependencyHealthStatusBar: View {
         if report.ffmpeg.level == .failed { return L10n.text(report.ffmpeg.path == nil ? "需要安装 FFmpeg" : "FFmpeg 无法运行") }
         if report.ffprobe.level == .failed { return L10n.text(report.ffprobe.path == nil ? "FFprobe 不可用" : "FFprobe 无法运行") }
         if report.output.level == .failed { return L10n.text("输出位置不可写") }
-        if report.output.level == .warning && report.output.checkedDirectoryCount == 0 {
-            return L10n.text("添加视频后检查输出位置。")
-        }
         if report.output.level == .warning { return L10n.text("可用空间较少") }
         if report.videoToolbox.level == .warning { return L10n.text("硬件加速不可用，仍可转换") }
         return L10n.format("FFmpeg %@ 已就绪", report.ffmpeg.version ?? "—")
@@ -458,15 +449,6 @@ struct DependencyHealthStatusBar: View {
             .background(BrandColor.blue.opacity(0.075), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.blue.opacity(0.10), lineWidth: 1) }
             .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-    }
-
-    private func statusIcon(for level: DependencyHealthLevel) -> TablerIconName {
-        switch level {
-        case .ready: .circleCheck
-        case .warning: .infoCircle
-        case .failed: .alertCircle
-        case .checking: .loader2
-        }
     }
 }
 
@@ -615,7 +597,6 @@ private struct DependencyHealthSheet: View {
 
     private var outputDetail: String {
         let output = monitor.report.output
-        if output.checkedDirectoryCount == 0 { return L10n.text("将输出到原视频所在文件夹；添加视频后检查。") }
         if output.level == .failed {
             let names = output.unavailableDirectoryNames.prefix(2).joined(separator: "、")
             return L10n.format("已检查 %d 个文件夹；无法写入：%@", output.checkedDirectoryCount, names)
@@ -633,15 +614,6 @@ private struct DependencyHealthSheet: View {
         case .warning where monitor.report.output.checkedDirectoryCount > 0:
             return L10n.text("可用空间较少；建议至少保留 1 GB。")
         default: return nil
-        }
-    }
-
-    private func statusIcon(for level: DependencyHealthLevel) -> TablerIconName {
-        switch level {
-        case .ready: .circleCheck
-        case .warning: .infoCircle
-        case .failed: .alertCircle
-        case .checking: .loader2
         }
     }
 }
@@ -673,6 +645,15 @@ private struct HealthSheetActionButtonStyle: ButtonStyle {
     private func background(pressed: Bool) -> Color {
         if primary { return pressed ? BrandColor.blue.opacity(0.82) : BrandColor.blue }
         return pressed ? BrandColor.selectHover : BrandColor.surface
+    }
+}
+
+private func statusIcon(for level: DependencyHealthLevel) -> TablerIconName {
+    switch level {
+    case .ready: .circleCheck
+    case .warning: .infoCircle
+    case .failed: .alertCircle
+    case .checking: .loader2
     }
 }
 
