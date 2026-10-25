@@ -11,7 +11,7 @@
 
 Use macOS and a Swift toolchain compatible with `Package.swift`. Media regression requires local FFmpeg and ffprobe, as described in [MEDIA-REGRESSION.md](MEDIA-REGRESSION.md). Do not bundle an additional media runtime without reviewing distribution rights and product requirements.
 
-Localization validation requires `rg` (ripgrep) and `jq` on `PATH`, plus the macOS command-line tools `plutil`, `perl`, `sed`, `sort`, and `base64`. Install missing external tools with `brew install ripgrep jq`. The validator rejects duplicate keys in all three languages and stops if a required tool or key-extraction command fails.
+Localization validation requires Python 3.9+ and macOS `plutil` on `PATH`. The validator checks all seven App catalogs, rejects duplicate or empty keys, verifies identical key sets and printf argument types/positions, and checks the language enum against bundle metadata. See [localization](LOCALIZATION.md) for translation and UI verification guidance.
 
 ## Build and test
 
@@ -20,6 +20,7 @@ From the repository root, matching the CI checks:
 ```sh
 swift build -c release
 ./Scripts/validate-localizations.sh
+python3 -m unittest discover -s Scripts/tests -v
 swift test
 ./Scripts/run-media-regression.sh
 ```

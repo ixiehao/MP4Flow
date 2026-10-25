@@ -53,4 +53,4 @@ The website publishes this same card through Open Graph and Twitter metadata.
 Upload it in the repository's GitHub social-preview setting as well, so GitHub
 links and the website share one recognisable visual identity.
 
-The current release workflow uses ad-hoc signing without notarization and does not require a Developer ID certificate. Publish only after the relevant checks in [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md), attach the verified `.dmg` and matching `.sha256` file, and summarize the matching `CHANGELOG.md` section in all three languages. State the unnotarized status and any remaining test limitations accurately.
+The current release workflow uses ad-hoc signing without notarization and does not require a Developer ID certificate. Publish only after the relevant checks in [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md), attach the verified `.dmg` and matching `.sha256` file, and summarize the matching `CHANGELOG.md` section in English, Simplified Chinese, Japanese and Korean. State the unnotarized status and any remaining test limitations accurately.

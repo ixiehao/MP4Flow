@@ -1,6 +1,5 @@
 import AppKit
 import CoreMedia
-import Darwin
 import Foundation
 import SwiftUI
 import VideoToolbox
@@ -36,6 +35,7 @@ final class DependencyHealthMonitor: ObservableObject {
         refreshTask?.cancel()
         isChecking = true
         if forceToolCheck {
+            toolProbeTask?.cancel()
             cachedTools = nil
             toolProbeTask = nil
         }
@@ -150,7 +150,8 @@ private enum DependencyHealthProbe {
     ]
 
     static func inspect(_ request: DependencyHealthRequest, previous: DependencyHealthReport?) async -> DependencyHealthReport {
-        await Task.detached(priority: .utility) {
+        let inspection = Task.detached(priority: .utility) {
+            guard !Task.isCancelled else { return DependencyHealthReport.checking }
             let ffmpeg: ExecutableHealth
             let ffprobe: ExecutableHealth
             let hardware: VideoToolboxHealth
@@ -161,7 +162,9 @@ private enum DependencyHealthProbe {
             } else {
                 let tools = DependencyToolResolver.resolve(in: executableDirectories.map { URL(fileURLWithPath: $0) })
                 ffmpeg = await inspectExecutable(named: "ffmpeg", at: tools.ffmpeg)
+                guard !Task.isCancelled else { return DependencyHealthReport.checking }
                 ffprobe = await inspectExecutable(named: "ffprobe", at: tools.ffprobe)
+                guard !Task.isCancelled else { return DependencyHealthReport.checking }
                 let encoders: String?
                 if let path = ffmpeg.path {
                     let result = await run(URL(fileURLWithPath: path), arguments: ["-hide_banner", "-encoders"], timeout: 4)
@@ -169,6 +172,7 @@ private enum DependencyHealthProbe {
                 } else {
                     encoders = nil
                 }
+                guard !Task.isCancelled else { return DependencyHealthReport.checking }
 
                 // A system codec alone is not enough: FFmpeg must also expose the
                 // matching encoder before MP4Flow can use the hardware path.
@@ -189,7 +193,13 @@ private enum DependencyHealthProbe {
                 videoToolbox: hardware,
                 output: inspectOutput(request)
             )
-        }.value
+        }
+        // Detached work must receive cancellation from forced refresh/deinit.
+        return await withTaskCancellationHandler {
+            await inspection.value
+        } onCancel: {
+            inspection.cancel()
+        }
     }
 
     private static func inspectExecutable(named name: String, at executable: URL?) async -> ExecutableHealth {
@@ -314,48 +324,36 @@ private enum DependencyHealthProbe {
     }
 
     private static func run(_ executable: URL, arguments: [String], timeout: TimeInterval) async -> CommandResult {
-        let process = Process()
-        let standardOutput = Pipe()
-        let standardError = Pipe()
-        process.executableURL = executable
-        process.arguments = arguments
-        process.standardOutput = standardOutput
-        process.standardError = standardError
-
-        do {
-            try process.run()
-        } catch {
-            return CommandResult(succeeded: false, output: "")
-        }
-
-        // Drain both pipes while the child runs. Waiting for exit first can
-        // deadlock if FFmpeg writes more than a pipe can buffer.
-        let outputTask = Task.detached(priority: .utility) {
-            standardOutput.fileHandleForReading.readDataToEndOfFile()
-        }
-        let errorTask = Task.detached(priority: .utility) {
-            standardError.fileHandleForReading.readDataToEndOfFile()
-        }
-
-        let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning && Date() < deadline {
-            try? await Task.sleep(for: .milliseconds(25))
-        }
-        if process.isRunning {
-            process.terminate()
-            let graceDeadline = Date().addingTimeInterval(0.5)
-            while process.isRunning && Date() < graceDeadline {
-                try? await Task.sleep(for: .milliseconds(25))
-            }
-        }
-        if process.isRunning { _ = kill(process.processIdentifier, SIGKILL) }
-        process.waitUntilExit()
-
-        let output = await outputTask.value + errorTask.value
+        let result = await DependencyHealthCommand.run(executable, arguments: arguments, timeout: timeout)
         return CommandResult(
-            succeeded: process.terminationStatus == 0,
-            output: String(data: output, encoding: .utf8) ?? ""
+            succeeded: result.succeeded,
+            output: String(decoding: result.standardOutput, as: UTF8.self) + result.standardError
         )
+    }
+}
+
+/// Health probes use the same EOF/termination ownership as conversion. Keep a
+/// total deadline too: a broken executable printing forever is still unhealthy.
+enum DependencyHealthCommand {
+    static func run(_ executable: URL, arguments: [String], timeout: TimeInterval) async -> FFmpegProcessRunner.Result {
+        let runner = FFmpegProcessRunner(
+            executable: executable,
+            arguments: arguments,
+            configuration: .init(
+                inactivityTimeout: timeout,
+                terminationGrace: 0.5,
+                pollingInterval: 0.05,
+                maximumOutputBytes: 128 * 1_024,
+                maximumErrorBytes: 16 * 1_024
+            )
+        )
+        let deadline = Task.detached(priority: .utility) {
+            do { try await Task.sleep(for: .seconds(timeout)) }
+            catch { return }
+            runner.cancel()
+        }
+        defer { deadline.cancel() }
+        return await runner.run()
     }
 }
 
@@ -598,12 +596,12 @@ private struct DependencyHealthSheet: View {
     private var outputDetail: String {
         let output = monitor.report.output
         if output.level == .failed {
-            let names = output.unavailableDirectoryNames.prefix(2).joined(separator: "、")
+            let names = L10n.list(Array(output.unavailableDirectoryNames.prefix(2)))
             return L10n.format("已检查 %d 个文件夹；无法写入：%@", output.checkedDirectoryCount, names)
         }
         var result = L10n.format("已检查 %d 个输出文件夹，可写。", output.checkedDirectoryCount)
         if let bytes = output.availableBytes {
-            result += " " + L10n.format("可用空间：%@", ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
+            result += " " + L10n.format("可用空间：%@", L10n.byteCount(bytes))
         }
         return result
     }

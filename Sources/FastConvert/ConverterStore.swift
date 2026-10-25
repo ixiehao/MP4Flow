@@ -233,15 +233,24 @@ struct MediaHandlingNotice: Equatable, Sendable {
 }
 
 struct VideoPresentation: Equatable {
-    let summary: String?
+    let duration: Double
+    let fileSize: Int64?
     let thumbnail: NSImage?
     let width: Int?
     let height: Int?
 
-    // NSImage itself is not Equatable; the textual summary is the state that
-    // participates in SwiftUI's list updates.
+    // Keep facts, not a string frozen in the language used when adding the file.
+    var summary: String? {
+        var parts: [String] = []
+        if let width, let height { parts.append("\(width) × \(height)") }
+        if duration.isFinite, duration > 0 { parts.append(Self.formattedDuration(duration)) }
+        if let fileSize { parts.append(L10n.byteCount(fileSize)) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    // NSImage itself is not Equatable; compare the source facts.
     static func == (lhs: VideoPresentation, rhs: VideoPresentation) -> Bool {
-        lhs.summary == rhs.summary && lhs.width == rhs.width && lhs.height == rhs.height
+        lhs.duration == rhs.duration && lhs.fileSize == rhs.fileSize && lhs.width == rhs.width && lhs.height == rhs.height
     }
 
     static func load(from source: URL) async -> VideoPresentation {
@@ -250,13 +259,6 @@ struct VideoPresentation: Equatable {
         let duration = (try? await asset.load(.duration).seconds) ?? 0
         let track = try? await asset.loadTracks(withMediaType: .video).first
         let naturalSize = try? await track?.load(.naturalSize)
-
-        var parts: [String] = []
-        if let naturalSize, naturalSize.width > 0, naturalSize.height > 0 {
-            parts.append("\(Int(abs(naturalSize.width).rounded())) × \(Int(abs(naturalSize.height).rounded()))")
-        }
-        if duration.isFinite, duration > 0 { parts.append(formattedDuration(duration)) }
-        if let fileSize { parts.append(ByteCountFormatter.string(fromByteCount: Int64(fileSize), countStyle: .file)) }
 
         let image: NSImage?
         if duration.isFinite, duration > 0 {
@@ -275,7 +277,8 @@ struct VideoPresentation: Equatable {
         let width = naturalSize.map { Int(abs($0.width).rounded()) }.flatMap { $0 > 0 ? $0 : nil }
         let height = naturalSize.map { Int(abs($0.height).rounded()) }.flatMap { $0 > 0 ? $0 : nil }
         return VideoPresentation(
-            summary: parts.isEmpty ? nil : parts.joined(separator: " · "),
+            duration: duration.isFinite ? duration : 0,
+            fileSize: fileSize.map(Int64.init),
             thumbnail: image,
             width: width,
             height: height
@@ -926,18 +929,32 @@ final class ConverterStore: ObservableObject {
     }
 
     func scheduleTrim(_ item: ConversionItem, start: Double, end: Double) {
-        guard !isBusy, end > start, let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].trimRange = ClipRange(start: start, end: end)
+        guard start.isFinite, end.isFinite, start >= 0, end > start else { return }
+        scheduleEdit(item) { $0.trimRange = ClipRange(start: start, end: end) }
     }
 
     func scheduleRotation(_ item: ConversionItem, rotation: VideoRotation?) {
-        guard !isBusy, let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].rotation = rotation
+        scheduleEdit(item) { $0.rotation = rotation }
     }
 
     func scheduleCrop(_ item: ConversionItem, crop: CropRect?) {
+        scheduleEdit(item) { $0.crop = crop }
+    }
+
+    /// Editing a finished or failed row creates new work from the original
+    /// source. Keep the existing output on disk and discard only stale results.
+    /// Confirming unchanged settings must not unnecessarily requeue a video.
+    private func scheduleEdit(_ item: ConversionItem, update: (inout ConversionItem) -> Void) {
         guard !isBusy, let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[index].crop = crop
+        let previous = items[index]
+        var edited = previous
+        update(&edited)
+        guard edited.trimRange != previous.trimRange || edited.rotation != previous.rotation || edited.crop != previous.crop else { return }
+        edited.state = .waiting
+        edited.phase = nil
+        edited.failure = nil
+        edited.mediaHandling = nil
+        items[index] = edited
     }
 
     private func add(_ urls: [URL]) {

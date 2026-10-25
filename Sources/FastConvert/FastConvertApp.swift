@@ -23,6 +23,16 @@ struct MP4FlowApp: App {
                     appDelegate.showAboutPanel(availableUpdate: updateChecker.availableUpdate)
                 }
             }
+            CommandMenu((AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).text("Language")) {
+                Picker(selection: $appLanguageIdentifier) {
+                    ForEach(AppLanguage.allCases) { language in
+                        Text(verbatim: language.displayName).tag(language.rawValue)
+                    }
+                } label: {
+                    Text(verbatim: (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).text("Language"))
+                }
+                .pickerStyle(.inline)
+            }
             CommandGroup(replacing: .help) {
                 Button(L10n.text("MP4Flow 使用帮助")) {
                     appDelegate.showHelpPanel(updateChecker: updateChecker)
@@ -44,6 +54,8 @@ struct MP4FlowApp: App {
         }
         Settings {
             UpdateSettingsView(updateChecker: updateChecker)
+                .id(appLanguageIdentifier)
+                .environment(\.locale, (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).locale)
         }
     }
 }
@@ -125,6 +137,10 @@ final class MP4FlowAppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
 
+    func refreshLocalizedWindowTitles() {
+        helpWindow?.title = L10n.text("MP4Flow 使用帮助")
+    }
+
     func showHelpPanel(updateChecker: UpdateChecker) {
         let window: NSWindow
         if let existingWindow = helpWindow {
@@ -172,6 +188,7 @@ private struct HelpStep: View {
 
 private struct HelpPanel: View {
     @ObservedObject var updateChecker: UpdateChecker
+    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -250,6 +267,8 @@ private struct HelpPanel: View {
         }
         .padding(24)
         .frame(width: 520)
+        .id(appLanguageIdentifier)
+        .environment(\.locale, (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).locale)
     }
 }
 
@@ -270,6 +289,7 @@ private struct UpdateSettingsView: View {
                     Text(L10n.text("更新不会自动下载或安装。"))
                         .font(.system(size: 12))
                         .foregroundStyle(BrandColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -295,6 +315,7 @@ private struct UpdateSettingsView: View {
         }
         .padding(24)
         .frame(width: 460, alignment: .leading)
+        .navigationTitle(L10n.text("更新设置"))
     }
 }
 
@@ -373,6 +394,7 @@ struct ContentView: View {
         .ignoresSafeArea(.container, edges: .top)
         .font(AppFont.body)
         .onAppear {
+            MenuBarLocalization.shared.install(language: AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault)
             appDelegate.openMainWindow = { openWindow(id: "main") }
             appDelegate.requestManualUpdateCheck = checkForUpdates
             Task { _ = await updateChecker.checkAfterStartupDelay() }
@@ -380,6 +402,10 @@ struct ContentView: View {
         }
         .onChange(of: store.outputDirectory) { _ in refreshDependencyHealth() }
         .onChange(of: store.items.count) { _ in refreshDependencyHealth() }
+        .onChange(of: appLanguageIdentifier) { identifier in
+            appDelegate.refreshLocalizedWindowTitles()
+            MenuBarLocalization.shared.update(language: AppLanguage(rawValue: identifier) ?? AppLanguage.systemDefault)
+        }
         .onChange(of: store.preset) { preset in
             if preset == .smartEnhanceUpscale {
                 store.reconcileSmartEnhanceTarget()
@@ -468,40 +494,19 @@ struct ContentView: View {
                 HStack(spacing: 6) {
                     Mark(kind: .shield, color: BrandColor.textSecondary).frame(width: 16, height: 16)
                     Text(L10n.text("本地处理，保护隐私")).font(AppFont.privacy).foregroundStyle(BrandColor.textSecondary)
+                        .lineLimit(1)
                 }
             }
+            .lineLimit(1)
             .padding(.leading, 16)
-            Spacer(minLength: 26)
+            // Language switching lives in the menu bar. Give the header's
+            // remaining width to the localized title and privacy subtitle.
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
+            .padding(.trailing, 24)
             dependencyHealthGuide
-                .frame(minWidth: 280, maxWidth: 440)
-            Spacer(minLength: 18)
-            Menu {
-                ForEach(AppLanguage.allCases) { language in
-                    Button {
-                        appLanguageIdentifier = language.rawValue
-                    } label: {
-                        HStack(spacing: 8) {
-                            if (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault) == language {
-                                TablerIcon(name: .check, color: BrandColor.blue).frame(width: 14, height: 14)
-                            } else {
-                                Color.clear.frame(width: 14, height: 14)
-                            }
-                            Text(language.displayName)
-                        }
-                    }
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    TablerIcon(name: .language, color: BrandColor.textSecondary)
-                        .frame(width: 14, height: 14)
-                    Text((AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).displayName)
-                        .font(AppFont.captionMedium)
-                }
-                .foregroundStyle(BrandColor.textSecondary)
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .padding(.trailing, 14)
+                .frame(width: 280)
+                .padding(.trailing, 16)
             Button { store.chooseFiles() } label: {
                 HStack(spacing: 7) {
                     Mark(kind: .plus, color: .white).frame(width: 14, height: 14)
@@ -509,6 +514,7 @@ struct ContentView: View {
                 }
             }
             .buttonStyle(PrimaryActionButtonStyle())
+            .fixedSize(horizontal: true, vertical: false)
             .disabled(store.isBusy)
         }
         .frame(height: 84)
@@ -539,13 +545,13 @@ struct ContentView: View {
                     configurationHint(store.preset.detail)
                 }
                 configurationDivider
-                configurationColumn(title: "画质大小", mark: .hardDrive, width: usableWidth * 0.25) {
+                configurationColumn(title: "画质大小", mark: .hardDrive, width: usableWidth * 0.26) {
                     QualitySegmentedControl(selection: $store.quality, isEnabled: !store.isBusy && !store.preset.usesFixedQuality)
                         .frame(height: configurationControlHeight)
                     configurationHint(store.qualityDescription)
                 }
                 configurationDivider
-                configurationColumn(title: "分辨率", mark: .resolution, width: usableWidth * 0.16) {
+                configurationColumn(title: "分辨率", mark: .resolution, width: usableWidth * 0.19) {
                     if store.preset == .smartEnhanceUpscale {
                         if store.smartEnhanceTargets.isEmpty {
                             MP4FlowMenuTrigger(title: L10n.text("添加视频"), isEnabled: false, isHovering: false)
@@ -555,7 +561,7 @@ struct ContentView: View {
                                 selection: $store.smartEnhanceTarget,
                                 options: store.smartEnhanceTargets.map { ConfigurationOption(value: $0, title: $0.title) },
                                 isEnabled: !store.isBusy,
-                                menuWidth: usableWidth * 0.16
+                                menuWidth: usableWidth * 0.19
                             )
                             .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
                         }
@@ -565,19 +571,19 @@ struct ContentView: View {
                             selection: $store.outputResolution,
                             options: OutputResolution.allCases.map { ConfigurationOption(value: $0, title: $0.title) },
                             isEnabled: !store.isBusy,
-                            menuWidth: usableWidth * 0.16
+                            menuWidth: usableWidth * 0.19
                         )
                         .frame(maxWidth: .infinity).frame(height: configurationControlHeight)
                         configurationHint(store.outputResolution.detail)
                     }
                 }
                 configurationDivider
-                configurationColumn(title: "输出位置", mark: .folder, width: usableWidth * 0.28) {
+                configurationColumn(title: "输出位置", mark: .folder, width: usableWidth * 0.24) {
                     OutputLocationMenuPicker(
                         outputDirectory: $store.outputDirectory,
                         isEnabled: !store.isBusy,
                         chooseDirectory: store.chooseOutputDirectory,
-                        menuWidth: usableWidth * 0.28
+                        menuWidth: usableWidth * 0.24
                     )
                     .frame(maxWidth: .infinity)
                     .frame(height: configurationControlHeight)
@@ -614,7 +620,7 @@ struct ContentView: View {
                     .frame(width: 18, height: 18)
                     .padding(5)
                     .background(BrandColor.blue.opacity(0.085), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                Text(L10n.text(title)).font(AppFont.section)
+                Text(L10n.text(title)).font(AppFont.section).lineLimit(1)
             }
             content()
         }
@@ -725,7 +731,18 @@ struct ContentView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 10) {
+        // A single shared row keeps status, version and actions aligned in every
+        // language. The summary yields space to the actions instead of moving up.
+        HStack(spacing: 14) {
+            footerSummary
+            footerActions
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 14)
+        .frame(minHeight: 58)
+    }
+
+    private var footerSummary: some View {
             VStack(alignment: .leading, spacing: 7) {
                 Text(footerStatus)
                     .font(AppFont.captionMedium)
@@ -759,11 +776,12 @@ struct ContentView: View {
                     .lineLimit(1)
                 }
             }
-            // Keep the summary inside the content inset at the 980 pt minimum
-            // window width; a fixed 340 pt column pushed the whole footer out.
-            .frame(minWidth: 160, idealWidth: 260, maxWidth: 340, alignment: .leading)
+            .frame(minWidth: 100, maxWidth: .infinity, alignment: .leading)
             .layoutPriority(-1)
-            Spacer(minLength: 0)
+    }
+
+    private var footerActions: some View {
+        HStack(spacing: 10) {
             Button(L10n.text("清空列表")) { store.clearQueue() }
                 .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36, horizontalPadding: 10))
                 .fixedSize(horizontal: true, vertical: false)
@@ -792,9 +810,6 @@ struct ContentView: View {
                     .disabled(store.isBusy || !store.hasWaiting)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 14)
-        .frame(minHeight: 58)
     }
 
     private var completedCount: Int { store.items.reduce(into: 0) { if case .complete = $1.state { $0 += 1 } } }
@@ -828,7 +843,9 @@ private struct PrimaryActionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .foregroundStyle(.white)
-            .frame(width: 132, height: 36)
+            .lineLimit(1)
+            .padding(.horizontal, 14)
+            .frame(minWidth: 132, minHeight: 36)
             .background(
                 isEnabled
                     ? (configuration.isPressed
@@ -894,9 +911,8 @@ private struct ConfigurationOption<Value: Hashable> {
     }
 }
 
-/// Native segmented controls truncate English labels at narrow widths. This
-/// equal-width alternative keeps the panel stable and permits a readable
-/// second line without widening the configuration column.
+/// Equal-width segments and concise labels keep all languages on one line
+/// without reducing the shared, readable caption size.
 private struct QualitySegmentedControl: View {
     @Binding var selection: ConversionQuality
     let isEnabled: Bool
@@ -909,9 +925,7 @@ private struct QualitySegmentedControl: View {
                 } label: {
                     Text(quality.title)
                         .font(AppFont.captionMedium)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.82)
+                        .lineLimit(1)
                         .foregroundStyle(selection == quality ? BrandColor.textPrimary : BrandColor.textSecondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(selection == quality ? BrandColor.surface : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
@@ -969,7 +983,7 @@ private struct MP4FlowMenuPicker<Value: Hashable>: View {
                 }
             }
             .padding(6)
-            .frame(width: menuWidth)
+            .frame(width: max(menuWidth, 320))
             .background(BrandColor.surface)
         }
         .accessibilityLabel(L10n.text("配置选项"))
@@ -1018,7 +1032,7 @@ private struct OutputLocationMenuPicker: View {
                 }
             }
             .padding(6)
-            .frame(width: menuWidth)
+            .frame(width: max(menuWidth, 320))
             .background(BrandColor.surface)
         }
         .accessibilityLabel(L10n.text("输出位置"))
@@ -1039,11 +1053,12 @@ private struct MP4FlowMenuRow: View {
                     .font(AppFont.medium).foregroundStyle(BrandColor.blue)
                     .frame(width: 12)
                 Text(L10n.text(title)).font(AppFont.medium).foregroundStyle(BrandColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
             }
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity)
-            .frame(height: 32)
+            .frame(minHeight: 32)
             .background(isSelected ? BrandColor.selectHover : .clear, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             .contentShape(Rectangle())
         }
@@ -1065,17 +1080,19 @@ private struct MP4FlowMenuTrigger: View {
                 .font(AppFont.medium)
                 .foregroundStyle(isEnabled ? BrandColor.textPrimary : BrandColor.textSecondary)
                 .lineLimit(1)
-                .truncationMode(.middle)
-            Spacer(minLength: 8)
+                .truncationMode(.tail)
+            Spacer(minLength: 0)
             Mark(kind: .chevron, color: isEnabled ? BrandColor.icon : BrandColor.textSecondary)
                 .frame(width: 16, height: 16)
         }
         .padding(.leading, 12)
         .padding(.trailing, 8)
-        .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
+        .frame(maxWidth: .infinity)
+        .frame(height: 36)
         .background(isHovering && isEnabled ? BrandColor.selectHover : BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(isHovering && isEnabled ? BrandColor.selectHoverStroke : BrandColor.selectStroke, lineWidth: 1) }
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .help(title)
     }
 }
 
@@ -1236,7 +1253,7 @@ private struct QueueRow: View {
             (item.rotation != nil, L10n.text("旋转"))
         ]
             .compactMap { $0.0 ? $0.1 : nil }
-        return operations.isEmpty ? L10n.text("等待中") : L10n.format("待%@", operations.joined(separator: "、"))
+        return operations.isEmpty ? L10n.text("等待中") : L10n.format("待%@", L10n.list(operations))
     }
 
     private var pendingDetail: String {
@@ -1363,7 +1380,7 @@ private struct QueueRotationMenu: View {
                 }
             }
             .padding(6)
-            .frame(width: 172)
+            .frame(width: 270)
         }
     }
 
@@ -1556,11 +1573,11 @@ private struct TrimEditor: View {
     }
 
     private var keptDurationField: some View {
-        HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(L10n.text("保留")).font(AppFont.captionMedium)
-            Spacer(minLength: 0)
             Text(timeText(end - start))
                 .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .fixedSize()
         }
         .foregroundStyle(BrandColor.blue)
         .padding(.horizontal, 8)
@@ -1855,28 +1872,14 @@ private struct CropEditor: View {
 
     private func applyAspect(_ aspect: CropAspect) {
         guard let ratio = aspect.ratio else { crop = fullRect; syncFields(); return }
-        let sourceRatio = Double(sourceWidth) / Double(sourceHeight)
-        let width: Int
-        let height: Int
-        if sourceRatio > ratio {
-            height = sourceHeight
-            width = evenDown(Int((Double(height) * ratio).rounded(.down)))
-        } else {
-            width = sourceWidth
-            height = evenDown(Int((Double(width) / ratio).rounded(.down)))
-        }
-        crop = CropRect(x: evenDown((sourceWidth - width) / 2), y: evenDown((sourceHeight - height) / 2), width: width, height: height)
+        crop = CropGeometry.centered(ratio: ratio, sourceWidth: sourceWidth, sourceHeight: sourceHeight)
         syncFields()
     }
 
     private func applyFields() {
         guard let x = Int(xText), let y = Int(yText), let width = Int(widthText), let height = Int(heightText), sourceWidth > 0, sourceHeight > 0 else { return }
-        let boundedX = min(max(0, evenDown(x)), max(0, sourceWidth - 2))
-        let boundedY = min(max(0, evenDown(y)), max(0, sourceHeight - 2))
-        let boundedWidth = min(max(2, evenDown(width)), sourceWidth - boundedX)
-        let boundedHeight = min(max(2, evenDown(height)), sourceHeight - boundedY)
-        guard boundedWidth > 0, boundedHeight > 0 else { return }
-        crop = CropRect(x: boundedX, y: boundedY, width: evenDown(boundedWidth), height: evenDown(boundedHeight))
+        let entered = CropRect(x: x, y: y, width: width, height: height)
+        crop = isFull(entered) ? fullRect : CropGeometry.normalized(entered, sourceWidth: sourceWidth, sourceHeight: sourceHeight)
     }
 
     private func applyGuideCrop(_ updated: CropRect) {
@@ -1887,11 +1890,8 @@ private struct CropEditor: View {
     private var fullRect: CropRect { CropRect(x: 0, y: 0, width: sourceWidth, height: sourceHeight) }
     private func isFull(_ rect: CropRect) -> Bool { rect == fullRect }
     private func normalized(_ rect: CropRect) -> CropRect {
-        let x = min(max(0, evenDown(rect.x)), max(0, sourceWidth - 2))
-        let y = min(max(0, evenDown(rect.y)), max(0, sourceHeight - 2))
-        return CropRect(x: x, y: y, width: min(max(2, evenDown(rect.width)), sourceWidth - x), height: min(max(2, evenDown(rect.height)), sourceHeight - y))
+        CropGeometry.normalized(rect, sourceWidth: sourceWidth, sourceHeight: sourceHeight) ?? fullRect
     }
-    private func evenDown(_ value: Int) -> Int { max(2, value - value % 2) }
     private func syncFields() {
         guard let crop else { return }
         xText = "\(crop.x)"; yText = "\(crop.y)"; widthText = "\(crop.width)"; heightText = "\(crop.height)"

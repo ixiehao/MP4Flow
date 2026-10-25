@@ -3,6 +3,55 @@ import XCTest
 @testable import FastConvert
 
 final class DependencyHealthTests: XCTestCase {
+    func testRepeatedFastHealthCommandsFinishWithoutBlockingExitWait() async throws {
+        let started = Date()
+        for _ in 0..<16 {
+            let result = await DependencyHealthCommand.run(
+                URL(fileURLWithPath: "/usr/bin/printf"),
+                arguments: ["ffmpeg version test\\n"], timeout: 2
+            )
+            XCTAssertTrue(result.succeeded)
+            XCTAssertEqual(String(decoding: result.standardOutput, as: UTF8.self), "ffmpeg version test\n")
+        }
+        XCTAssertLessThan(Date().timeIntervalSince(started), 10)
+    }
+
+    func testHealthProbeDrainsLargeOutputAndBoundsRetainedDiagnostics() async throws {
+        let result = await DependencyHealthCommand.run(
+            try perl(), arguments: ["-e", "print 'o' x 262144; print STDERR 'e' x 131072;"], timeout: 3
+        )
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(result.standardOutput.count, 128 * 1_024)
+        XCTAssertEqual(result.standardError.utf8.count, 16 * 1_024)
+    }
+
+    func testHealthProbeDeadlineStopsEvenContinuouslyPrintingTool() async throws {
+        let started = Date()
+        let result = await DependencyHealthCommand.run(
+            try perl(),
+            arguments: ["-e", "$|=1; $SIG{TERM}=sub{}; while(1){print qq{output\\n}; select(undef,undef,undef,0.02)}"],
+            timeout: 0.2
+        )
+        XCTAssertFalse(result.succeeded)
+        XCTAssertTrue(result.wasCancelled || result.timedOut)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 3, "Output activity must not postpone a health probe's total deadline")
+    }
+
+    func testCancellingHealthProbeReapsItsProcess() async throws {
+        let executable = try perl()
+        let started = Date()
+        let task = Task {
+            await DependencyHealthCommand.run(executable, arguments: ["-e", "$SIG{TERM}=sub{}; sleep 30"], timeout: 30)
+        }
+        try await Task.sleep(for: .milliseconds(100))
+        task.cancel()
+        let result = await task.value
+        XCTAssertFalse(result.succeeded)
+        XCTAssertTrue(result.wasCancelled)
+        XCTAssertNotNil(result.terminationStatus)
+        XCTAssertLessThan(Date().timeIntervalSince(started), 3)
+    }
+
     func testProbeMustBelongToTheFirstSelectedFFmpegInstallation() throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -51,6 +100,14 @@ final class DependencyHealthTests: XCTestCase {
         XCTAssertEqual(DependencyToolResolver.resolve(in: [first]).ffmpeg, broken)
         let working = try makeExecutable("ffmpeg", in: second)
         XCTAssertEqual(DependencyToolResolver.resolve(in: [first, second]).ffmpeg, working)
+    }
+
+    private func perl() throws -> URL {
+        let executable = URL(fileURLWithPath: "/usr/bin/perl")
+        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
+            throw XCTSkip("System Perl is required for a single-process health probe fixture")
+        }
+        return executable
     }
 
     private func temporaryDirectory() throws -> URL {
