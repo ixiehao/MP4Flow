@@ -23,6 +23,13 @@ Queue presentation loading has bounded concurrency. Clearing the queue cancels p
 
 For ordinary transcoding, accurate input seeking avoids decoding a discarded prefix, and a validated numeric source time base preserves VFR timing. Resize planning uses displayed orientation and post-crop dimensions. Smart Convert can copy unchanged compatible video, including an audio-only AAC conversion when no pixel edit or trim is requested; explicit encoding presets retain their selected behavior.
 
+When re-encoding a nonzero trim, a first-frame gap of at most one nominal frame
+is filled by presenting that first selected frame at zero. All later video
+timestamps and copied audio are preserved. This avoids an empty MP4 edit at
+time zero that makes Finder's paused preview black. The bound uses the measured
+average frame rate when available, since a VFR timestamp grid is not its playback
+cadence. Longer leading gaps and stream-copy cuts retain their original timing.
+
 Lossless merge compatibility includes the video time base, pixel aspect ratio and display rotation. Compatible merge normalizes pixel aspect ratio before proportional fitting and padding, and chooses its canvas from displayed geometry so orientation metadata cannot squash the content.
 
 User notices describe actual affected media, not routine mapping policy. Ordinary single-track and video-only inputs have no per-row notice. Extra video/audio, subtitles, chapters and at-risk HDR handling remain visible after completion; full default policy is accessible from the queue and environment details. Cancellation and output verification have distinct UI states. Controlled native-enhancement errors are classified by type rather than their translated message.

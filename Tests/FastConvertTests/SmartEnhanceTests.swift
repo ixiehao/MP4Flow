@@ -101,6 +101,19 @@ final class SmartEnhanceTests: XCTestCase {
         XCTAssertNotNil(decodedAudio.copyNextSampleBuffer(), "The output audio must decode.")
         playbackReader.cancelReading()
 
+        // Fractional cuts must also produce a paused native preview at zero.
+        let trimmedOutput = directory.appendingPathComponent("enhanced-trim.mp4")
+        try await SmartEnhanceExporter().export(
+            source: source, output: trimmedOutput, plan: plan,
+            trim: ClipRange(start: 0.123, end: 0.789), videoBitRate: 1_000_000,
+            videoTrackID: trackID, shouldCancel: { false }, onProgress: { _ in }
+        )
+        let thumbnail = AVAssetImageGenerator(asset: AVURLAsset(url: trimmedOutput))
+        thumbnail.requestedTimeToleranceBefore = .zero
+        thumbnail.requestedTimeToleranceAfter = .zero
+        let firstFrame = try await thumbnail.image(at: .zero)
+        XCTAssertEqual(firstFrame.actualTime.seconds, 0, accuracy: 0.000001)
+
         let cancelledOutput = directory.appendingPathComponent("cancelled.mp4")
         let cancellation = LockedCancellationFlag()
         do {
