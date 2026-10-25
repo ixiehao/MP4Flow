@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.5 — 2026-10-25
+
+### English
+
+- Removed the bundled Noto Sans SC font and OFL file. MP4Flow now uses macOS system fonts and no longer redistributes font files; the app is substantially smaller.
+- Improved conversion cleanup and queue responsiveness, preserved orientation during Smart Enhance, and hardened local packaging checks.
+
+### 日本語
+
+- 同梱していた Noto Sans SC フォントと OFL ファイルを削除しました。macOS のシステムフォントを使用し、フォントファイルを再配布しない構成になり、アプリが大幅に軽量化しました。
+- 変換後の一時ファイル処理とキューの応答性を改善し、スマート高画質拡大の回転方向を維持。ローカルパッケージの安全性チェックも強化しました。
+
+### 中文
+
+- 移除随包的 Noto Sans SC 字体及 OFL 文件，改用 macOS 系统字体，不再随应用分发字体文件，显著缩小应用体积。
+- 优化转换任务清理和队列响应，修复智能增强放大后的方向保持问题，并加固本地打包检查。
+
 ## 1.2.4 — 2026-10-20
 
 ### English

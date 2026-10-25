@@ -39,6 +39,23 @@ final class ProcessLifecycleTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(started), 3)
     }
 
+    func testNegativeOutputRetentionLimitsAreClampedToZero() async {
+        let runner = FFmpegProcessRunner(
+            executable: URL(fileURLWithPath: "/bin/sh"),
+            arguments: ["-c", "printf 'output'; printf 'error' >&2"],
+            configuration: FFmpegProcessRunner.Configuration(
+                maximumOutputBytes: -1,
+                maximumErrorBytes: -1
+            )
+        )
+
+        let result = await runner.run()
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertTrue(result.standardOutput.isEmpty)
+        XCTAssertTrue(result.standardError.isEmpty)
+    }
+
     func testCancellationEscalatesForUnresponsiveProcess() async throws {
         let runner = shell("trap '' TERM; while :; do :; done")
         let task = Task { await runner.run() }

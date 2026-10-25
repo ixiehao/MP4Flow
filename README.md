@@ -82,7 +82,7 @@ For contributors, run `swift test` and `./Scripts/run-media-regression.sh` (with
 - MP4Flow uses Swift, SwiftUI, and Apple system frameworks. [Privacy policy](PRIVACY.md) · [Security policy](SECURITY.md)
 - FFmpeg is a separately installed local runtime dependency; its licence depends on the build you install. MP4Flow neither bundles nor downloads it.
 - Smart Enhance uses Apple’s on-device VideoToolbox capability when macOS makes it available. Its supported factors and system model delivery are controlled by macOS.
-- The app includes Noto Sans SC under the [SIL Open Font License 1.1](AppResources/OFL.txt), plus a curated local subset of [Tabler Icons Outline](https://github.com/tabler/tabler-icons) (v3.49.0) under the [MIT License](AppResources/ASSET_NOTICES.md).
+- The app uses native macOS fonts and includes a curated local subset of [Tabler Icons Outline](https://github.com/tabler/tabler-icons) (v3.49.0) under the [MIT License](AppResources/ASSET_NOTICES.md).
 
 See [NOTICE.md](NOTICE.md) for attribution and [LICENSE](LICENSE) for the project licence.
 

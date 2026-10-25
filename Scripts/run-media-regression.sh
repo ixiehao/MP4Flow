@@ -176,7 +176,7 @@ assert_decode 'Special-character filename input decodes' "$FIXTURE_DIR/spaces ' 
 assert_unusable 'Truncated input has no usable video stream' "$FIXTURE_DIR/truncated-input.mp4"
 
 # This stream-copy check catches accidental fixture/container regressions and
-# verifies that a subtitle and both audio tracks survive a lossless MP4 remux.
+# verifies that the subtitle and audio track survive a lossless MP4 remux.
 REMUXED="$FIXTURE_DIR/remuxed-multiple-tracks.mp4"
 if "$FFMPEG_BIN" -hide_banner -loglevel error -nostdin -y -i "$FIXTURE_DIR/subtitles.mp4" \
   -map 0 -c copy -movflags +faststart "$REMUXED"; then

@@ -22,24 +22,24 @@ enum BrandColor {
 }
 
 enum AppFont {
-    static let body = Font.custom("NotoSansSC-Regular", size: 13)
-    static let medium = Font.custom("NotoSansSC-Medium", size: 13)
-    static let caption = Font.custom("NotoSansSC-Regular", size: 11)
-    static let captionMedium = Font.custom("NotoSansSC-Medium", size: 11)
-    static let section = Font.custom("NotoSansSC-Medium", size: 14)
-    static let brand = Font.custom("NotoSansSC-Medium", size: 26)
-    static let subtitle = Font.custom("NotoSansSC-Medium", size: 14)
-    static let privacy = Font.custom("NotoSansSC-Medium", size: 13)
-    static let headline = Font.custom("NotoSansSC-Medium", size: 16)
-    static let rowTitle = Font.custom("NotoSansSC-Medium", size: 13)
-    static let tag = Font.custom("NotoSansSC-Medium", size: 11)
+    static let body = Font.system(size: 13, weight: .regular)
+    static let medium = Font.system(size: 13, weight: .medium)
+    static let caption = Font.system(size: 11, weight: .regular)
+    static let captionMedium = Font.system(size: 11, weight: .medium)
+    static let section = Font.system(size: 14, weight: .medium)
+    static let brand = Font.system(size: 26, weight: .medium)
+    static let subtitle = Font.system(size: 14, weight: .medium)
+    static let privacy = Font.system(size: 13, weight: .medium)
+    static let headline = Font.system(size: 16, weight: .medium)
+    static let rowTitle = Font.system(size: 13, weight: .medium)
+    static let tag = Font.system(size: 11, weight: .medium)
 }
 
 enum TablerIconName: String {
     case video, database, aspectRatio = "aspect-ratio", plus, bolt
     case shieldCheck = "shield-check", healthCheck = "activity-heartbeat", refresh
     case folder, trash, scissors, crop, rotate
-    case chevronDown = "chevron-down", dots, infoCircle = "info-circle"
+    case chevronDown = "chevron-down", infoCircle = "info-circle"
     case clock, loader2 = "loader-2", circleCheck = "circle-check"
     case alertCircle = "alert-circle", circleX = "circle-x", language, check
     case playerPlay = "player-play", playerPause = "player-pause"
@@ -80,7 +80,7 @@ private enum TablerIconLibrary {
     }
 }
 
-enum MarkKind { case film, hardDrive, resolution, plus, bolt, shield, healthCheck, refresh, folder, trash, scissors, crop, rotate, chevron, ellipsis, info }
+enum MarkKind { case film, hardDrive, resolution, plus, bolt, shield, healthCheck, refresh, folder, trash, scissors, crop, rotate, chevron }
 
 /// Compatibility wrapper for the existing UI. Every mark now resolves to the
 /// same Tabler Outline family rather than a mixture of hand-drawn marks.
@@ -104,8 +104,6 @@ struct Mark: View {
         case .crop: .crop
         case .rotate: .rotate
         case .chevron: .chevronDown
-        case .ellipsis: .dots
-        case .info: .infoCircle
         }
     }
 

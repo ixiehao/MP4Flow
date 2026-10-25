@@ -52,7 +52,10 @@ final class FFmpegProcessRunner: @unchecked Sendable {
     init(executable: URL, arguments: [String], configuration: Configuration = Configuration()) {
         self.executable = executable
         self.arguments = arguments
-        self.configuration = configuration
+        var normalizedConfiguration = configuration
+        normalizedConfiguration.maximumOutputBytes = max(0, configuration.maximumOutputBytes)
+        normalizedConfiguration.maximumErrorBytes = max(0, configuration.maximumErrorBytes)
+        self.configuration = normalizedConfiguration
     }
 
     func cancel() {

@@ -134,6 +134,46 @@ final class SmartEnhanceTests: XCTestCase {
         XCTAssertTrue(retryReader.startReading())
         XCTAssertNotNil(retryVideo.copyNextSampleBuffer(), "The retry must produce decodable video.")
         retryReader.cancelReading()
+
+        // A source display matrix must survive enhancement even though the
+        // reader returns unrotated pixels and the encoded dimensions change.
+        for angle in [90, 180] {
+            let rotated = directory.appendingPathComponent("source-\(angle).mp4")
+            let enhanced = directory.appendingPathComponent("enhanced-\(angle).mp4")
+            let rotation = await FFmpegProcessRunner(executable: tool, arguments: [
+                "-v", "error", "-display_rotation:v:0", "\(angle)", "-i", source.path,
+                "-map", "0:V:0", "-map", "0:a:0?", "-c", "copy", rotated.path
+            ]).run()
+            XCTAssertTrue(rotation.succeeded)
+            let rotatedAsset = AVURLAsset(url: rotated)
+            let sourceTracks = try await rotatedAsset.loadTracks(withMediaType: .video)
+            let sourceTrack = try XCTUnwrap(sourceTracks.first)
+            let expected = try await sourceTrack.load(.preferredTransform)
+            let inspected = await ConverterStore.inspectMedia(at: rotated, using: tool.deletingLastPathComponent().appendingPathComponent("ffprobe"))
+            try await SmartEnhanceExporter().export(
+                source: rotated, output: enhanced, plan: plan, trim: nil,
+                videoBitRate: 1_000_000, videoTrackID: inspected.selectedVideoTrackID,
+                shouldCancel: { false }, onProgress: { _ in }
+            )
+            let outputAsset = AVURLAsset(url: enhanced)
+            let outputTracks = try await outputAsset.loadTracks(withMediaType: .video)
+            let outputTrack = try XCTUnwrap(outputTracks.first)
+            let actual = try await outputTrack.load(.preferredTransform)
+            for (actualValue, expectedValue) in zip([actual.a, actual.b, actual.c, actual.d], [expected.a, expected.b, expected.c, expected.d]) {
+                XCTAssertEqual(actualValue, expectedValue, accuracy: 0.001, "Enhancement must retain source orientation: \(angle)°")
+            }
+            let encodedBounds = CGRect(x: 0, y: 0, width: CGFloat(plan.targetWidth), height: CGFloat(plan.targetHeight))
+            let displayedBounds = encodedBounds.applying(actual)
+            let expectedBounds = encodedBounds.applying(expected)
+            XCTAssertEqual(displayedBounds.minX, 0, accuracy: 0.01)
+            XCTAssertEqual(displayedBounds.minY, 0, accuracy: 0.01)
+            XCTAssertEqual(displayedBounds.width, expectedBounds.width, accuracy: 0.01)
+            XCTAssertEqual(displayedBounds.height, expectedBounds.height, accuracy: 0.01)
+            let decoded = await FFmpegProcessRunner(executable: tool, arguments: [
+                "-v", "error", "-xerror", "-i", enhanced.path, "-f", "null", "-"
+            ]).run()
+            XCTAssertTrue(decoded.succeeded, "Rotated enhancement output must decode")
+        }
 #else
         throw XCTSkip("The compiler lacks the native super-resolution API.")
 #endif

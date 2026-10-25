@@ -82,7 +82,7 @@ open MP4Flow.app
 - MP4Flow 使用 Swift、SwiftUI 与 Apple 系统框架开发。[隐私政策](PRIVACY.md) · [安全政策](SECURITY.md)
 - FFmpeg 是需单独安装的本地运行时依赖；其许可证取决于你安装的构建。MP4Flow 不会打包或下载它。
 - 智能增强放大在 macOS 支持时调用 Apple 设备端 VideoToolbox；支持倍率和系统模型交付由 macOS 决定。
-- 应用内置 Noto Sans SC，遵循 [SIL Open Font License 1.1](AppResources/OFL.txt)；也内置 [Tabler Icons Outline](https://github.com/tabler/tabler-icons) 的本地精选子集（v3.49.0），遵循 [MIT License](AppResources/ASSET_NOTICES.md)。
+- 界面使用 macOS 原生字体；应用内置 [Tabler Icons Outline](https://github.com/tabler/tabler-icons) 本地精选子集（v3.49.0），遵循 [MIT License](AppResources/ASSET_NOTICES.md)。
 
 归属信息见 [NOTICE.md](NOTICE.md)，项目许可证见 [LICENSE](LICENSE)。
 

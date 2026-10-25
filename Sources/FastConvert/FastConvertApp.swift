@@ -679,7 +679,7 @@ struct ContentView: View {
                     Divider().overlay(BrandColor.stroke)
                     ScrollView(.vertical) {
                         LazyVStack(spacing: 0) {
-                            ForEach(Array(store.items.enumerated()), id: \.element.id) { index, item in
+                            ForEach(store.items) { item in
                                 QueueRow(
                                     item: item,
                                     reveal: { store.reveal(item) },
@@ -694,7 +694,7 @@ struct ContentView: View {
                                     isMergeVerifying: store.isVerifyingMerge
                                 )
                                 .id("\(item.id.uuidString)-\(appLanguageIdentifier)")
-                                if index < store.items.count - 1 {
+                                if item.id != store.items.last?.id {
                                     Divider().overlay(BrandColor.stroke)
                                 }
                             }
@@ -1460,7 +1460,7 @@ private struct TrimEditor: View {
             if duration > 0 {
                 // Scheme A keeps the image canvas free of controls. Playback, range,
                 // and trim fields sit in their own predictable layers below it.
-                PlayerPreview(player: player, showsControls: false)
+                PlayerPreview(player: player)
                     .frame(maxWidth: .infinity)
                     .frame(height: 220)
                     .background(Color.black, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -1723,7 +1723,7 @@ private struct CropEditor: View {
 
             if sourceWidth > 0, sourceHeight > 0 {
                 ZStack {
-                    PlayerPreview(player: player, showsControls: false)
+                    PlayerPreview(player: player)
                     if let crop {
                         CropGuide(crop: crop, sourceWidth: sourceWidth, sourceHeight: sourceHeight) { updatedCrop in
                             applyGuideCrop(updatedCrop)
@@ -1745,7 +1745,7 @@ private struct CropEditor: View {
                 .background(Color.black, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
-                CropPlaybackControls(player: player, duration: sourceDuration)
+                CropPlaybackControls(player: player, duration: mediaDuration)
 
                 VStack(alignment: .leading, spacing: 10) {
                     Text(L10n.text("裁切参数"))
@@ -1768,7 +1768,7 @@ private struct CropEditor: View {
                     }
                     HStack(spacing: 8) {
                         Text(L10n.format("视频尺寸：%d × %d", sourceWidth, sourceHeight))
-                        Text(L10n.format("时长：%@", cropDurationText(sourceDuration)))
+                        Text(L10n.format("时长：%@", minuteSecondText(mediaDuration)))
                         Spacer(minLength: 12)
                         Button(L10n.text("取消")) { dismiss() }
                             .buttonStyle(EditorActionButtonStyle(primary: false))
@@ -1885,7 +1885,6 @@ private struct CropEditor: View {
     }
 
     private var fullRect: CropRect { CropRect(x: 0, y: 0, width: sourceWidth, height: sourceHeight) }
-    private var sourceDuration: Double { mediaDuration }
     private func isFull(_ rect: CropRect) -> Bool { rect == fullRect }
     private func normalized(_ rect: CropRect) -> CropRect {
         let x = min(max(0, evenDown(rect.x)), max(0, sourceWidth - 2))
@@ -1901,11 +1900,6 @@ private struct CropEditor: View {
         guard let crop else { return aspect == .original }
         guard let ratio = aspect.ratio else { return isFull(crop) }
         return abs(Double(crop.width) / Double(crop.height) - ratio) < 0.01
-    }
-
-    private func cropDurationText(_ value: Double) -> String {
-        let seconds = max(0, Int(value.rounded(.down)))
-        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 }
 
@@ -2148,11 +2142,10 @@ enum EditorMediaProbe {
 /// this view has a stable lifecycle when it is presented in an editor sheet.
 private struct PlayerPreview: NSViewRepresentable {
     let player: AVPlayer?
-    var showsControls = true
 
     func makeNSView(context: Context) -> AVPlayerView {
         let view = AVPlayerView()
-        view.controlsStyle = showsControls ? .floating : .none
+        view.controlsStyle = .none
         view.videoGravity = .resizeAspect
         view.player = player
         return view
@@ -2162,7 +2155,7 @@ private struct PlayerPreview: NSViewRepresentable {
         if view.player !== player {
             view.player = player
         }
-        view.controlsStyle = showsControls ? .floating : .none
+        view.controlsStyle = .none
     }
 }
 
@@ -2183,7 +2176,7 @@ private struct CropPlaybackControls: View {
             transportButton(icon: isPlaying ? .playerPause : .playerPlay, title: isPlaying ? "暂停" : "播放") { togglePlayback() }
             transportButton(icon: .playerSkipForward, title: "前进 5 秒") { move(by: 5) }
 
-            Text(timeText(currentTime))
+            Text(minuteSecondText(currentTime))
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(BrandColor.textSecondary)
                 .frame(width: 48, alignment: .trailing)
@@ -2191,7 +2184,7 @@ private struct CropPlaybackControls: View {
                 .tint(BrandColor.blue)
                 .accessibilityLabel(L10n.text("播放进度"))
                 .help(L10n.text("播放进度"))
-            Text(timeText(duration))
+            Text(minuteSecondText(duration))
                 .font(.system(size: 10, weight: .medium, design: .monospaced))
                 .foregroundStyle(BrandColor.textSecondary)
                 .frame(width: 48, alignment: .leading)
@@ -2261,11 +2254,6 @@ private struct CropPlaybackControls: View {
         currentTime = value
         player?.seek(to: CMTime(seconds: value, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
     }
-
-    private func timeText(_ value: Double) -> String {
-        let seconds = max(0, Int(value.rounded(.down)))
-        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
-    }
 }
 
 private struct TrimRangeSlider: View {
@@ -2293,7 +2281,7 @@ private struct TrimRangeSlider: View {
                         ForEach(0...6, id: \.self) { index in
                             VStack(spacing: 2) {
                                 Rectangle().fill(BrandColor.selectStroke).frame(width: 1, height: 5)
-                                Text(shortTimeText(Double(index) / 6 * duration))
+                                Text(minuteSecondText(Double(index) / 6 * duration))
                                     .font(.system(size: 8, weight: .medium, design: .monospaced))
                                     .foregroundStyle(BrandColor.textSecondary)
                             }
@@ -2344,9 +2332,9 @@ private struct TrimRangeSlider: View {
                 endDragOrigin = nil
             }
     }
+}
 
-    private func shortTimeText(_ value: Double) -> String {
-        let seconds = max(0, Int(value.rounded(.down)))
-        return String(format: "%02d:%02d", seconds / 60, seconds % 60)
-    }
+private func minuteSecondText(_ value: Double) -> String {
+    let seconds = max(0, Int(value.rounded(.down)))
+    return String(format: "%02d:%02d", seconds / 60, seconds % 60)
 }
