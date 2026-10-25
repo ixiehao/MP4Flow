@@ -406,6 +406,7 @@ struct VideoInfo: Sendable {
     let probeSucceeded: Bool
     var displayGeometry: VideoGeometry? = nil
     var timeBase: String? = nil
+    var averageFrameRate: String? = nil
     var sampleAspectRatio: String? = nil
     var displayRotation: Double? = nil
     var videoTrackCount = 0
@@ -442,6 +443,23 @@ struct VideoInfo: Sendable {
         guard fields.count == 2, let numerator = Int32(fields[0]), let denominator = Int32(fields[1]),
               numerator > 0, denominator > 0 else { return nil }
         return "\(numerator)/\(denominator)"
+    }
+
+    /// A precise cut can fall between frames. Hold the first selected frame
+    /// back to zero only for that sub-frame gap, so Quick Look can draw its
+    /// paused preview. Keep every later PTS and all audio timing unchanged;
+    /// resetting the entire video clock would move it relative to copied AAC.
+    /// Longer, intentional leading gaps remain intact.
+    var trimmedFirstFrameFilter: String? {
+        // VFR's r_frame_rate can describe a timestamp grid (e.g. 90000 Hz),
+        // not its playback cadence. Prefer the measured average when valid.
+        for rate in [averageFrameRate, frameRate].compactMap({ $0 }) {
+            let fields = rate.split(separator: "/", omittingEmptySubsequences: false)
+            guard fields.count == 2, let numerator = Int32(fields[0]), let denominator = Int32(fields[1]),
+                  numerator > 0, denominator > 0 else { continue }
+            return "setpts=if(eq(N\\,0)*between(PTS*TB\\,0\\,\(denominator)/\(numerator)+TB)\\,0\\,PTS)"
+        }
+        return nil
     }
 
     var isHDR: Bool {
@@ -522,12 +540,13 @@ private struct ProbeChapter: Decodable, Sendable {}
 private struct ProbeStream: Decodable, Sendable {
     let index: Int?, id: String?, disposition: MediaStreamDisposition?
     let codecType: String?, codecName: String?, bitRate: String?, width: Int?, height: Int?
-    let rFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?, colorTransfer: String?
+    let rFrameRate: String?, avgFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?, colorTransfer: String?
     let sampleAspectRatio: String?, timeBase: String?, sideDataList: [ProbeSideData]?, tags: [String: String]?
     enum CodingKeys: String, CodingKey {
         case index, id, disposition
         case codecType = "codec_type", codecName = "codec_name", bitRate = "bit_rate"
         case rFrameRate = "r_frame_rate", pixelFormat = "pix_fmt", sampleRate = "sample_rate", channels, width, height
+        case avgFrameRate = "avg_frame_rate"
         case colorTransfer = "color_transfer"
         case sampleAspectRatio = "sample_aspect_ratio", timeBase = "time_base", sideDataList = "side_data_list", tags
     }
@@ -1791,6 +1810,9 @@ final class ConverterStore: ObservableObject {
         let editedGeometry = info.geometry(crop: crop, rotation: rotation)
         let rotatedSourceHeight = editedGeometry?.height
         var filters = [crop?.filter].compactMap { $0 }
+        if preset != .remux, let trim, trim.start > 0, let firstFrameFilter = info.trimmedFirstFrameFilter {
+            filters.append(firstFrameFilter)
+        }
         if let rotation {
             filters.append(hardwarePipeline ? rotation.videoToolboxFilter : rotation.filter)
             if hardwarePipeline && rotation.swapsDimensions {
@@ -1941,7 +1963,7 @@ final class ConverterStore: ObservableObject {
     }
 
     nonisolated private static func probeArguments(for source: URL) -> [String] {
-        ["-v", "error", "-show_entries", "stream=index,id,codec_type,codec_name,bit_rate,width,height,r_frame_rate,time_base,pix_fmt,sample_rate,channels,color_transfer,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:chapter=id:format=duration,bit_rate,format_name", "-of", "json", source.path]
+        ["-v", "error", "-show_entries", "stream=index,id,codec_type,codec_name,bit_rate,width,height,r_frame_rate,avg_frame_rate,time_base,pix_fmt,sample_rate,channels,color_transfer,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:chapter=id:format=duration,bit_rate,format_name", "-of", "json", source.path]
     }
 
     nonisolated private static func unavailableProbeInfo() -> VideoInfo {
@@ -1960,6 +1982,7 @@ final class ConverterStore: ObservableObject {
             return max(total - (Int(audio?.bitRate ?? "") ?? 0), 1)
         }
         var info = VideoInfo(duration: Double(response.format?.duration ?? ""), videoRate: videoRate, audioRate: Int(audio?.bitRate ?? ""), width: video?.width, height: video?.height, hasVideo: video != nil, videoCodec: video?.codecName, audioCodec: audio?.codecName, frameRate: video?.rFrameRate, pixelFormat: video?.pixelFormat, audioSampleRate: audio?.sampleRate, audioChannels: audio?.channels, audioTrackCount: audioStreams.count, subtitleTrackCount: subtitleStreams.count, colorTransfer: video?.colorTransfer, probeSucceeded: true)
+        info.averageFrameRate = video?.avgFrameRate
         let rotationTag = video?.tags?["rotate"]
         let rotation = video?.sideDataList?.compactMap(\.rotation).first ?? rotationTag.flatMap(Double.init)
         if rotationTag == nil || rotation != nil {

@@ -27,6 +27,13 @@ short native Smart Enhance video with audio. That test skips on older or
 unsupported Macs; the ordinary converter tests still run. CI installs FFmpeg
 before invoking the Swift tests.
 
+Fractional-trim regressions request a zero-tolerance frame at time zero through
+AVFoundation, rather than assuming a valid stream or thumbnail proves Finder's
+paused preview works. They cover software encoding, hardware crop/rotation,
+HEVC, video-only input, copied AAC, VFR, and native Smart Enhance. Checks also
+preserve later frame timestamps, compare decoded copied audio, and retain a
+deliberately delayed video track.
+
 Realtime tests additionally require small progress packets to arrive while the
 producer is still running, verify that regularly advancing packets prevent false
 inactivity timeouts, and observe positive 1080p-to-720p queue progress before
@@ -83,6 +90,7 @@ the results and tool versions—not the source media or its full path.
 | H.264 + AAC | Smart Convert picks a fast compatible path; output opens in QuickTime. |
 | HEVC + AAC | The selected hardware/software path is named; output remains playable. |
 | Variable frame rate | Start/end times, trim result, and duration remain plausible; no audio drift. |
+| Trim between frames, then crop or rotate | Finder shows a paused first frame; later video timing and audio remain aligned. |
 | Portrait or rotation metadata | The preview and exported display orientation match; no stretching. |
 | Video-only | Conversion works and does not invent or require audio. |
 | Movie with embedded cover / thumbnails | Covers are excluded from movie count and selection; the exported movie has the expected frames and duration. |

@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import XCTest
 @testable import FastConvert
@@ -141,13 +142,121 @@ final class ConversionPlanningTests: XCTestCase {
         store.start()
         let output = try await completedOutput(store)
         let reference = directory.appendingPathComponent("reference.mp4")
-        try run(tools.ffmpeg, ["-v", "error", "-i", source.path, "-ss", "6.123", "-to", "7.456", "-vf", "crop=192:128:0:0", "-enc_time_base:v", "1/15360", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-an", reference.path])
+        // Full-decode reference: select the exact source interval, keep its
+        // clock, and hold its first selected image from the clip boundary.
+        try run(tools.ffmpeg, ["-v", "error", "-i", source.path, "-vf", "trim=start=6.123:end=7.456,setpts=PTS-6.123/TB,crop=192:128:0:0,setpts=if(eq(N\\,0)\\,0\\,PTS)", "-enc_time_base:v", "1/15360", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-an", reference.path])
         let actualFrame = try capture(tools.ffmpeg, ["-v", "error", "-i", output.path, "-map", "0:v:0", "-frames:v", "1", "-f", "md5", "-"])
         let referenceFrame = try capture(tools.ffmpeg, ["-v", "error", "-i", reference.path, "-map", "0:v:0", "-frames:v", "1", "-f", "md5", "-"])
         XCTAssertEqual(actualFrame, referenceFrame, "Fast seeking must retain the first accurately selected video frame")
         let actualAudio = try capture(tools.ffmpeg, ["-v", "error", "-i", output.path, "-t", "1.1", "-vn", "-c:a", "pcm_s16le", "-f", "md5", "-"])
         let referenceAudio = try capture(tools.ffmpeg, ["-v", "error", "-ss", "6.123", "-i", source.path, "-t", "1.1", "-vn", "-c:a", "pcm_s16le", "-f", "md5", "-"])
         XCTAssertEqual(actualAudio, referenceAudio, "Copied AAC must discard pre-roll and remain aligned to the requested start")
+        let outputTimes = try frameTimes(output, ffprobe: tools.ffprobe)
+        let referenceTimes = try frameTimes(reference, ffprobe: tools.ffprobe)
+        XCTAssertEqual(outputTimes.count, referenceTimes.count)
+        XCTAssertEqual(try XCTUnwrap(outputTimes.first), 0, accuracy: 0.000001)
+        for (actual, expected) in zip(outputTimes.dropFirst(), referenceTimes.dropFirst()) {
+            XCTAssertEqual(actual, expected, accuracy: 0.00007, "Preview repair must not shift the rest of the video away from copied audio")
+        }
+        try await assertNativeFrameAtZero(output)
+    }
+
+    @MainActor
+    func testHardwareTrimPreviewWithCropRotationAndCopiedAudio() async throws {
+        let tools = try mediaTools()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("60fps.mp4")
+        try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=192x128:rate=60:duration=3", "-f", "lavfi", "-i", "sine=frequency=660:sample_rate=48000:duration=3", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-shortest", source.path])
+        let silent = directory.appendingPathComponent("video-only.mp4")
+        try run(tools.ffmpeg, ["-v", "error", "-i", source.path, "-an", "-c:v", "copy", silent.path])
+        // Compare the copied AAC timeline, including its MP4 edit-list trim.
+        // Decoding an input-side seek directly can use different AAC pre-roll.
+        let referenceAudioFile = directory.appendingPathComponent("copied-audio.m4a")
+        try run(tools.ffmpeg, ["-v", "error", "-ss", "1.123", "-i", source.path, "-t", "1.333", "-map", "0:a:0", "-c:a", "copy", referenceAudioFile.path])
+        let referenceAudio = try capture(tools.ffmpeg, ["-v", "error", "-i", referenceAudioFile.path, "-t", "1.1", "-c:a", "pcm_s16le", "-f", "md5", "-"])
+        let cases: [(ConversionPreset, Bool, URL)] = [(.h264Hardware, true, silent), (.h264Hardware, false, source), (.hevcHardware, true, source)]
+        for (preset, crop, input) in cases {
+            let store = ConverterStore()
+            store.preset = preset
+            store.outputDirectory = directory
+            let item = ConversionItem(source: input)
+            store.items = [item]
+            store.scheduleTrim(item, start: 1.123, end: 2.456)
+            if crop { store.scheduleCrop(item, crop: CropRect(x: 0, y: 0, width: 160, height: 120)) }
+            store.scheduleRotation(item, rotation: .clockwise)
+            let info = await ConverterStore.inspectMedia(at: input, using: tools.ffprobe)
+            let originalTimes = try frameTimes(input, ffprobe: tools.ffprobe).filter { $0 >= 1.123 && $0 < 2.456 }
+            store.start()
+            let output = try await completedOutput(store)
+            try await assertNativeFrameAtZero(output)
+            let times = try frameTimes(output, ffprobe: tools.ffprobe)
+            XCTAssertEqual(times.count, originalTimes.count)
+            for (actual, original) in zip(times.dropFirst(), originalTimes.dropFirst()) {
+                XCTAssertEqual(actual, original - 1.123, accuracy: 0.0011, "Only the first video timestamp may change")
+            }
+            if info.audioCodec != nil {
+                let audio = try capture(tools.ffmpeg, ["-v", "error", "-i", output.path, "-t", "1.1", "-vn", "-c:a", "pcm_s16le", "-f", "md5", "-"])
+                XCTAssertEqual(audio, referenceAudio)
+            }
+        }
+    }
+
+    @MainActor
+    func testTrimDoesNotRemoveAnIntentionalVideoDelay() async throws {
+        let tools = try mediaTools()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("delayed video.mp4")
+        try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x96:rate=30:duration=2", "-f", "lavfi", "-i", "sine=sample_rate=48000:duration=3", "-vf", "setpts=PTS+0.8/TB", "-fps_mode", "passthrough", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", source.path])
+        let sourceStart = try XCTUnwrap(frameTimes(source, ffprobe: tools.ffprobe).first)
+        XCTAssertGreaterThan(sourceStart, 0.7)
+        let store = ConverterStore()
+        store.preset = .h264Software
+        store.outputDirectory = directory
+        let item = ConversionItem(source: source)
+        store.items = [item]
+        store.scheduleTrim(item, start: 0.123, end: 2.456)
+        store.scheduleCrop(item, crop: CropRect(x: 0, y: 0, width: 160, height: 96))
+        store.start()
+        let output = try await completedOutput(store)
+        XCTAssertEqual(try XCTUnwrap(frameTimes(output, ffprobe: tools.ffprobe).first), sourceStart - 0.123, accuracy: 0.002)
+    }
+
+    @MainActor
+    func testVariableFrameRateTrimHasPreviewWithoutRetimingLaterFrames() async throws {
+        let tools = try mediaTools()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("variable cut.mp4")
+        try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x96:rate=30:duration=2", "-vf", "settb=1/90000,setpts=PTS+270*sin(N)", "-enc_time_base:v", "1/90000", "-c:v", "libx264", "-preset", "ultrafast", source.path])
+        let sourceTimes = try frameTimes(source, ffprobe: tools.ffprobe).filter { $0 >= 0.123 && $0 < 1.456 }
+        let info = await ConverterStore.inspectMedia(at: source, using: tools.ffprobe)
+        XCTAssertNotNil(info.averageFrameRate, "The actual probe must include the measured frame rate used for the preview gap bound")
+        let store = ConverterStore()
+        store.preset = .h264Software
+        store.outputDirectory = directory
+        let item = ConversionItem(source: source)
+        store.items = [item]
+        store.scheduleTrim(item, start: 0.123, end: 1.456)
+        store.scheduleRotation(item, rotation: .clockwise)
+        store.start()
+        let output = try await completedOutput(store)
+        let outputTimes = try frameTimes(output, ffprobe: tools.ffprobe)
+        XCTAssertEqual(outputTimes.count, sourceTimes.count)
+        for (actual, original) in zip(outputTimes.dropFirst(), sourceTimes.dropFirst()) {
+            XCTAssertEqual(actual, original - 0.123, accuracy: 0.000025)
+        }
+        try await assertNativeFrameAtZero(output)
+    }
+
+    private func assertNativeFrameAtZero(_ output: URL) async throws {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output))
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
+        let frame = try await generator.image(at: .zero)
+        XCTAssertEqual(frame.actualTime.seconds, 0, accuracy: 0.000001, "Native macOS preview must find a frame at the beginning without seeking forward")
+        XCTAssertGreaterThan(frame.image.width, 0)
     }
 
     private func fixtureInfo() -> VideoInfo {
