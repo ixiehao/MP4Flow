@@ -16,3 +16,4 @@ dist/
 *.provisionprofile
 MP4Flow.app/
 Tests/.generated/
+__pycache__/

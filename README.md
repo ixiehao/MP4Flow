@@ -25,6 +25,8 @@ Free, open source, and local. **No account, no upload, no codec jargon.** Add a 
 
 That is all most people need. Open **Environment Check** in the app if you want to confirm FFmpeg or hardware encoding is ready.
 
+**App languages:** English, Simplified Chinese, French, Russian, Spanish, Japanese and Korean. Choose **Language** in the menu bar to switch.
+
 > macOS 13 Ventura or later is required. Apple Silicon and Intel Macs are supported. If macOS blocks the first launch, Control-click MP4Flow and choose **Open**. See the short [download and checksum guide](docs/DOWNLOAD.md) if needed.
 
 ## What you can do

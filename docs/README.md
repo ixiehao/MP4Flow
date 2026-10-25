@@ -4,7 +4,7 @@ Start with the [product README](../README.md) and [contributing guide](../CONTRI
 
 | Stage | Guide |
 | --- | --- |
-| Develop | [Development and layout](DEVELOPMENT.md) · [Architecture](ARCHITECTURE.md) |
+| Develop | [Development and layout](DEVELOPMENT.md) · [Architecture](ARCHITECTURE.md) · [App localization](LOCALIZATION.md) |
 | Verify | [Media regression](MEDIA-REGRESSION.md) · [Test fixtures](../Tests/MediaFixtures/README.md) |
 | Package and release | [Release checklist](RELEASE-CHECKLIST.md) · [Installer build](INSTALLER-BUILD.md) · [Download policy](DOWNLOAD.md) · [Changelog](../CHANGELOG.md) |
 | Maintain the website | [Website guide](WEBSITE.md) · [GitHub metadata](GITHUB_METADATA.md) |

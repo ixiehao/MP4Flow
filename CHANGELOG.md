@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.3.0 — 2026-10-26
+
+### English
+- Seven App languages: English, Simplified Chinese, French, Russian, Spanish, Japanese and Korean.
+- Switch languages from the menu bar. Cleaner header and improved layouts.
+- Fixed stalled environment checks, editing completed videos and crop boundaries.
+
+macOS 13+ · Apple Silicon & Intel · FFmpeg/ffprobe required (`brew install ffmpeg`). Ad-hoc signed, not notarized. Tested on Apple Silicon; no physical Intel or macOS 13 testing.
+
+### 中文
+- App 支持英语、简体中文、法语、俄语、西班牙语、日语、韩语。
+- 从菜单栏切换语言，主界面更简洁，多语言布局更协调。
+- 修复环境体检卡住、完成项再次编辑及裁切边界问题。
+
+macOS 13+ · Apple 芯片与 Intel · 需安装 FFmpeg/ffprobe（`brew install ffmpeg`）。沿用 ad-hoc 签名，未公证；已在 Apple 芯片实测，未做 Intel 或 macOS 13 实机测试。
+
+### 日本語
+- 英語・簡体字中国語・フランス語・ロシア語・スペイン語・日本語・韓国語に対応。
+- 言語切替をメニューバーに集約し、画面をすっきり整理。
+- 環境チェックの停止、完了後の再編集、クロップ範囲の不具合を修正。
+
+macOS 13以降 · Appleシリコン／Intel · FFmpeg/ffprobe が必要（`brew install ffmpeg`）。アドホック署名・未公証。Appleシリコンで検証済み。Intel／macOS 13 の実機検証は未実施。
+
+### 한국어
+- 영어, 중국어 간체, 프랑스어, 러시아어, 스페인어, 일본어, 한국어를 지원합니다.
+- 메뉴 막대에서 언어를 전환합니다. 화면을 간결하게 정리하고 레이아웃을 개선했습니다.
+- 환경 검사 멈춤, 완료한 영상의 재편집, 자르기 영역 오류를 수정했습니다.
+
+macOS 13 이상 · Apple Silicon 및 Intel · FFmpeg/ffprobe 필요 (`brew install ffmpeg`). Ad-hoc 서명, Apple 공증 없음. Apple Silicon에서 검증했으며 Intel 및 macOS 13 실기기 테스트는 수행하지 않았습니다.
+
+
 ## 1.2.5 — 2026-10-25
 
 ### English

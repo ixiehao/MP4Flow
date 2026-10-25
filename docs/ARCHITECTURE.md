@@ -8,7 +8,9 @@ MP4Flow is a small native SwiftUI application without a server.
 - `SmartEnhanceExporter.swift` owns the optional macOS 27 VideoToolbox enhancement pipeline and its reader/writer lifecycle.
 - `DependencyHealth.swift` checks local tools, hardware encoding, and output locations. Tool results are reused during ordinary queue edits; manual refresh performs a fresh tool check.
 - `AppLanguage.swift` resolves the selected language and exposes `L10n` for dynamic strings that SwiftUI cannot localize automatically.
-- `AppResources/*.lproj/Localizable.strings` holds English, Japanese, and Simplified Chinese localizations. Chinese source strings are the Chinese fallback; English and Japanese include every user-facing key used dynamically, and CI verifies their coverage.
+- `AppResources/*.lproj/Localizable.strings` holds seven App languages, with English as the fallback. CI checks matching keys and format arguments across all catalogs; see [Localization](LOCALIZATION.md).
+- `MenuBarLocalization.swift` refreshes native menu titles through public roles and actions, preserving targets, shortcuts and validation. Language selection lives in the menu bar.
+- `CropGeometry.swift` normalizes crop coordinates and presets within even-pixel source bounds; zero is a valid origin.
 - `Scripts/build-app.sh` produces an app bundle; `Scripts/package-dmg.sh` creates an installer from an isolated temporary build.
 
 The converter uses FFmpeg and ffprobe from the local computer. For supported H.264 and HEVC input without cropping, VideoToolbox keeps decode, scaling, rotation, and encoding in hardware memory. Rotation uses FFmpeg's `transpose_vt` filter when available and falls back to its software filter if a local FFmpeg build cannot run the hardware path. Queue work is serial by design: it avoids competing for CPU, disk I/O, and VideoToolbox resources during long batch operations.

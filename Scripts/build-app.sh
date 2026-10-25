@@ -26,7 +26,9 @@ cp .build/release/MP4Flow "$APP_PATH/Contents/MacOS/MP4Flow"
 cp AppResources/Info.plist "$APP_PATH/Contents/Info.plist"
 cp AppResources/AppIcon.icns "$APP_PATH/Contents/Resources/AppIcon.icns"
 cp AppResources/ASSET_NOTICES.md "$APP_PATH/Contents/Resources/ASSET_NOTICES.md"
-cp -R AppResources/en.lproj AppResources/ja.lproj AppResources/zh-Hans.lproj "$APP_PATH/Contents/Resources/"
+for localization in AppResources/*.lproj; do
+  cp -R "$localization" "$APP_PATH/Contents/Resources/"
+done
 # SwiftPM places the curated Tabler Outline SVGs in a resource bundle. Keep it
 # alongside the executable so AppKit can render the vectors at every scale.
 for resource_bundle in .build/release/*.bundle; do

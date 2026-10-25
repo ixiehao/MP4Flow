@@ -321,6 +321,108 @@ final class ConverterStoreTests: XCTestCase {
         XCTAssertLessThan(duration, 0.5)
     }
 
+    @MainActor
+    func testEditingCompletedVideoCreatesNewOutputsAndPreservesPreviousFiles() async throws {
+        let ffmpeg = try availableFFmpeg()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("reedit.mov")
+        try makeShortVideo(at: source, ffmpeg: ffmpeg)
+        let store = ConverterStore()
+        store.preset = .h264Software
+        store.outputDirectory = directory
+        store.items = [ConversionItem(source: source)]
+        store.start()
+        try await waitForQueue(store)
+
+        let edits: [(ConversionItem) -> Void] = [
+            { store.scheduleTrim($0, start: 0.125, end: 0.5) },
+            { store.scheduleCrop($0, crop: CropRect(x: 8, y: 4, width: 48, height: 32)) },
+            { store.scheduleRotation($0, rotation: .clockwise) }
+        ]
+        var preservedOutputs: [URL: Data] = [:]
+        for edit in edits {
+            guard case .complete(let oldOutput) = store.items[0].state else {
+                return XCTFail("The preceding conversion must complete before editing")
+            }
+            preservedOutputs[oldOutput] = try Data(contentsOf: oldOutput)
+            edit(store.items[0])
+            XCTAssertEqual(store.items[0].state, .waiting)
+            XCTAssertTrue(store.hasWaiting, "Editing a completed row must enable Start again")
+            store.start()
+            try await waitForQueue(store)
+            guard case .complete(let newOutput) = store.items[0].state else {
+                return XCTFail("Re-edited source must convert successfully")
+            }
+            XCTAssertNotEqual(newOutput, oldOutput)
+            for (url, bytes) in preservedOutputs {
+                XCTAssertEqual(try Data(contentsOf: url), bytes, "Existing outputs must not be modified or deleted")
+            }
+        }
+        guard case .complete(let output) = store.items[0].state else { return XCTFail("Missing final output") }
+        let ffprobe = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        XCTAssertEqual(try probeValue(output, ffprobe: ffprobe, entries: "stream=width,height").trimmingCharacters(in: .whitespacesAndNewlines), "32,48")
+        XCTAssertEqual(try decodeVideo(output, ffmpeg: ffmpeg), 0)
+        let completed = store.items[0]
+        store.scheduleTrim(completed, start: 0.125, end: 0.5)
+        store.scheduleCrop(completed, crop: completed.crop)
+        store.scheduleRotation(completed, rotation: .clockwise)
+        XCTAssertEqual(store.items[0], completed, "Confirming unchanged settings must keep the valid result")
+    }
+
+    @MainActor
+    func testEditingTerminalRowsClearsStaleResultsAndResettingEditsAlsoRequeues() {
+        let source = URL(fileURLWithPath: "/test/input.mov")
+        let output = URL(fileURLWithPath: "/test/output.mp4")
+        let store = ConverterStore()
+        let edits: [(ConversionItem) -> Void] = [
+            { store.scheduleTrim($0, start: 1, end: 2) },
+            { store.scheduleCrop($0, crop: nil) },
+            { store.scheduleRotation($0, rotation: nil) }
+        ]
+        for state in [ConversionState.complete(output), .failed("old failure"), .cancelled] {
+            for edit in edits {
+                var item = ConversionItem(source: source)
+                item.state = state
+                item.crop = CropRect(x: 2, y: 2, width: 32, height: 32)
+                item.rotation = .clockwise
+                item.phase = .verifying
+                item.failure = ConversionFailure(reasonKey: "reason", solutionKey: "solution", diagnostic: "old")
+                item.mediaHandling = MediaHandlingNotice(issues: [.unconfirmed])
+                store.items = [item]
+                edit(item)
+                XCTAssertEqual(store.items[0].id, item.id)
+                XCTAssertEqual(store.items[0].source, source)
+                XCTAssertEqual(store.items[0].state, .waiting)
+                XCTAssertNil(store.items[0].phase)
+                XCTAssertNil(store.items[0].failure)
+                XCTAssertNil(store.items[0].mediaHandling)
+            }
+        }
+    }
+
+    @MainActor
+    func testEditsRejectInvalidTrimAndDoNotChangeAnActiveOrRemovedRow() {
+        let store = ConverterStore()
+        let source = URL(fileURLWithPath: "/test/input.mov")
+        var item = ConversionItem(source: source)
+        item.state = .complete(URL(fileURLWithPath: "/test/output.mp4"))
+        store.items = [item]
+        for (start, end) in [(-1.0, 2.0), (Double.nan, 2.0), (0.0, Double.infinity), (2.0, 1.0)] {
+            store.scheduleTrim(item, start: start, end: end)
+            XCTAssertEqual(store.items[0], item)
+        }
+        store.isRunning = true
+        store.scheduleTrim(item, start: 0, end: 1)
+        store.scheduleCrop(item, crop: CropRect(x: 0, y: 0, width: 32, height: 32))
+        store.scheduleRotation(item, rotation: .clockwise)
+        XCTAssertEqual(store.items[0], item)
+        store.isRunning = false
+        store.items = []
+        store.scheduleRotation(item, rotation: .clockwise)
+        XCTAssertTrue(store.items.isEmpty, "A stale editor must not restore a removed row")
+    }
+
     private func availableFFmpeg() throws -> URL {
         for path in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"] {
             if FileManager.default.isExecutableFile(atPath: path),
