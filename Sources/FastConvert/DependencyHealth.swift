@@ -564,9 +564,15 @@ private struct DependencyHealthSheet: View {
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(AppFont.captionMedium)
-                Text(detail).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
+                Text(detail)
+                    .font(AppFont.caption)
+                    .foregroundStyle(BrandColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let fix {
-                    Text(fix).font(AppFont.caption).foregroundStyle(level == .failed ? .red : BrandColor.warning)
+                    Text(fix)
+                        .font(AppFont.caption)
+                        .foregroundStyle(level == .failed ? .red : BrandColor.warning)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             Spacer(minLength: 0)

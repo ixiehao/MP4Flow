@@ -55,13 +55,14 @@
   "installIntro": "通过 Homebrew 一次安装 FFmpeg 和 ffprobe，供 MP4Flow 读取和转换视频。",
   "installStepOne": "打开「终端」。",
   "installStepTwo": "运行以下命令：",
-  "installStepThree": "打开 MP4Flow，重新检查转换环境。",
-  "installHelp": "还没有 Homebrew？",
+  "installStepThree": "在 MP4Flow 中选择「环境体检 → 重新检查」。",
+  "installHelp": "还没有 Homebrew？先按官网安装并完成 Next steps：",
   "homeLabel": "MP4Flow 首页",
   "navLabel": "主导航",
   "languagePickerLabel": "语言",
   "advantagesLabel": "MP4Flow 的优势",
   "stageLabel": "MP4Flow 软件截图",
   "closeInstall": "关闭安装说明",
-  "skipToContent": "跳至正文"
+  "skipToContent": "跳至正文",
+  "installRequirements": "Homebrew 的系统要求"
 }

@@ -94,7 +94,7 @@
 "智能增强处理超时。" = "Se agotó el tiempo de la ampliación inteligente.";
 "整理输出文件超时。" = "Se agotó el tiempo para finalizar el archivo de salida.";
 "智能增强不支持裁切或旋转" = "La ampliación inteligente no admite recorte de imagen ni rotación";
-"请先使用普通转换，再剪辑或裁切。" = "Primero convierte el video; después podrás acortarlo o recortar su imagen.";
+"请先使用普通转换，再剪辑或裁切。" = "Convierte primero; después corta un fragmento o recorta la imagen.";
 "智能增强处理超时" = "Se agotó el tiempo de la ampliación inteligente";
 "请降低目标分辨率后重试。" = "Elige una resolución menor e inténtalo de nuevo.";
 "需要 macOS 27 或更高版本" = "Se requiere macOS 27 o posterior";
@@ -169,7 +169,7 @@
 "选择其他文件夹" = "Otra carpeta";
 "准备输出 MP4" = "Listo para crear el MP4";
 "正在读取视频信息" = "Leyendo la información del video";
-"剪辑" = "Acortar";
+"剪辑" = "Cortar";
 "裁切画面" = "Recortar";
 "打开文件夹" = "Abrir carpeta";
 "从队列移除" = "Quitar de la lista";
@@ -191,7 +191,7 @@
 "保留 %@" = "Conservar %@";
 "保留" = "Conservar";
 "正在加载视频预览" = "Cargando la vista previa del video";
-"确认剪辑" = "Confirmar intervalo";
+"确认剪辑" = "Confirmar corte";
 "无法读取视频信息，请确认文件可播放。" = "No se puede leer este video. Comprueba que se reproduce en este Mac.";
 "原始" = "Original";
 "裁切参数" = "Recorte";
@@ -208,12 +208,12 @@
 "无法读取视频尺寸，请确认文件可播放。" = "No se pueden leer las dimensiones del video. Comprueba que se reproduce en este Mac.";
 "裁切区域，可拖动移动或调整四角" = "Área de recorte. Arrastra para moverla o ajusta las esquinas para cambiar su tamaño.";
 "调整裁切区域" = "Ajustar el área de recorte";
-"剪辑范围" = "Intervalo a conservar";
+"剪辑范围" = "Intervalo de corte";
 "W" = "An.";
 "H" = "Al.";
 "当前版本为 v%@。正式发布更新源配置完成后，MP4Flow 会在这里提示可用的新版本。" = "Tienes MP4Flow v%@. Las actualizaciones aparecerán aquí cuando estén disponibles.";
 "检查更新，当前版本 v%@" = "Buscar actualizaciones. Versión actual: v%@";
-"MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。" = "MP4Flow necesita FFmpeg para convertir videos, pero no se ha detectado.\n\n1. Abre Terminal\n2. Instala Homebrew si es necesario\n3. Ejecuta: brew install ffmpeg\n4. Cierra MP4Flow y vuelve a abrirlo.";
+"MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。" = "FFmpeg o ffprobe no está instalado o no funciona. Consulta «Diagnóstico».\n\nSi no tienes Homebrew, instálalo desde brew.sh y completa sus Next steps.\n\nEn Terminal: brew install ffmpeg\n\nDespués selecciona «Diagnóstico → Comprobar de nuevo».";
 "中文" = "Chino";
 "这些片段暂不适合直接拼接。建议先做统一规格的转码，再合并。\n\n也可选择「开始兼容合并」，自动统一规格后合并。以最大分辨率为目标，等比例缩放并居中补边，输出 H.264 + AAC MP4。" = "Estos clips no se pueden unir directamente. Conviértelos primero con los mismos ajustes y después únelos.\n\nTambién puedes elegir «Iniciar unión» para realizar una unión compatible. Los clips se escalan proporcionalmente y se centran con bordes de relleno hasta alcanzar la resolución más alta. Salida: H.264 + AAC MP4.";
 "关于 MP4Flow" = "Acerca de MP4Flow";
@@ -291,7 +291,7 @@
 "可用空间较少" = "Poco espacio disponible";
 "将使用软件编码" = "Se usará codificación por software";
 "FFmpeg %@ 已就绪" = "FFmpeg %@ listo";
-"请在终端执行 brew install ffmpeg，然后重新检查。" = "Ejecuta brew install ffmpeg en Terminal y vuelve a comprobar.";
+"请在终端执行 brew install ffmpeg，然后重新检查。" = "En Terminal: brew install ffmpeg\nDespués selecciona «Diagnóstico → Comprobar de nuevo».";
 "请重新安装 FFmpeg：brew reinstall ffmpeg。" = "Reinstala FFmpeg: brew reinstall ffmpeg.";
 "将使用软件编码；速度可能较慢。" = "Se usará codificación por software; puede ser más lenta.";
 "请选择可写的文件夹或检查磁盘权限。" = "Elige una carpeta con permiso de escritura o revisa los permisos del disco.";
@@ -335,7 +335,7 @@
 "请检查磁盘空间与连接，改用本地输出文件夹后重试。" = "Comprueba el espacio del disco y las conexiones, elige una carpeta de salida local e inténtalo de nuevo.";
 "正在取消…" = "Cancelando…";
 "转换组件不可用" = "Herramientas de conversión no disponibles";
-"FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。" = "FFmpeg o ffprobe no está instalado o no se pudo ejecutar. Abre «Diagnóstico» para ver qué herramienta necesita atención y cómo solucionarlo.\n\nSi no está instalado, ejecuta en Terminal: brew install ffmpeg\nVuelve a comprobar después de la instalación.";
+"FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。" = "FFmpeg o ffprobe no está instalado o no funciona. Consulta «Diagnóstico».\n\nSi no tienes Homebrew, instálalo desde brew.sh y completa sus Next steps.\n\nEn Terminal: brew install ffmpeg\n\nDespués selecciona «Diagnóstico → Comprobar de nuevo».";
 "每次启动约 60 秒后自动检查一次；不会自动下载或安装。" = "Se comprueba una vez, unos 60 segundos después de cada inicio. Las actualizaciones nunca se descargan ni se instalan automáticamente.";
 "上次未能检查更新，可手动重试。" = "Falló la última búsqueda de actualizaciones. Puedes volver a intentarlo manualmente.";
 "请确认文件可播放；也可先用「智能转换」转为 MP4，再重新添加。" = "Comprueba que el archivo se reproduce. Si es necesario, crea un MP4 con «Conversión inteligente» y añade el nuevo archivo.";
@@ -346,7 +346,7 @@
 "播放进度" = "Posición de reproducción";
 "音量" = "Volumen";
 "完成 %d · 失败 %d · 取消 %d" = "Completados: %d · Errores: %d · Cancelados: %d";
-"无法加载剪辑预览" = "No se pudo cargar la vista previa del intervalo";
+"无法加载剪辑预览" = "No se pudo cargar la vista previa del corte";
 "无法加载裁切预览" = "No se pudo cargar la vista previa del recorte";
 "FFmpeg 无法运行" = "FFmpeg no se pudo ejecutar";
 "FFprobe 无法运行" = "ffprobe no se pudo ejecutar";
@@ -355,7 +355,7 @@
 "软件编码器不可用" = "Codificador por software no disponible";
 "请更新或重新安装 FFmpeg，或改用「智能转换」后重试。" = "Actualiza o reinstala FFmpeg, o prueba «Conversión inteligente».";
 "此视频流无法直接写入 MP4" = "Este flujo no se puede copiar directamente a MP4";
-"请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Recodifica con «Conversión inteligente». Si sigue fallando, prueba «Fiable (lento)».";
+"请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Prueba «Conversión inteligente». Si sigue fallando, usa «Fiable (lento)».";
 "无法启动转换工具" = "No se pudo iniciar la herramienta de conversión";
 "请在「环境体检」检查 FFmpeg，修复安装或权限后重试。" = "Comprueba FFmpeg en «Diagnóstico», corrige su instalación o sus permisos e inténtalo de nuevo.";
 "Language" = "Idioma";

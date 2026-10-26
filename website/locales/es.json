@@ -55,13 +55,14 @@
   "installIntro": "Homebrew instala las dos herramientas que necesita MP4Flow: FFmpeg y ffprobe.",
   "installStepOne": "Abre Terminal.",
   "installStepTwo": "Ejecuta este comando:",
-  "installStepThree": "Abre MP4Flow y repite el diagnóstico.",
-  "installHelp": "¿Necesitas Homebrew?",
+  "installStepThree": "En MP4Flow, selecciona Diagnóstico → Comprobar de nuevo.",
+  "installHelp": "¿Sin Homebrew? Instálalo y completa sus Next steps:",
   "homeLabel": "Inicio de MP4Flow",
   "navLabel": "Navegación principal",
   "languagePickerLabel": "Idioma",
   "advantagesLabel": "Ventajas de MP4Flow",
   "stageLabel": "Captura de MP4Flow",
   "closeInstall": "Cerrar la guía de instalación",
-  "skipToContent": "Ir al contenido"
+  "skipToContent": "Ir al contenido",
+  "installRequirements": "Requisitos de Homebrew"
 }

@@ -45,7 +45,7 @@
 
 - **找不到 FFmpeg 或 ffprobe？** 安装后打开「**环境体检 → 重新检查**」。MP4Flow 不内置这两个工具。
 - **macOS 阻止打开？** GitHub 版本尚未经过 Apple 公证。确认下载来源后，按照 [Apple 官方说明](https://support.apple.com/zh-cn/102445)允许首次打开。
-- **转换失败？** 先点「**重排失败项**」。若剪辑或增强失败，可先用「智能转换」生成新 MP4，再添加新文件重试。仍有问题，请[反馈错误信息](https://github.com/ixiehao/MP4Flow/issues/new/choose)，附上 macOS 和 App 版本，不要公开私密视频。
+- **转换失败？** 先点「**重排失败项**」。若编辑或增强失败，可先用「智能转换」生成新 MP4，再添加新文件重试。仍有问题，请[反馈错误信息](https://github.com/ixiehao/MP4Flow/issues/new/choose)，附上 macOS 和 App 版本，不要公开私密视频。
 
 ## 转换前了解一下
 
