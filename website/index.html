@@ -149,6 +149,7 @@
       </div>
       <h2 id="install-dialog-title" data-i18n="installTitle">{{installTitle}}</h2>
       <p class="dialog-intro" data-i18n="installIntro">{{installIntro}}</p>
+      <p class="install-help"><span data-i18n="installHelp">{{installHelp}}</span> <a href="https://brew.sh/" target="_blank" rel="noreferrer">brew.sh</a></p>
       <ol class="install-steps">
         <li data-i18n="installStepOne">{{installStepOne}}</li>
         <li>
@@ -157,10 +158,10 @@
         </li>
         <li data-i18n="installStepThree">{{installStepThree}}</li>
       </ol>
-      <p class="install-help"><span data-i18n="installHelp">{{installHelp}}</span> <a href="https://brew.sh/" target="_blank" rel="noreferrer">brew.sh</a></p>
+      <p class="install-help"><a href="https://docs.brew.sh/Installation#macos-requirements" target="_blank" rel="noreferrer">{{installRequirements}}</a></p>
     </dialog>
 
-    <noscript><p class="noscript-install">{{installIntro}} <code>brew install ffmpeg</code></p></noscript>
+    <noscript><div class="noscript-install"><p>{{installIntro}}</p><p>{{installHelp}} <a href="https://brew.sh/">brew.sh</a></p><p>{{installStepOne}} {{installStepTwo}} <code>brew install ffmpeg</code></p><p>{{installStepThree}}</p><a href="https://docs.brew.sh/Installation#macos-requirements">{{installRequirements}}</a></div></noscript>
     <script src="app.js?v=20261026-i18n" defer></script>
   </body>
 </html>

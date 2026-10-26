@@ -212,9 +212,9 @@
 "H" = "H";
 "当前版本为 v%@。正式发布更新源配置完成后，MP4Flow 会在这里提示可用的新版本。" = "You have MP4Flow v%@. Updates will appear here when available.";
 "检查更新，当前版本 v%@" = "Check updates. Current version v%@";
-"MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。" = "MP4Flow needs FFmpeg to convert video, but it was not found.\n\n1. Open Terminal\n2. Install Homebrew if needed\n3. Run: brew install ffmpeg\n4. Quit and reopen MP4Flow.";
+"MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。" = "FFmpeg or ffprobe is missing or cannot run. Open Environment Check for details.\n\nIf Homebrew is not installed, install it from brew.sh and complete its Next steps.\n\nRun in Terminal: brew install ffmpeg\n\nThen select Environment Check → Recheck.";
 "中文" = "Chinese";
-"这些片段暂不适合直接拼接。建议先做统一规格的转码，再合并。\n\n也可选择「开始兼容合并」，自动统一规格后合并。以最大分辨率为目标，等比例缩放并居中补边，输出 H.264 + AAC MP4。" = "These clips cannot be joined directly. Convert them to matching settings first, then merge.\n\nOr use Compatible Merge to do both. Clips are scaled proportionally and padded to the largest resolution. Output: H.264 + AAC MP4.";
+"这些片段暂不适合直接拼接。建议先做统一规格的转码，再合并。\n\n也可选择「开始兼容合并」，自动统一规格后合并。以最大分辨率为目标，等比例缩放并居中补边，输出 H.264 + AAC MP4。" = "These clips cannot be joined directly. Convert them to matching settings first, then merge.\n\nOr choose Start Merge to convert and merge in one step. Clips are scaled proportionally and padded to the largest resolution. Output: H.264 + AAC MP4.";
 "关于 MP4Flow" = "About MP4Flow";
 "MP4Flow 使用帮助" = "MP4Flow Help";
 "发现新版本 v%@" = "New version · v%@";
@@ -290,7 +290,7 @@
 "可用空间较少" = "Low free space";
 "将使用软件编码" = "Software encoding will be used";
 "FFmpeg %@ 已就绪" = "FFmpeg %@ ready";
-"请在终端执行 brew install ffmpeg，然后重新检查。" = "Run brew install ffmpeg in Terminal, then check again.";
+"请在终端执行 brew install ffmpeg，然后重新检查。" = "Run in Terminal: brew install ffmpeg\nThen select Environment Check → Recheck.";
 "请重新安装 FFmpeg：brew reinstall ffmpeg。" = "Reinstall FFmpeg: brew reinstall ffmpeg.";
 "将使用软件编码；速度可能较慢。" = "Software encoding will be used; it may be slower.";
 "请选择可写的文件夹或检查磁盘权限。" = "Choose a writable folder or check disk permissions.";
@@ -334,7 +334,7 @@
 "请检查磁盘空间与连接，改用本地输出文件夹后重试。" = "Check disk space and connections, choose a local output folder, and retry.";
 "正在取消…" = "Cancelling…";
 "转换组件不可用" = "Conversion tools unavailable";
-"FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。" = "FFmpeg or ffprobe is missing or could not run. Open Environment Check to see which tool needs attention and how to fix it.\n\nIf not installed, run this in Terminal: brew install ffmpeg\nCheck again after installation.";
+"FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。" = "FFmpeg or ffprobe is missing or cannot run. Open Environment Check for details.\n\nIf Homebrew is not installed, install it from brew.sh and complete its Next steps.\n\nRun in Terminal: brew install ffmpeg\n\nThen select Environment Check → Recheck.";
 "每次启动约 60 秒后自动检查一次；不会自动下载或安装。" = "Check once about 60 seconds after each launch. Updates are never downloaded or installed automatically.";
 "上次未能检查更新，可手动重试。" = "The last update check failed. You can retry manually.";
 "请确认文件可播放；也可先用「智能转换」转为 MP4，再重新添加。" = "Check that the file plays. If needed, use Smart Convert to create an MP4, then add the new file.";
@@ -354,7 +354,7 @@
 "软件编码器不可用" = "Software encoder unavailable";
 "请更新或重新安装 FFmpeg，或改用「智能转换」后重试。" = "Update or reinstall FFmpeg, or try Smart Convert.";
 "此视频流无法直接写入 MP4" = "This stream cannot be copied directly into MP4";
-"请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Re-encode with Smart Convert. If it still fails, try Reliable (Slow).";
+"请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Try Smart Convert first. If it still fails, use Reliable (Slow).";
 "无法启动转换工具" = "Could not start the conversion tool";
 "请在「环境体检」检查 FFmpeg，修复安装或权限后重试。" = "Check FFmpeg in Environment Check, fix its installation or permissions, and try again.";
 "Language" = "Language";

@@ -94,7 +94,7 @@
 "智能增强处理超时。" = "Le délai de l’agrandissement intelligent est dépassé.";
 "整理输出文件超时。" = "Le délai de finalisation du fichier de sortie est dépassé.";
 "智能增强不支持裁切或旋转" = "L’agrandissement intelligent ne permet ni recadrage ni rotation";
-"请先使用普通转换，再剪辑或裁切。" = "Convertissez d’abord, puis élaguez ou recadrez la vidéo.";
+"请先使用普通转换，再剪辑或裁切。" = "Convertissez d’abord, puis découpez ou recadrez la vidéo.";
 "智能增强处理超时" = "Délai de l’agrandissement intelligent dépassé";
 "请降低目标分辨率后重试。" = "Choisissez une résolution inférieure et réessayez.";
 "需要 macOS 27 或更高版本" = "macOS 27 ou une version ultérieure est nécessaire";
@@ -169,7 +169,7 @@
 "选择其他文件夹" = "Autre dossier";
 "准备输出 MP4" = "Prêt à créer le MP4";
 "正在读取视频信息" = "Lecture des informations vidéo";
-"剪辑" = "Élaguer";
+"剪辑" = "Découper";
 "裁切画面" = "Recadrer";
 "打开文件夹" = "Ouvrir le dossier";
 "从队列移除" = "Retirer de la liste";
@@ -177,9 +177,9 @@
 "待%@" = "En attente : %@";
 "%@ 视频" = "Vidéo %@";
 "裁切" = "Recadrer";
-"旋转" = "Faire pivoter";
+"旋转" = "Pivoter";
 "裁切为 %@" = "Recadrage en %@";
-"旋转视频" = "Faire pivoter la vidéo";
+"旋转视频" = "Pivoter la vidéo";
 "取消旋转" = "Supprimer la rotation";
 "保留范围" = "Plage à conserver";
 "原始时长 %@" = "Durée d’origine : %@";
@@ -191,7 +191,7 @@
 "保留 %@" = "Conserver %@";
 "保留" = "Conserver";
 "正在加载视频预览" = "Chargement de l’aperçu vidéo";
-"确认剪辑" = "Confirmer l’élagage";
+"确认剪辑" = "Confirmer la découpe";
 "无法读取视频信息，请确认文件可播放。" = "Impossible de lire cette vidéo. Vérifiez qu’elle est lisible sur ce Mac.";
 "原始" = "Original";
 "裁切参数" = "Recadrage";
@@ -208,12 +208,12 @@
 "无法读取视频尺寸，请确认文件可播放。" = "Impossible de lire les dimensions de la vidéo. Vérifiez qu’elle est lisible sur ce Mac.";
 "裁切区域，可拖动移动或调整四角" = "Zone de recadrage. Faites glisser la zone pour la déplacer, ou ses coins pour la redimensionner.";
 "调整裁切区域" = "Redimensionner la zone de recadrage";
-"剪辑范围" = "Plage d’élagage";
+"剪辑范围" = "Plage de découpe";
 "W" = "L";
 "H" = "H";
 "当前版本为 v%@。正式发布更新源配置完成后，MP4Flow 会在这里提示可用的新版本。" = "Vous utilisez MP4Flow v%@. Les mises à jour disponibles s’afficheront ici.";
 "检查更新，当前版本 v%@" = "Rechercher des mises à jour. Version actuelle : v%@";
-"MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。" = "MP4Flow a besoin de FFmpeg pour convertir les vidéos, mais il n’a pas été détecté.\n\n1. Ouvrez Terminal\n2. Installez Homebrew si nécessaire\n3. Exécutez : brew install ffmpeg\n4. Quittez et rouvrez MP4Flow.";
+"MP4Flow 依赖本机的 FFmpeg 进行转码，但尚未检测到它。\n\n1. 打开「终端」\n2. 若尚未安装 Homebrew，请在官网完成安装\n3. 粘贴并执行：brew install ffmpeg\n4. 安装结束后，完全退出并重新打开 MP4Flow。" = "FFmpeg ou ffprobe est absent ou ne fonctionne pas. Consultez « Diagnostic ».\n\nSi Homebrew est absent, installez-le depuis brew.sh et suivez ses Next steps.\n\nDans Terminal : brew install ffmpeg\n\nPuis choisissez « Diagnostic → Revérifier ».";
 "中文" = "Chinois";
 "这些片段暂不适合直接拼接。建议先做统一规格的转码，再合并。\n\n也可选择「开始兼容合并」，自动统一规格后合并。以最大分辨率为目标，等比例缩放并居中补边，输出 H.264 + AAC MP4。" = "Ces séquences ne peuvent pas être assemblées directement. Convertissez-les d’abord avec les mêmes réglages, puis fusionnez-les.\n\nVous pouvez aussi choisir « Lancer la fusion » pour effectuer une fusion compatible. Les séquences sont redimensionnées proportionnellement et centrées avec des marges pour atteindre la résolution la plus élevée. Sortie : H.264 + AAC MP4.";
 "关于 MP4Flow" = "À propos de MP4Flow";
@@ -291,7 +291,7 @@
 "可用空间较少" = "Peu d’espace disponible";
 "将使用软件编码" = "L’encodage logiciel sera utilisé";
 "FFmpeg %@ 已就绪" = "FFmpeg %@ prêt";
-"请在终端执行 brew install ffmpeg，然后重新检查。" = "Exécutez brew install ffmpeg dans Terminal, puis relancez la vérification.";
+"请在终端执行 brew install ffmpeg，然后重新检查。" = "Dans Terminal : brew install ffmpeg\nPuis choisissez « Diagnostic → Revérifier ».";
 "请重新安装 FFmpeg：brew reinstall ffmpeg。" = "Réinstallez FFmpeg : brew reinstall ffmpeg.";
 "将使用软件编码；速度可能较慢。" = "L’encodage logiciel sera utilisé ; il peut être plus lent.";
 "请选择可写的文件夹或检查磁盘权限。" = "Choisissez un dossier accessible en écriture ou vérifiez les autorisations du disque.";
@@ -335,7 +335,7 @@
 "请检查磁盘空间与连接，改用本地输出文件夹后重试。" = "Vérifiez l’espace disque et les connexions, choisissez un dossier de sortie local et réessayez.";
 "正在取消…" = "Annulation…";
 "转换组件不可用" = "Outils de conversion indisponibles";
-"FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。" = "FFmpeg ou ffprobe est absent ou ne peut pas s’exécuter. Ouvrez « Diagnostic » pour identifier le problème et sa solution.\n\nSi ces outils ne sont pas installés, exécutez dans Terminal : brew install ffmpeg\nRelancez la vérification après l’installation.";
+"FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。" = "FFmpeg ou ffprobe est absent ou ne fonctionne pas. Consultez « Diagnostic ».\n\nSi Homebrew est absent, installez-le depuis brew.sh et suivez ses Next steps.\n\nDans Terminal : brew install ffmpeg\n\nPuis choisissez « Diagnostic → Revérifier ».";
 "每次启动约 60 秒后自动检查一次；不会自动下载或安装。" = "Vérification unique environ 60 secondes après chaque lancement. Les mises à jour ne sont jamais téléchargées ni installées automatiquement.";
 "上次未能检查更新，可手动重试。" = "La dernière recherche de mises à jour a échoué. Vous pouvez la relancer manuellement.";
 "请确认文件可播放；也可先用「智能转换」转为 MP4，再重新添加。" = "Vérifiez que le fichier est lisible. Si nécessaire, créez un MP4 avec « Conversion intelligente », puis ajoutez le nouveau fichier.";
@@ -346,7 +346,7 @@
 "播放进度" = "Position de lecture";
 "音量" = "Volume";
 "完成 %d · 失败 %d · 取消 %d" = "Terminés : %d · Échecs : %d · Annulés : %d";
-"无法加载剪辑预览" = "Impossible de charger l’aperçu de l’élagage";
+"无法加载剪辑预览" = "Impossible de charger l’aperçu de la découpe";
 "无法加载裁切预览" = "Impossible de charger l’aperçu du recadrage";
 "FFmpeg 无法运行" = "FFmpeg n’a pas pu s’exécuter";
 "FFprobe 无法运行" = "ffprobe n’a pas pu s’exécuter";
@@ -355,7 +355,7 @@
 "软件编码器不可用" = "Encodeur logiciel indisponible";
 "请更新或重新安装 FFmpeg，或改用「智能转换」后重试。" = "Mettez à jour ou réinstallez FFmpeg, ou essayez « Conversion intelligente ».";
 "此视频流无法直接写入 MP4" = "Ce flux ne peut pas être copié directement dans un MP4";
-"请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Réencodez avec « Conversion intelligente ». Si l’échec persiste, essayez « Fiable (lent) ».";
+"请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Essayez « Conversion intelligente ». Si l’échec persiste, utilisez « Fiable (lent) ».";
 "无法启动转换工具" = "Impossible de lancer l’outil de conversion";
 "请在「环境体检」检查 FFmpeg，修复安装或权限后重试。" = "Vérifiez FFmpeg dans « Diagnostic », corrigez son installation ou ses autorisations, puis réessayez.";
 "Language" = "Langue";

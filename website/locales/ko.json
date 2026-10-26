@@ -55,13 +55,14 @@
   "installIntro": "Homebrew로 MP4Flow에 필요한 FFmpeg와 ffprobe를 함께 설치할 수 있습니다.",
   "installStepOne": "터미널을 여세요.",
   "installStepTwo": "아래 명령을 실행하세요:",
-  "installStepThree": "MP4Flow를 열고 환경 검사를 다시 실행하세요.",
-  "installHelp": "Homebrew가 없나요?",
+  "installStepThree": "MP4Flow에서 ‘환경 점검 → 다시 확인’을 선택하세요.",
+  "installHelp": "Homebrew가 없다면 설치하고 Next steps까지 완료하세요:",
   "homeLabel": "MP4Flow 홈",
   "navLabel": "주 메뉴",
   "languagePickerLabel": "언어",
   "advantagesLabel": "MP4Flow의 장점",
   "stageLabel": "MP4Flow 앱 화면",
   "closeInstall": "설치 안내 닫기",
-  "skipToContent": "본문으로 이동"
+  "skipToContent": "본문으로 이동",
+  "installRequirements": "Homebrew 시스템 요구 사항"
 }
