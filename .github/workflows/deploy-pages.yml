@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - website/**
+      - Scripts/build-website.mjs
+      - Scripts/tests/website.test.mjs
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -26,12 +28,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate and build all language pages
+        run: |
+          node --check website/app.js
+          node --test Scripts/tests/website.test.mjs
+          node Scripts/build-website.mjs
       - name: Configure Pages
         uses: actions/configure-pages@v6
       - name: Upload website
         uses: actions/upload-pages-artifact@v5
         with:
-          path: website
+          path: _site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v5

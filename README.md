@@ -6,7 +6,7 @@
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
 [![License](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
 
-[Download free](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [中文](README.zh-CN.md) · [日本語](README.ja.md) · [Get help](SUPPORT.md)
+[Download free](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/en/) · [中文](README.zh-CN.md) · [日本語](README.ja.md) · [Get help](SUPPORT.md)
 
 Free, open source, and local. **No account, no upload, no codec jargon.** Add a video, choose a quality, and convert it on your Mac.
 
