@@ -1,95 +1,65 @@
 # MP4Flow
 
-> **動画を MP4 に、とても簡単に。無料・オープンソースのネイティブ macOS 動画変換アプリです。**
+[English](README.md) · [简体中文](README.zh-CN.md) · [Français](README.fr.md) · [Русский](README.ru.md) · [Español](README.es.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-[![最新リリース](https://img.shields.io/github/v/release/ixiehao/MP4Flow?display_name=tag&sort=semver&label=release)](https://github.com/ixiehao/MP4Flow/releases/latest)
-[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
-[![ライセンス](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
+**動画を MP4 に。もっと簡単に。** 無料・オープンソースの Mac ネイティブアプリ。ログインも動画のアップロードも不要です。
 
-[無料でダウンロード](https://github.com/ixiehao/MP4Flow/releases/latest) · [公式サイト](https://ixiehao.github.io/MP4Flow/ja/) · [English](README.md) · [简体中文](README.zh-CN.md) · [ヘルプ](SUPPORT.md)
+[**Mac 版をダウンロード**](https://github.com/ixiehao/MP4Flow/releases/latest) · [公式サイト](https://ixiehao.github.io/MP4Flow/ja/) · [不具合を報告](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
-無料、オープンソース、ローカル処理。**ログイン不要、アップロード不要、難しい設定不要。** 動画を追加し、画質を選ぶだけで Mac 上で変換できます。
+**動作環境：** macOS 13+ · Appleシリコンまたは Intel · FFmpeg と ffprobe（導入方法は下記）。
 
-![MP4Flow の日本語画面](website/assets/mp4flow-working-screen-ja.png)
+## 主な機能
 
-## 3ステップで始める
+| 機能 | できること |
+| --- | --- |
+| **スマート変換** | 不要な再エンコードを避け、利用可能ならハードウェアで高速化。 |
+| **トリミング** | 開始・終了位置を選び、必要な場面だけを残す。 |
+| **クロップ** | 画面の余分な端を取り除く。 |
+| **回転** | 縦横比を保って動画の向きを直す。 |
 
-1. [最新リリース](https://github.com/ixiehao/MP4Flow/releases/latest)から `.dmg` をダウンロードし、開いて **MP4Flow** を **Applications** にドラッグします。
-2. ローカル依存関係を一度だけインストールします。`ffmpeg` と `ffprobe` の両方が入ります。
+一括変換、動画の結合、解像度の変更にも対応。動画は Mac 内で処理します。
+
+## ダウンロードと導入
+
+1. **アプリを入れる。** [最新リリース](https://github.com/ixiehao/MP4Flow/releases/latest)の **Assets** を開き、**MP4Flow の `.dmg` ファイル**をダウンロード。開いて **MP4Flow** を **Applications（アプリケーション）** にドラッグします。
+2. **動画ツールを一度だけ入れる。** `⌘ スペース` で「ターミナル」を検索して開きます。Homebrew がなければ[公式の手順](https://brew.sh/)で導入し、最後に表示される **Next steps** まで完了してください。その後、次を実行します。
 
    ```sh
    brew install ffmpeg
    ```
 
-3. MP4Flow を開き、動画を追加し、**スマート変換（推奨）** のまま **変換を開始** を選びます。
+   FFmpeg と ffprobe の両方が入ります。Homebrew の[動作要件](https://docs.brew.sh/Installation#macos-requirements)は MP4Flow とは異なります。
 
-ほとんどの場合、これだけで完了です。FFmpeg やハードウェアエンコードの準備を確認したい場合は、アプリ内の **環境チェック** を開きます。
+3. **動画を変換する。** MP4Flow に動画を追加し、**スマート変換（おすすめ）** のまま画質を選び、**変換を開始** をクリックします。
 
-**アプリの言語：** 英語・簡体字中国語・フランス語・ロシア語・スペイン語・日本語・韓国語。メニューバーの **言語** から切り替えられます。
+初期設定では元動画と同じフォルダに保存し、既存ファイルは上書きしません。**フォルダを開く** から結果を確認できます。表示言語は Mac のメニューバーの **言語** で切り替えられます。
 
-> macOS 13 Ventura 以降が必要です。Appleシリコンと Intel Mac に対応します。初回起動を macOS に止められた場合は、Control キーを押しながら MP4Flow をクリックして **開く** を選択してください。必要なら短い[ダウンロードとチェックサムの手順](docs/DOWNLOAD.md)も確認できます。
+<details>
+<summary>アプリの画面を見る</summary>
 
-## できること
+![日本語版 MP4Flow にサンプル動画を追加した画面](website/assets/mp4flow-v130-ja.jpg)
 
-| 機能 | できること |
-| --- | --- |
-| **スマート変換** | 推奨の初期設定です。MP4Flow が動画に合った実用的な処理方法を選びます。 |
-| **高速なローカル処理** | MP4 の直接再格納やストリームコピーによるトリミングが可能な場合、不要な再エンコードを避けます。 |
-| **トリミング、クロップ、回転** | 必要な部分だけを残し、画面範囲や向きを整えて書き出せます。 |
-| **動画の結合** | 同じ条件のファイルはロスレス結合、異なるファイルは画面を引き伸ばさない互換結合ができます。 |
-| **解像度の選択** | 元のサイズを保つか、比率を維持して 1080p、720p、576p、480p を選べます。 |
-| **プライバシーを重視** | 動画処理は Mac 上だけで行われます。アカウント、分析、動画アップロードサービスはありません。 |
+</details>
 
-### 目的に合わせて選ぶ
+## 困ったときは
 
-- 多くの機器で再生したい：**H.264** を選びます。
-- 新しい機器向けにファイルを小さくしたい：**HEVC** を選びます。
-- 難しい動画を安定して変換したい：**ソフトウェア互換モード** を選びます。
-- 対応動画を拡大したい：実験的な **スマート高画質拡大** を試します。Appleシリコン、macOS 27 以降、かつ VideoToolbox がその正確な倍率に対応している場合のみ使えます。クロップや回転との同時利用はできず、初回利用時に macOS がシステムモデルをダウンロードすることがあります。
+- **FFmpeg や ffprobe が見つからない：** 導入後、**環境チェック → 再確認** を選びます。MP4Flow に両ツールは同梱されていません。
+- **macOS に起動を止められる：** GitHub 版は Apple の公証を受けていません。入手元を確認し、[Apple の案内](https://support.apple.com/ja-jp/102445)に従って開いてください。
+- **変換に失敗する：** **失敗項目を再追加** で再試行します。編集や高画質拡大の失敗なら、先にスマート変換で新しい MP4 を作り、そのファイルを追加して試してください。解決しない場合は macOS・アプリのバージョンとエラー文を添えて[報告](https://github.com/ixiehao/MP4Flow/issues/new/choose)してください。非公開動画の添付は不要です。
 
-## 知っておくこと
+## 変換前に
 
-- **入力ごとに出力を作成：** 既存ファイルを上書きせず、完了後は Finder で表示できます。
-- **進行状況が分かる：** 素材の検査、直接再格納、ハードウェア/ソフトウェア変換、出力検証を表示します。失敗した項目は再試行できます。
-- **音声、字幕、HDR：** 埋め込みカバー画像とサムネイルを除き、最初の映像と音声トラックを出力します。追加トラック、字幕、HDR の処理をお知らせし、コンテナメタデータとチャプターはコピーしません。機密性のある動画は共有前に書き出し結果を確認してください。
-- **通常の拡大は高画質化ではありません：** 通常の拡大は寸法を変えるだけです。上のスマート高画質拡大は、システム対応時に選べるオプションです。
+カバー画像とサムネイルを除き、最初の映像・音声トラックを出力します。コンテナメタデータとチャプターは削除します。追加トラック、字幕、HDR の扱いはアプリ内の通知をご確認ください。
 
-## よくある質問
+<details>
+<summary>オプション：スマート高画質拡大</summary>
 
-### FFmpeg または ffprobe が見つからない
+実験的な機能です。Appleシリコン、macOS 27+、Apple VideoToolbox が対応する拡大率が必要です。クロップや回転とは併用できません。初回に macOS がシステムモデルをダウンロードする場合があります。通常の解像度変更では、失われた細部は復元できません。
 
-`brew install ffmpeg` を実行し、**環境チェック** の **再チェック** を選びます。MP4Flow は FFmpeg を同梱または自動ダウンロードしません。
+</details>
 
-### 動画の処理に失敗した
+## オープンソースとライセンス
 
-まず **再試行** を選びます。解決しない場合は、**スマート変換** で新しい MP4 を作成し、その新しいファイルで編集または高画質拡大を再試行してください。状態表示は可能な限り失敗した段階を示します。
+開発者：[ixiehao](https://github.com/ixiehao) · [MIT License](LICENSE)。macOS 標準フォントと [Tabler Icons Outline](https://github.com/tabler/tabler-icons)（[MIT 表記](AppResources/ASSET_NOTICES.md)）を使用。FFmpeg は別途導入し、ライセンスはそのビルドに従います。
 
-### 動画を結合するには？
-
-編集していない待機中の動画を少なくとも2つ追加し、**結合** を選びます。コーデック、フレームレート、サイズが異なる場合は **互換結合** を選択してください。
-
-## ソースからビルド
-
-```sh
-git clone https://github.com/ixiehao/MP4Flow.git
-cd MP4Flow
-./Scripts/build-app.sh
-open MP4Flow.app
-```
-
-貢献する場合は、FFmpeg のインストール後に `swift test` と `./Scripts/run-media-regression.sh` を実行してください。開発者向け資料：[貢献方法](CONTRIBUTING.md)、[メディア回帰テスト](docs/MEDIA-REGRESSION.md)、[インストーラ作成](docs/INSTALLER-BUILD.md)、[リリースチェックリスト](docs/RELEASE-CHECKLIST.md)。
-
-## プライバシー、依存関係、ライセンス
-
-- MP4Flow は Swift、SwiftUI、Apple のシステムフレームワークを使用します。[プライバシーポリシー](PRIVACY.ja.md) · [セキュリティポリシー](SECURITY.ja.md)
-- FFmpeg は別途インストールするローカル実行時依存関係です。ライセンスは導入したビルドによって決まり、MP4Flow が同梱またはダウンロードすることはありません。
-- スマート高画質拡大は、macOS が提供する場合に Apple のオンデバイス VideoToolbox を使用します。対応倍率とシステムモデルの配信は macOS により管理されます。
-- アプリは macOS 標準フォントを使い、[MIT License](AppResources/ASSET_NOTICES.md)の [Tabler Icons Outline](https://github.com/tabler/tabler-icons) のローカル厳選セット（v3.49.0）を同梱します。
-
-帰属表示は [NOTICE.ja.md](NOTICE.ja.md)、プロジェクトのライセンスは [LICENSE](LICENSE) を参照してください。
-
-## 開発・保守ドキュメント
-
-[ドキュメント一覧](docs/README.md) · [開発と検証](docs/DEVELOPMENT.md) · [公式サイトの保守](docs/WEBSITE.md)。
-
-公式サイトのソースは `website/` に、開発・保守ドキュメントは `docs/` に置いています。
+[ソースからビルド](docs/DEVELOPMENT.md) · [開発に参加](CONTRIBUTING.md) · [プライバシー](PRIVACY.ja.md) · [第三者の権利表記](NOTICE.ja.md)
