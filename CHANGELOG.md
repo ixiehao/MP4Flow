@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.1 — Unreleased (local build)
+
+### English
+- Consistent feature names and clearer recovery guidance across seven languages.
+- Clearer Homebrew / FFmpeg setup steps; fixed clipped Environment Check details.
+
+### 中文
+- 统一七语功能名称，优化失败后的操作指引。
+- 补齐 Homebrew / FFmpeg 安装步骤，修复环境体检详情显示不全。
+
+### 日本語
+- 7言語の機能名を統一し、エラー時の案内を改善。
+- Homebrew / FFmpeg の導入手順を補足し、環境チェックの文字切れを修正。
+
+### 한국어
+- 7개 언어의 기능명을 통일하고 오류 해결 안내를 개선했습니다.
+- Homebrew / FFmpeg 설치 안내를 보완하고 환경 점검의 잘린 텍스트를 수정했습니다.
+
 ## 1.3.0 — 2026-10-26
 
 ### English
