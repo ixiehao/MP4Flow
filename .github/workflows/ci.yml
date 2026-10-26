@@ -11,6 +11,10 @@ jobs:
     steps:
       # Pinned commit for actions/checkout v7.0.1. Update deliberately through Dependabot.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Validate website
+        run: |
+          node --check website/app.js
+          node --test Scripts/tests/website.test.mjs
       - name: Build release binary
         run: swift build -c release
       - name: Validate localizations and metadata

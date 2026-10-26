@@ -2,43 +2,53 @@
 
 [Documentation index](README.md) · [Development](DEVELOPMENT.md)
 
-## Source and public URL
+## Source and public URLs
 
-- Source: [`website/`](../website/), not the repository root or `docs/`.
-- Public URL: https://ixiehao.github.io/MP4Flow/
-- Deployment: [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml).
-- Languages: English, Simplified Chinese and Japanese.
+The existing GitHub Pages site stays at <https://ixiehao.github.io/MP4Flow/>.
 
-`website/` is a source directory, not part of the public URL. Keep the public address and existing external links unchanged.
+| Language | Path |
+| --- | --- |
+| 简体中文 | `/MP4Flow/` |
+| English | `/MP4Flow/en/` |
+| Français | `/MP4Flow/fr/` |
+| Русский | `/MP4Flow/ru/` |
+| Español | `/MP4Flow/es/` |
+| 日本語 | `/MP4Flow/ja/` |
+| 한국어 | `/MP4Flow/ko/` |
 
-## Interface icons
+- `website/index.html` is the shared template; `website/locales/*.json` contains all public copy, accessible labels and metadata.
+- `Scripts/build-website.mjs` uses Node.js standard libraries to generate `_site/`. No framework, package install or runtime translation request is required.
+- Each generated page contains its full translation, canonical URL, reciprocal `hreflang` links, share metadata and structured data. The build also creates the seven-page sitemap.
+- Existing `?lang=en`, `?lang=ja` and other supported language links redirect to the corresponding page, preserving the section and other query parameters. Explicit page URLs take priority over browser language or old preferences.
+- Language links work without JavaScript. The installation guide has a no-script fallback.
 
-- Website UI icons use `website/assets/tabler-icons.svg`, a local SVG sprite with paths copied unchanged from the app's curated Tabler Icons Outline v3.49.0 set in `Sources/FastConvert/Resources/TablerOutline/`.
-- Reference icons with `<use href="assets/tabler-icons.svg#icon-name">`; don't add hand-drawn UI glyphs or a second icon family. If a needed icon is not in the app's curated set, add and license it in both places.
-- The MP4Flow brand mark and favicon are product artwork, not interface glyphs, so they remain the real app icon.
-- Attribution and MIT terms are recorded in [`AppResources/ASSET_NOTICES.md`](../AppResources/ASSET_NOTICES.md).
+Keep copy short and product-focused. Do not put implementation notes, language ordering or test results into marketing text. Maintain the same spacing rules across languages; allow natural text wrapping instead of hiding overflow or shrinking individual translations.
 
-## Local preview
+## Images, icons and fonts
 
-Run from the repository root:
+- Hero images `mp4flow-v130-*.jpg` are real captures of the corresponding v1.3.0 App interface, using a synthetic sample video. Capture bytes are JPEG, despite the screenshot API not specifying an extension. Keep the actual format and filename consistent.
+- Previously hand-edited screenshots remain in `website/assets/` for existing references. Do not overwrite them when refreshing hero images.
+- UI icons use the local `website/assets/tabler-icons.svg` sprite. Paths are copied unchanged from the App's curated Tabler Icons Outline v3.49.0 set in `Sources/FastConvert/Resources/TablerOutline/`.
+- The product logo and favicon use the real App artwork. Font rendering uses the operating system's fonts; no webfont files are bundled or downloaded.
+- Attribution and MIT terms: [`AppResources/ASSET_NOTICES.md`](../AppResources/ASSET_NOTICES.md).
 
-```sh
-python3 -m http.server 8000 --bind 127.0.0.1 --directory website
-```
+## Preview and checks
 
-Open <http://127.0.0.1:8000/>. Use HTTP rather than opening files directly, especially when testing fetched resources.
-
-## Validation
+Run from the repository root with Node.js 20+:
 
 ```sh
 node --check website/app.js
-git diff --check
+node --test Scripts/tests/website.test.mjs
+node Scripts/build-website.mjs
+python3 -m http.server 8000 --bind 127.0.0.1 --directory _site
 ```
 
-Check images, favicon, navigation, official download destinations, desktop and narrow layouts, keyboard focus, language switching, localized metadata and download/signing wording. Check canonical and share URLs, robots and sitemap where present. A path-only migration should preserve site content.
+Open <http://127.0.0.1:8000/>. Rebuild and reload after editing the template, translations or assets. Do not serve the template directory directly.
+
+The automated checks validate translation parity, seven static routes, metadata, sitemap alternates, local links, anchors, icon IDs and distinct localized screenshots. They also prevent publishing source catalogs and scripts. Test layout and interactions in an actual browser: all seven languages at 320, 390, 768, 1024 and 1440 px, language switching with section links, keyboard focus/Escape, installation dialogs, and official download links. Store screenshots and QA logs under ignored `dist/`, not in the published site.
 
 ## Deployment
 
-The workflow uploads `website/` and deploys it as the site root. It runs on relevant changes to `main` and supports manual dispatch. Pages should be configured to use **GitHub Actions**; moving the source directory must be accompanied by the matching workflow path update.
+[The Pages workflow](../.github/workflows/deploy-pages.yml) validates and builds the site, then uploads **`_site/`**, never the template directory. It runs on relevant `main` changes and supports manual dispatch. The required CI `build` job also validates the website before merge.
 
-Only publish when authorized. After deployment, read the public URL back and verify resources, navigation and downloads. A successful local preview is not proof that the public site has updated.
+Use the repository's protected-branch PR flow. After deployment, verify the public seven-language pages, screenshots, stylesheet, sitemap and legacy links. A passing local preview does not confirm that GitHub Pages has updated.

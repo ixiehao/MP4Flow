@@ -6,7 +6,7 @@
 [![macOS 13+](https://img.shields.io/badge/macOS-13%2B-000000?logo=apple&logoColor=white)](https://github.com/ixiehao/MP4Flow/releases/latest)
 [![ライセンス](https://img.shields.io/github/license/ixiehao/MP4Flow)](LICENSE)
 
-[無料でダウンロード](https://github.com/ixiehao/MP4Flow/releases/latest) · [公式サイト](https://ixiehao.github.io/MP4Flow/?lang=ja) · [English](README.md) · [简体中文](README.zh-CN.md) · [ヘルプ](SUPPORT.md)
+[無料でダウンロード](https://github.com/ixiehao/MP4Flow/releases/latest) · [公式サイト](https://ixiehao.github.io/MP4Flow/ja/) · [English](README.md) · [简体中文](README.zh-CN.md) · [ヘルプ](SUPPORT.md)
 
 無料、オープンソース、ローカル処理。**ログイン不要、アップロード不要、難しい設定不要。** 動画を追加し、画質を選ぶだけで Mac 上で変換できます。
 
