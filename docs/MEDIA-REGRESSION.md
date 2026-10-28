@@ -136,6 +136,12 @@ been checked:
   and failure recovery text is readable in all supported languages.
 - Source files remain unchanged. Failed jobs leave no user-visible final output
   and no retained `.partial.mp4` file.
+- Scroll a converting queue to the bottom, then clear completed items when the
+  remaining items fit within one viewport (for example, 8 items with 5 completed
+  and 3 remaining). The remaining rows must be visible immediately and continue
+  updating; mouse scrolling must not leave an empty queue. Repeat cleanup and
+  individual removal, including 0, 1, 3, 4 and 5 remaining rows. Progress-only
+  updates must preserve the scroll position of longer queues.
 - Track and HDR handling is explicit. The app must never silently promise that
   subtitles, secondary audio, chapters, metadata, or HDR were retained.
 - Diagnostics redact paths, file names, metadata, and media content by default.

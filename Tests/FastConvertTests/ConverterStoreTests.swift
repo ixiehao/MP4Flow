@@ -167,6 +167,60 @@ final class ConverterStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testClearingCompletedHistoryDuringConversionPreservesRemainingBatch() async throws {
+        let ffmpeg = try availableFFmpeg()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("source.mov")
+        try makeShortVideo(at: source, ffmpeg: ffmpeg)
+        let original = try Data(contentsOf: source)
+        let history = (1...32).map { index in
+            var item = ConversionItem(source: source)
+            item.state = .complete(directory.appendingPathComponent("old-\(index).mp4"))
+            return item
+        }
+        let pending = (1...3).map { _ in ConversionItem(source: source) }
+        var failed = ConversionItem(source: source)
+        failed.state = .failed("Previous failure")
+        var cancelled = ConversionItem(source: source)
+        cancelled.state = .cancelled
+        let survivors = pending + [failed, cancelled]
+        let store = ConverterStore()
+        store.preset = .h264Software
+        store.outputDirectory = directory
+        store.items = history + survivors
+        store.start()
+        defer { store.cancel() }
+        let deadline = Date().addingTimeInterval(5)
+        while !store.items.contains(where: { if case .running = $0.state { return true }; return false }),
+              store.isRunning, Date() < deadline {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertTrue(store.isRunning)
+        XCTAssertTrue(store.items.contains { if case .running = $0.state { return true }; return false })
+
+        store.clearCompleted()
+        XCTAssertEqual(store.items.map(\.id), survivors.map(\.id))
+        XCTAssertEqual(store.items.last?.state, .cancelled)
+        XCTAssertEqual(store.items[3].state, failed.state)
+        XCTAssertTrue(store.isRunning, "Clearing history must not stop the active conversion")
+        XCTAssertEqual(store.activeBatchProgressLabel, L10n.format("已处理 %d/%d", 0, 3))
+        store.clearCompleted() // Repeated cleanup with no completed rows is harmless.
+        XCTAssertEqual(store.items.map(\.id), survivors.map(\.id))
+
+        try await waitForQueue(store)
+        for item in store.items.prefix(3) {
+            guard case .complete(let output) = item.state else {
+                return XCTFail("A surviving queue item did not finish: \(item.state)")
+            }
+            XCTAssertEqual(try decodeVideo(output, ffmpeg: ffmpeg), 0)
+        }
+        store.clearCompleted()
+        XCTAssertEqual(store.items.map(\.id), [failed.id, cancelled.id])
+        XCTAssertEqual(try Data(contentsOf: source), original)
+    }
+
+    @MainActor
     func testRemovingWaitingItemUpdatesBatchCountAndSkipsItsConversion() async throws {
         let ffmpeg = try availableFFmpeg()
         let directory = try temporaryDirectory()
