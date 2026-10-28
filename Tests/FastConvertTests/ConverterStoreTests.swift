@@ -221,6 +221,71 @@ final class ConverterStoreTests: XCTestCase {
     }
 
     @MainActor
+    func testClearCompletedWithOneRemainingTask() async throws {
+        try await verifyClearCompleted(remaining: 1)
+    }
+
+    @MainActor
+    func testClearCompletedWithTwoRemainingTasks() async throws {
+        try await verifyClearCompleted(remaining: 2)
+    }
+
+    @MainActor
+    func testClearCompletedWithThreeRemainingTasks() async throws {
+        try await verifyClearCompleted(remaining: 3)
+    }
+
+    @MainActor
+    func testClearCompletedWithFourRemainingTasks() async throws {
+        try await verifyClearCompleted(remaining: 4)
+    }
+
+    @MainActor
+    private func verifyClearCompleted(remaining: Int) async throws {
+        let ffmpeg = try availableFFmpeg()
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("source.mov")
+        try makeShortVideo(at: source, ffmpeg: ffmpeg)
+        let original = try Data(contentsOf: source)
+        let history = (0..<(8 - remaining)).map { index in
+            var item = ConversionItem(source: source)
+            item.state = .complete(directory.appendingPathComponent("history-\(index).mp4"))
+            return item
+        }
+        let pending = (0..<remaining).map { _ in ConversionItem(source: source) }
+        let store = ConverterStore()
+        store.preset = .h264Software
+        store.outputDirectory = directory
+        store.items = history + pending
+        store.start()
+        defer { store.cancel() }
+        let deadline = Date().addingTimeInterval(5)
+        while !store.items.contains(where: { if case .running = $0.state { return true }; return false }),
+              store.isRunning, Date() < deadline {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertTrue(store.items.contains { if case .running = $0.state { return true }; return false })
+        store.clearCompleted()
+        XCTAssertTrue(store.isRunning)
+        XCTAssertEqual(store.items.map(\.id), pending.map(\.id))
+        XCTAssertEqual(store.activeBatchProgressLabel, L10n.format("已处理 %d/%d", 0, remaining))
+        store.clearCompleted()
+        XCTAssertEqual(store.items.map(\.id), pending.map(\.id))
+        try await waitForQueue(store)
+        XCTAssertEqual(store.items.count, remaining)
+        for item in store.items {
+            guard case .complete(let output) = item.state else {
+                return XCTFail("Remaining task did not complete: \(item.state)")
+            }
+            XCTAssertEqual(try decodeVideo(output, ffmpeg: ffmpeg), 0)
+        }
+        XCTAssertEqual(try Data(contentsOf: source), original)
+        store.clearCompleted()
+        XCTAssertTrue(store.items.isEmpty)
+    }
+
+    @MainActor
     func testRemovingWaitingItemUpdatesBatchCountAndSkipsItsConversion() async throws {
         let ffmpeg = try availableFFmpeg()
         let directory = try temporaryDirectory()
