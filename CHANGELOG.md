@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.1 — Unreleased (local build)
+## 1.3.1 — 2026-10-29
 
 ### English
 - Fixed a blank queue after clearing completed items while scrolled to the bottom.
