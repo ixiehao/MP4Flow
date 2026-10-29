@@ -67,7 +67,6 @@
   "installRequirements": "Requisitos de Homebrew",
   "aspectTitle": "Corregir proporción",
   "aspectBody": "Corrige una imagen estirada o aplastada sin recortar el encuadre.",
-  "aspectGuide": "En la cola: Recorte y proporción → Corregir proporción.",
   "aspectPreview": "Vista previa en tiempo real",
   "aspectCustom": "Proporción personalizada"
 }

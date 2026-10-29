@@ -67,7 +67,6 @@
   "installRequirements": "Homebrew 的系统要求",
   "aspectTitle": "比例矫正",
   "aspectBody": "修正被拉长或压扁的画面，不裁掉画面内容。",
-  "aspectGuide": "队列中选择：裁切与比例 → 比例矫正。",
   "aspectPreview": "实时预览",
   "aspectCustom": "自定义比例"
 }
