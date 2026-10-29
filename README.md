@@ -16,6 +16,9 @@
 | **Trim** | Keep the part you want by choosing a start and end. |
 | **Crop** | Remove unwanted edges from the picture. |
 | **Rotate** | Fix orientation without stretching the image. |
+| **Aspect Correction** | Fix stretched video with live preview, presets and custom ratios. |
+
+To fix stretched video, open **Crop & Aspect → Aspect Correction** in the queue. Choose a preset or enter a custom width:height ratio, preview the result, then click **Apply**.
 
 Also convert batches, merge clips and change resolution. Video processing stays on your Mac.
 
@@ -54,7 +57,7 @@ MP4Flow skips cover art and thumbnails, keeps the first actual video and audio t
 <details>
 <summary>Optional: Smart Enhance Upscale</summary>
 
-Experimental enhancement requires Apple silicon, macOS 27+, and a scale supported by Apple’s VideoToolbox. It cannot be combined with crop or rotation. macOS may download a system model on first use. Ordinary resizing changes dimensions without restoring missing detail.
+Experimental enhancement requires Apple silicon, macOS 27+, and a scale supported by Apple’s VideoToolbox. It cannot be combined with crop, rotation or aspect correction. macOS may download a system model on first use. Ordinary resizing changes dimensions without restoring missing detail.
 
 </details>
 

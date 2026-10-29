@@ -36,7 +36,7 @@
   "stepOneTitle": "Ajouter des vidéos",
   "stepOneBody": "Glissez les fichiers ou choisissez-les dans le Finder.",
   "stepTwoTitle": "Choisir les réglages",
-  "stepTwoBody": "Sélectionnez la qualité et retouchez si nécessaire.",
+  "stepTwoBody": "Choisissez la qualité, puis découpez, recadrez, pivotez ou corrigez le ratio.",
   "stepThreeTitle": "Convertir en local",
   "stepThreeBody": "Suivez la progression, puis ouvrez le résultat dans le Finder.",
   "downloadTitle": "Prêt pour la prochaine vidéo ?",
@@ -48,7 +48,7 @@
   "footerPrivacy": "Confidentialité",
   "footerLicense": "Licence MIT",
   "pageTitle": "MP4Flow — Convertisseur vidéo gratuit pour Mac",
-  "pageDescription": "Convertissez, découpez, recadrez et faites pivoter vos vidéos sur Mac. Gratuit, open source et local. Sans compte ni envoi de fichiers.",
+  "pageDescription": "Convertissez et retouchez vos vidéos sur Mac. Corrigez les proportions avec aperçu en direct et ratio personnalisé. Gratuit, open source et local.",
   "socialImageAlt": "MP4Flow, convertisseur vidéo natif pour Mac",
   "installEyebrow": "UNE SEULE INSTALLATION",
   "installTitle": "Installer FFmpeg",
@@ -64,5 +64,10 @@
   "stageLabel": "Capture de MP4Flow",
   "closeInstall": "Fermer le guide d’installation",
   "skipToContent": "Aller au contenu",
-  "installRequirements": "Configuration requise pour Homebrew"
+  "installRequirements": "Configuration requise pour Homebrew",
+  "aspectTitle": "Correction du ratio",
+  "aspectBody": "Corrigez une image étirée ou écrasée sans la recadrer.",
+  "aspectGuide": "Dans la file : Recadrage et ratio → Correction du ratio.",
+  "aspectPreview": "Aperçu en direct",
+  "aspectCustom": "Ratio personnalisé"
 }

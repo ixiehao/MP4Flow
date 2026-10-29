@@ -16,6 +16,9 @@
 | **Découper** | Choisir le début et la fin pour garder le passage voulu. |
 | **Recadrer** | Enlever les bords inutiles de l’image. |
 | **Pivoter** | Corriger l’orientation sans déformer l’image. |
+| **Correction du ratio** | Corriger une image déformée avec aperçu en direct, ratios prédéfinis ou personnalisés. |
+
+Image étirée ? Dans la file, ouvrez **Recadrage et ratio → Correction du ratio**. Choisissez un ratio ou saisissez une largeur et une hauteur, vérifiez l’aperçu, puis cliquez sur **Appliquer**.
 
 Convertissez aussi plusieurs fichiers, fusionnez des séquences et changez la résolution. Tout le traitement vidéo se fait sur votre Mac.
 
@@ -54,7 +57,7 @@ MP4Flow ignore les pochettes et miniatures, conserve la première vraie piste vi
 <details>
 <summary>En option : agrandissement intelligent</summary>
 
-Cette fonction expérimentale nécessite Apple Silicon, macOS 27+ et un facteur d’agrandissement pris en charge par VideoToolbox d’Apple. Elle ne se combine pas avec le recadrage ou la rotation. macOS peut télécharger un modèle système au premier usage. Un redimensionnement ordinaire ne restaure pas les détails manquants.
+Cette fonction expérimentale nécessite Apple Silicon, macOS 27+ et un facteur d’agrandissement pris en charge par VideoToolbox d’Apple. Elle ne se combine pas avec le recadrage, la rotation ou la correction du ratio. macOS peut télécharger un modèle système au premier usage. Un redimensionnement ordinaire ne restaure pas les détails manquants.
 
 </details>
 

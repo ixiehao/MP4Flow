@@ -16,6 +16,9 @@
 | **Cortar** | Elige el inicio y el final para conservar el fragmento que quieras. |
 | **Recortar** | Quita los bordes que sobran en la imagen. |
 | **Girar** | Corrige la orientación sin estirar la imagen. |
+| **Corregir proporción** | Corrige imágenes estiradas con vista previa en tiempo real y proporciones predefinidas o personalizadas. |
+
+¿Imagen estirada? En la cola, abre **Recorte y proporción → Corregir proporción**. Elige una proporción o introduce el ancho y el alto, comprueba la vista previa y pulsa **Aplicar**.
 
 También puedes convertir varios archivos, unir clips y cambiar la resolución. Todo el procesamiento de video se hace en tu Mac.
 
@@ -54,7 +57,7 @@ MP4Flow omite portadas y miniaturas, conserva la primera pista de video real y l
 <details>
 <summary>Opcional: ampliación inteligente</summary>
 
-Esta función experimental requiere Apple Silicon, macOS 27+ y un factor de ampliación admitido por VideoToolbox de Apple. No se puede combinar con recorte ni giro. macOS puede descargar un modelo del sistema en el primer uso. Cambiar la resolución de forma normal no recupera detalles perdidos.
+Esta función experimental requiere Apple Silicon, macOS 27+ y un factor de ampliación admitido por VideoToolbox de Apple. No se puede combinar con recorte, giro ni corrección de proporción. macOS puede descargar un modelo del sistema en el primer uso. Cambiar la resolución de forma normal no recupera detalles perdidos.
 
 </details>
 
