@@ -67,7 +67,6 @@
   "installRequirements": "Homebrew 시스템 요구 사항",
   "aspectTitle": "화면 비율 보정",
   "aspectBody": "화면을 잘라내지 않고 늘어나거나 눌린 영상을 보정하세요.",
-  "aspectGuide": "대기열에서 자르기와 비율 → 화면 비율 보정.",
   "aspectPreview": "실시간 미리보기",
   "aspectCustom": "사용자 지정 비율"
 }

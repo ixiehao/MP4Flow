@@ -66,7 +66,7 @@ export function renderPage(template, language, copy) {
     meta('name', 'twitter:image', `${siteURL}assets/social-preview.jpg?v=2`), meta('name', 'twitter:image:alt', copy.socialImageAlt),
     '<link rel="icon" type="image/png" href="assets/mp4flow-app-icon.png" />',
     '<link rel="apple-touch-icon" href="assets/mp4flow-app-icon.png" />',
-    '<link rel="stylesheet" href="styles.css?v=20261029-aspect" />',
+    '<link rel="stylesheet" href="styles.css?v=20261029-cards" />',
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');

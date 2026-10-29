@@ -67,7 +67,6 @@
   "installRequirements": "Configuration requise pour Homebrew",
   "aspectTitle": "Correction du ratio",
   "aspectBody": "Corrigez une image étirée ou écrasée sans la recadrer.",
-  "aspectGuide": "Dans la file : Recadrage et ratio → Correction du ratio.",
   "aspectPreview": "Aperçu en direct",
   "aspectCustom": "Ratio personnalisé"
 }

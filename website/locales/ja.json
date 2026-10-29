@@ -67,7 +67,6 @@
   "installRequirements": "Homebrew の動作要件",
   "aspectTitle": "縦横比を補正",
   "aspectBody": "引き伸ばされた映像を補正。画面の端は切り取りません。",
-  "aspectGuide": "キューで「クロップと比率」→「縦横比を補正」。",
   "aspectPreview": "リアルタイムプレビュー",
   "aspectCustom": "カスタム比率"
 }

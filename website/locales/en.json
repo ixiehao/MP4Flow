@@ -67,7 +67,6 @@
   "installRequirements": "Homebrew system requirements",
   "aspectTitle": "Aspect Correction",
   "aspectBody": "Fix stretched or squashed video without cropping away the picture.",
-  "aspectGuide": "In the queue: Crop & Aspect → Aspect Correction.",
   "aspectPreview": "Live preview",
   "aspectCustom": "Custom ratios"
 }
