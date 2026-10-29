@@ -36,7 +36,7 @@
   "stepOneTitle": "Add videos",
   "stepOneBody": "Drop files in, or choose them in Finder.",
   "stepTwoTitle": "Choose your settings",
-  "stepTwoBody": "Pick a quality. Trim, crop or rotate if needed.",
+  "stepTwoBody": "Choose quality, then trim, crop, rotate or correct proportions as needed.",
   "stepThreeTitle": "Convert locally",
   "stepThreeBody": "Follow the progress, then open your video in Finder.",
   "downloadTitle": "Ready for your next video?",
@@ -48,7 +48,7 @@
   "footerPrivacy": "Privacy",
   "footerLicense": "MIT License",
   "pageTitle": "MP4Flow — Free Mac Video Converter",
-  "pageDescription": "Convert, trim, crop and rotate video on your Mac. MP4Flow is free, open source and local. No login or uploads.",
+  "pageDescription": "Convert, trim, crop and rotate video on Mac. Correct stretched images with live preview and custom ratios. Free, open source and local.",
   "socialImageAlt": "MP4Flow, a native Mac video converter",
   "installEyebrow": "ONE-TIME SETUP",
   "installTitle": "Install FFmpeg",
@@ -64,5 +64,10 @@
   "stageLabel": "MP4Flow app screenshot",
   "closeInstall": "Close installation guide",
   "skipToContent": "Skip to content",
-  "installRequirements": "Homebrew system requirements"
+  "installRequirements": "Homebrew system requirements",
+  "aspectTitle": "Aspect Correction",
+  "aspectBody": "Fix stretched or squashed video without cropping away the picture.",
+  "aspectGuide": "In the queue: Crop & Aspect → Aspect Correction.",
+  "aspectPreview": "Live preview",
+  "aspectCustom": "Custom ratios"
 }

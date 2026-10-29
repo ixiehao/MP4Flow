@@ -29,7 +29,7 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.deepEqual(schema.inLanguage, languages.map(l => l.locale));
       assert.equal(schema.url, siteURL + localePath(language.id));
       assert.equal(schema.description, catalogs[language.id].pageDescription);
-      assert.equal(schema.featureList.length, 4);
+      assert.equal(schema.featureList.length, 5);
       assert.equal(schema.offers.price, '0');
       const image = html.match(/id="hero-app-screen" src="([^"]+)"/)[1];
       assert.ok(image.endsWith(`mp4flow-v130-${language.id}.jpg`));

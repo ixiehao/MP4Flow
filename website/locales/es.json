@@ -36,7 +36,7 @@
   "stepOneTitle": "Añade videos",
   "stepOneBody": "Arrastra archivos o selecciónalos en Finder.",
   "stepTwoTitle": "Elige los ajustes",
-  "stepTwoBody": "Selecciona la calidad y edita si hace falta.",
+  "stepTwoBody": "Elige la calidad. Si hace falta, corta, recorta, gira o corrige la proporción.",
   "stepThreeTitle": "Convierte en tu Mac",
   "stepThreeBody": "Sigue el progreso y abre el resultado en Finder.",
   "downloadTitle": "¿Vamos con tu próximo video?",
@@ -48,7 +48,7 @@
   "footerPrivacy": "Privacidad",
   "footerLicense": "Licencia MIT",
   "pageTitle": "MP4Flow — Conversor de video gratis para Mac",
-  "pageDescription": "Convierte, corta, recorta y gira videos en tu Mac. MP4Flow es gratis, de código abierto y local. Sin cuentas ni subir archivos.",
+  "pageDescription": "Convierte y edita videos en Mac. Corrige imágenes estiradas con vista previa en tiempo real y proporciones personalizadas. Gratis, de código abierto y local.",
   "socialImageAlt": "MP4Flow, conversor de video nativo para Mac",
   "installEyebrow": "INSTALA UNA SOLA VEZ",
   "installTitle": "Instalar FFmpeg",
@@ -64,5 +64,10 @@
   "stageLabel": "Captura de MP4Flow",
   "closeInstall": "Cerrar la guía de instalación",
   "skipToContent": "Ir al contenido",
-  "installRequirements": "Requisitos de Homebrew"
+  "installRequirements": "Requisitos de Homebrew",
+  "aspectTitle": "Corregir proporción",
+  "aspectBody": "Corrige una imagen estirada o aplastada sin recortar el encuadre.",
+  "aspectGuide": "En la cola: Recorte y proporción → Corregir proporción.",
+  "aspectPreview": "Vista previa en tiempo real",
+  "aspectCustom": "Proporción personalizada"
 }

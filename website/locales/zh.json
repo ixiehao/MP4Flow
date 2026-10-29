@@ -36,7 +36,7 @@
   "stepOneTitle": "添加视频",
   "stepOneBody": "拖入文件，或从 Finder 中选择。",
   "stepTwoTitle": "选择设置",
-  "stepTwoBody": "选择画质，按需剪切、裁切或旋转。",
+  "stepTwoBody": "选择画质，按需剪切、裁切、旋转或矫正比例。",
   "stepThreeTitle": "本机转换",
   "stepThreeBody": "查看进度，完成后在 Finder 中打开。",
   "downloadTitle": "开始处理下一个视频。",
@@ -48,7 +48,7 @@
   "footerPrivacy": "隐私",
   "footerLicense": "MIT 许可证",
   "pageTitle": "MP4Flow｜免费开源的 Mac 视频转换工具",
-  "pageDescription": "在 Mac 上转换、剪切、裁切和旋转视频。MP4Flow 免费、开源、本地处理，不用登录，不用上传。",
+  "pageDescription": "在 Mac 上转换、剪切、裁切和旋转视频。新增比例矫正，支持实时预览与自定义比例。MP4Flow 免费、开源、本地处理，不用登录，不用上传。",
   "socialImageAlt": "MP4Flow 原生 Mac 视频转换工具",
   "installEyebrow": "只需安装一次",
   "installTitle": "安装 FFmpeg",
@@ -64,5 +64,10 @@
   "stageLabel": "MP4Flow 软件截图",
   "closeInstall": "关闭安装说明",
   "skipToContent": "跳至正文",
-  "installRequirements": "Homebrew 的系统要求"
+  "installRequirements": "Homebrew 的系统要求",
+  "aspectTitle": "比例矫正",
+  "aspectBody": "修正被拉长或压扁的画面，不裁掉画面内容。",
+  "aspectGuide": "队列中选择：裁切与比例 → 比例矫正。",
+  "aspectPreview": "实时预览",
+  "aspectCustom": "自定义比例"
 }

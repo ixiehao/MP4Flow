@@ -36,7 +36,7 @@
   "stepOneTitle": "영상 추가",
   "stepOneBody": "파일을 끌어 놓거나 Finder에서 선택하세요.",
   "stepTwoTitle": "설정 선택",
-  "stepTwoBody": "화질을 고르고, 필요하면 편집하세요.",
+  "stepTwoBody": "화질을 고르고 필요하면 구간·화면 자르기, 회전, 비율 보정을 하세요.",
   "stepThreeTitle": "Mac에서 변환",
   "stepThreeBody": "진행 상황을 확인하고 완성된 영상을 Finder에서 여세요.",
   "downloadTitle": "다음 영상도 간편하게.",
@@ -48,7 +48,7 @@
   "footerPrivacy": "개인정보 보호",
   "footerLicense": "MIT 라이선스",
   "pageTitle": "MP4Flow — 무료 Mac 동영상 변환 앱",
-  "pageDescription": "Mac에서 동영상을 변환하고 구간과 화면을 자르고 회전하세요. MP4Flow는 무료 오픈 소스 앱입니다. 로그인이나 업로드 없이 로컬에서 처리합니다.",
+  "pageDescription": "Mac에서 동영상 변환, 구간·화면 자르기, 회전. 실시간 미리보기와 사용자 지정 비율로 화면 비율도 보정하세요. 무료 오픈 소스, 로컬 처리.",
   "socialImageAlt": "Mac 네이티브 동영상 변환 앱 MP4Flow",
   "installEyebrow": "처음 한 번만 설정",
   "installTitle": "FFmpeg 설치",
@@ -64,5 +64,10 @@
   "stageLabel": "MP4Flow 앱 화면",
   "closeInstall": "설치 안내 닫기",
   "skipToContent": "본문으로 이동",
-  "installRequirements": "Homebrew 시스템 요구 사항"
+  "installRequirements": "Homebrew 시스템 요구 사항",
+  "aspectTitle": "화면 비율 보정",
+  "aspectBody": "화면을 잘라내지 않고 늘어나거나 눌린 영상을 보정하세요.",
+  "aspectGuide": "대기열에서 자르기와 비율 → 화면 비율 보정.",
+  "aspectPreview": "실시간 미리보기",
+  "aspectCustom": "사용자 지정 비율"
 }

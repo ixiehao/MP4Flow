@@ -36,7 +36,7 @@
   "stepOneTitle": "動画を追加",
   "stepOneBody": "ファイルをドロップするか、Finder から選択。",
   "stepTwoTitle": "設定を選択",
-  "stepTwoBody": "画質を選び、必要に応じて編集します。",
+  "stepTwoBody": "画質を選び、必要に応じてトリミング・クロップ・回転・縦横比補正。",
   "stepThreeTitle": "Mac で変換",
   "stepThreeBody": "進行状況を確認し、完了した動画を Finder で開きます。",
   "downloadTitle": "次の動画も、手軽に。",
@@ -48,7 +48,7 @@
   "footerPrivacy": "プライバシー",
   "footerLicense": "MIT ライセンス",
   "pageTitle": "MP4Flow｜無料の Mac 動画変換アプリ",
-  "pageDescription": "Mac で動画の変換、トリミング、クロップ、回転。MP4Flow は無料・オープンソースで、ログインもアップロードも不要です。",
+  "pageDescription": "Mac で動画の変換、トリミング、クロップ、回転。縦横比補正はリアルタイムプレビューとカスタム比率に対応。無料・オープンソース、ローカル処理。",
   "socialImageAlt": "Mac ネイティブの動画変換アプリ MP4Flow",
   "installEyebrow": "初回のみの設定",
   "installTitle": "FFmpeg の導入",
@@ -64,5 +64,10 @@
   "stageLabel": "MP4Flow の画面",
   "closeInstall": "インストールガイドを閉じる",
   "skipToContent": "本文へ移動",
-  "installRequirements": "Homebrew の動作要件"
+  "installRequirements": "Homebrew の動作要件",
+  "aspectTitle": "縦横比を補正",
+  "aspectBody": "引き伸ばされた映像を補正。画面の端は切り取りません。",
+  "aspectGuide": "キューで「クロップと比率」→「縦横比を補正」。",
+  "aspectPreview": "リアルタイムプレビュー",
+  "aspectCustom": "カスタム比率"
 }
