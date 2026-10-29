@@ -6,7 +6,7 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 
 - The app reads the video files and folders that you add or choose. It may create an in-memory thumbnail and read media properties needed to show the queue and perform conversion.
 - It stores the interface language, update preferences (including the version whose notice was dismissed), and GitHub API retry time in macOS user defaults. It does not persist a queue, video paths, conversion settings, diagnostics, account data, or a media library.
-- Standard conversion, probing, trimming, cropping, rotation, and merging use the local `ffmpeg` and `ffprobe` executables. Experimental Smart Enhance uses Apple's AVFoundation and VideoToolbox frameworks on this Mac. This app release contains no telemetry, analytics, advertising SDK, or media-upload code.
+- Standard conversion, probing, trimming, cropping, aspect correction, rotation, and merging use the local `ffmpeg` and `ffprobe` executables. Experimental Smart Enhance uses Apple's AVFoundation and VideoToolbox frameworks on this Mac. This app release contains no telemetry, analytics, advertising SDK, or media-upload code.
 
 ## Update checks
 
