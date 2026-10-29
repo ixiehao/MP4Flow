@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.3.2 — 2026-10-29
+
+### English
+- Added aspect correction with live preview, presets and custom ratios.
+- Fixed stretched output when hardware-converting some rotated videos.
+- Improved update checks with a fallback and GitHub API rate-limit backoff.
+
+### 中文
+- 新增比例矫正，支持实时预览、常用比例和自定义比例。
+- 修复部分旋转视频硬件转码后画面拉伸的问题。
+- 优化更新检查，增加备用入口和 GitHub API 限流退避。
+
+### 日本語
+- 縦横比補正を追加。リアルタイムプレビュー、プリセット、カスタム比率に対応。
+- 一部の回転動画で、ハードウェア変換後に画面が引き伸ばされる問題を修正。
+- 更新確認に代替経路と GitHub API 制限時の待機処理を追加。
+
+### 한국어
+- 실시간 미리보기와 기본·사용자 지정 비율을 지원하는 화면 비율 보정을 추가했습니다.
+- 일부 회전 영상의 하드웨어 변환 후 화면이 늘어나는 문제를 수정했습니다.
+- 업데이트 확인에 대체 경로와 GitHub API 요청 제한 시 대기 처리를 추가했습니다.
+
 ## 1.3.1 — 2026-10-29
 
 ### English

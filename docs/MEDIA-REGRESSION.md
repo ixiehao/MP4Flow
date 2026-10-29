@@ -160,3 +160,22 @@ chapters, non-square pixels, and subtitle formats outside MP4 timed text. Keep
 those samples outside the public repository unless redistribution rights are
 clear; store only checksums and non-sensitive technical probe summaries in a
 private release record.
+
+## Aspect correction regression
+
+`swift test --filter AspectCorrectionTests` exercises live-preview layout and
+custom input bounds, store edit/reset behavior, and actual FFmpeg queue exports.
+The media tests use a deliberately stretched circle with four colored corners,
+verify restored pixel shape and preserved corners/audio, and decode the full
+outputs. Additional cases combine crop, trim, rotation, custom decimal ratios
+and resize, and compare software/hardware paths across non-square SAR and
+input display matrices. Verification is fault-injected with a tool wrapper
+that drops the requested filter: a playable but wrong-aspect output must not
+be published.
+
+Use `-display_rotation:v:0` to generate rotation fixtures on supported FFmpeg
+builds and inspect their side data. A successful `-metadata rotate=90` command
+may leave no display matrix on newer FFmpeg; never assume it created the fixture.
+For UI acceptance, check all seven languages in the actual bundle, switch
+presets while playing, enter decimal/custom/invalid ratios, cancel or reopen
+edits, and compare preview orientation and geometry with exported pixels.

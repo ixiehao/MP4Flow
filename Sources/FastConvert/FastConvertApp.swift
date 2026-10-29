@@ -455,8 +455,8 @@ struct ContentView: View {
             }
         }
         .sheet(item: $cropItem) { item in
-            CropEditor(source: item.source, initialCrop: item.crop) { crop in
-                store.scheduleCrop(item, crop: crop)
+            CropEditor(source: item.source, initialCrop: item.crop, initialAspectRatio: item.aspectRatio, rotation: item.rotation) { crop, aspectRatio in
+                store.scheduleGeometry(item, crop: crop, aspectRatio: aspectRatio)
             }
         }
     }
@@ -1132,7 +1132,7 @@ private struct QueueRow: View {
                 .layoutPriority(1)
             HStack(spacing: 7) {
                 QueueActionButton(mark: .scissors, title: "剪辑", isDisabled: !canEdit, action: edit)
-                QueueActionButton(mark: .crop, title: "裁切画面", isDisabled: !canEdit, action: crop)
+                QueueActionButton(mark: .crop, title: "裁切与比例", isDisabled: !canEdit, action: crop)
                 QueueRotationMenu(current: item.rotation, isDisabled: !canEdit, select: rotate)
                 QueueActionButton(mark: .folder, title: "打开文件夹", action: reveal)
                 QueueActionButton(mark: .trash, title: "从队列移除", isDisabled: !canRemove, action: remove)
@@ -1178,7 +1178,7 @@ private struct QueueRow: View {
                 }
             }
         case .waiting:
-            if item.trimRange != nil || item.rotation != nil || item.crop != nil {
+            if item.trimRange != nil || item.rotation != nil || item.crop != nil || item.aspectRatio != nil {
                 HStack(spacing: 9) {
                     StatusMark(state: item.state)
                     VStack(alignment: .leading, spacing: 2) {
@@ -1255,7 +1255,8 @@ private struct QueueRow: View {
         let operations = [
             (item.trimRange != nil, L10n.text("剪辑")),
             (item.crop != nil, L10n.text("裁切")),
-            (item.rotation != nil, L10n.text("旋转"))
+            (item.rotation != nil, L10n.text("旋转")),
+            (item.aspectRatio != nil, L10n.text("比例矫正"))
         ]
             .compactMap { $0.0 ? $0.1 : nil }
         return operations.isEmpty ? L10n.text("等待中") : L10n.format("待%@", L10n.list(operations))
@@ -1266,6 +1267,7 @@ private struct QueueRow: View {
         if let trim = item.trimRange { parts.append("\(timeText(trim.start)) – \(timeText(trim.end))") }
         if let crop = item.crop { parts.append(L10n.format("裁切为 %@", crop.summary)) }
         if let rotation = item.rotation { parts.append(rotation.title) }
+        if let ratio = item.aspectRatio { parts.append(L10n.format("比例 %@", ratio.summary)) }
         return parts.joined(separator: " · ")
     }
 }
@@ -1722,13 +1724,21 @@ private enum CropAspect: String, CaseIterable, Identifiable {
 private struct CropEditor: View {
     let source: URL
     let initialCrop: CropRect?
-    let confirm: (CropRect?) -> Void
+    let initialAspectRatio: DisplayAspectRatio?
+    let rotation: VideoRotation?
+    let confirm: (CropRect?, DisplayAspectRatio?) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var player: AVPlayer?
     @State private var mediaDuration = 0.0
     @State private var sourceWidth = 0
     @State private var sourceHeight = 0
     @State private var crop: CropRect?
+    @State private var isCorrectingRatio = false
+    @State private var aspectRatio: DisplayAspectRatio?
+    @State private var ratioPreset: AspectRatioPreset = .original
+    @State private var ratioWidthText = "16"
+    @State private var ratioHeightText = "9"
+    @State private var sourcePixelRatio = 1.0
     @State private var xText = "0"
     @State private var yText = "0"
     @State private var widthText = "0"
@@ -1737,98 +1747,193 @@ private struct CropEditor: View {
     @State private var inspectionTask: Task<Void, Never>?
 
     var body: some View {
-        // Scheme A keeps every editing control in one vertical flow: preview,
-        // transport, then a compact parameter card.  The canvas stays clear so
-        // the crop frame remains the focus of the editor.
         VStack(alignment: .leading, spacing: 10) {
-            Text(source.lastPathComponent).font(AppFont.section).foregroundStyle(BrandColor.textPrimary).lineLimit(1)
-
+            HStack(spacing: 12) {
+                Text(L10n.text("裁切与比例")).font(AppFont.section).foregroundStyle(BrandColor.textPrimary)
+                Text(source.lastPathComponent).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
+            }
+            HStack(spacing: 8) {
+                editorTab("裁切画面", detail: "去掉画面边缘，保留选中区域。", icon: .crop, active: !isCorrectingRatio) { isCorrectingRatio = false }
+                editorTab("比例矫正", detail: "修正画面拉伸，不新增裁切。", icon: .aspectRatio, active: isCorrectingRatio) { isCorrectingRatio = true }
+            }
             if sourceWidth > 0, sourceHeight > 0 {
                 ZStack {
-                    PlayerPreview(player: player)
-                    if let crop {
-                        CropGuide(crop: crop, sourceWidth: sourceWidth, sourceHeight: sourceHeight) { updatedCrop in
-                            applyGuideCrop(updatedCrop)
+                    if isCorrectingRatio {
+                        AspectCorrectionPreview(player: player, sourceWidth: sourceWidth, sourceHeight: sourceHeight,
+                            crop: crop ?? fullRect, pixelRatio: sourcePixelRatio, rotation: rotation, correction: aspectRatio)
+                    } else {
+                        GeometryReader { proxy in
+                            let fitted = AspectPreviewLayout.fitted(ratio: sourceDisplayRatio, in: proxy.size)
+                            PlayerPreview(player: player)
+                                .frame(width: fitted.width, height: fitted.height)
+                                .position(x: fitted.midX, y: fitted.midY)
+                        }
+                        if let crop {
+                            CropGuide(crop: crop, sourceWidth: sourceWidth, sourceHeight: sourceHeight, displayAspectRatio: sourceDisplayRatio) { applyGuideCrop($0) }
                         }
                     }
-
-                    Text("\(sourceWidth) × \(sourceHeight)")
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(.black.opacity(0.58), in: Capsule())
-                        .padding(10)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                        .accessibilityHidden(true)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 270)
+                .frame(height: 230)
                 .background(Color.black, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
                 CropPlaybackControls(player: player, duration: mediaDuration)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(L10n.text("裁切参数"))
-                        .font(AppFont.captionMedium)
-                        .foregroundStyle(BrandColor.textPrimary)
-                    HStack(alignment: .center, spacing: 10) {
-                        Text(L10n.text("宽高比"))
-                            .font(AppFont.captionMedium)
-                            .foregroundStyle(BrandColor.textSecondary)
-                        ForEach(CropAspect.allCases) { aspect in
-                            Button(L10n.text(aspect.rawValue)) { applyAspect(aspect) }
-                                .buttonStyle(CropAspectButtonStyle(isActive: isAspectActive(aspect)))
-                        }
-                    }
-                    HStack(spacing: 10) {
-                        cropField("X", text: $xText)
-                        cropField("Y", text: $yText)
-                        cropField("W", text: $widthText)
-                        cropField("H", text: $heightText)
-                    }
-                    HStack(spacing: 8) {
-                        Text(L10n.format("视频尺寸：%d × %d", sourceWidth, sourceHeight))
-                        Text(L10n.format("时长：%@", minuteSecondText(mediaDuration)))
-                        Spacer(minLength: 12)
-                        Button(L10n.text("取消")) { dismiss() }
-                            .buttonStyle(EditorActionButtonStyle(primary: false))
-                        Button(L10n.text("确认裁切")) {
-                            confirm(crop.flatMap { isFull($0) ? nil : $0 })
-                            dismiss()
-                        }
-                        .buttonStyle(EditorActionButtonStyle(primary: true))
-                        .disabled(crop == nil)
-                    }
-                    .font(AppFont.caption)
-                    .foregroundStyle(BrandColor.textSecondary)
+                Group {
+                    if isCorrectingRatio { ratioParameters } else { cropParameters }
                 }
+                .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
                 .padding(12)
                 .background(BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
-            } else if let loadError {
-                EditorLoadFailure(message: loadError)
-                    .frame(maxWidth: .infinity, minHeight: 280)
+                HStack(spacing: 8) {
+                    Text(L10n.format("视频尺寸：%d × %d", sourceWidth, sourceHeight))
+                    Text(L10n.format("时长：%@", minuteSecondText(mediaDuration)))
+                    Spacer(minLength: 8)
+                    Button(L10n.text("取消")) { dismiss() }
+                        .buttonStyle(EditorActionButtonStyle(primary: false)).keyboardShortcut(.cancelAction)
+                    Button(L10n.text("应用编辑")) {
+                        confirm(crop.flatMap { isFull($0) ? nil : $0 }, aspectRatio)
+                        dismiss()
+                    }
+                    .buttonStyle(EditorActionButtonStyle(primary: true))
+                    .disabled(crop == nil || invalidRatio)
+                    .keyboardShortcut(.defaultAction)
+                    .accessibilityIdentifier("geometry.apply")
+                }
+                .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
             } else {
-                HStack(spacing: 10) { ProgressView(); Text(L10n.text("正在加载裁切预览")).foregroundStyle(BrandColor.textSecondary) }
-                    .frame(maxWidth: .infinity, minHeight: 280)
-            }
-            if sourceWidth <= 0 || sourceHeight <= 0 {
+                Group {
+                    if let loadError { EditorLoadFailure(message: loadError) }
+                    else { HStack(spacing: 10) { ProgressView(); Text(L10n.text("正在加载裁切预览")) } }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 HStack {
                     Spacer()
-                    Button(L10n.text("取消")) { dismiss() }
-                        .buttonStyle(EditorActionButtonStyle(primary: false))
-                        .keyboardShortcut(.cancelAction)
+                    Button(L10n.text("取消")) { dismiss() }.buttonStyle(EditorActionButtonStyle(primary: false)).keyboardShortcut(.cancelAction)
                 }
             }
+            Spacer(minLength: 0)
         }
         .padding(20)
-        // Match the initial loading state to the ready editor so the sheet never
-        // jumps upward while metadata and the first frame are being prepared.
-        .frame(width: 760, height: 570, alignment: .top)
+        .frame(width: 780, height: 650, alignment: .top)
         .onAppear { loadMedia() }
         .onDisappear { inspectionTask?.cancel(); player?.pause() }
+    }
+
+    private var sourceDisplayRatio: Double {
+        AspectGeometry.displayRatio(width: sourceWidth, height: sourceHeight, pixelRatio: sourcePixelRatio, rotation: nil)
+    }
+    private var invalidRatio: Bool {
+        ratioPreset == .custom && DisplayAspectRatio(widthText: ratioWidthText, heightText: ratioHeightText) == nil
+    }
+    private func editorTab(_ title: String, detail: String, icon: TablerIconName, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                TablerIcon(name: icon, color: BrandColor.blue)
+                    .frame(width: 23, height: 23)
+                    .frame(width: 42, height: 42)
+                    .background(active ? BrandColor.blue.opacity(0.12) : BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.text(title))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(active ? BrandColor.blue : BrandColor.textPrimary)
+                        .lineLimit(1)
+                    Text(L10n.text(detail))
+                        .font(AppFont.caption)
+                        .foregroundStyle(BrandColor.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if active {
+                    TablerIcon(name: .circleCheck, color: BrandColor.blue).frame(width: 20, height: 20)
+                } else { Color.clear.frame(width: 20, height: 20) }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 82, maxHeight: 82)
+            .background(active ? BrandColor.blue.opacity(0.06) : BrandColor.surface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay { RoundedRectangle(cornerRadius: 12).stroke(active ? BrandColor.blue : BrandColor.selectStroke, lineWidth: active ? 1.5 : 1) }
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.text(title))
+        .accessibilityHint(L10n.text(detail))
+        .accessibilityAddTraits(active ? .isSelected : [])
+        .accessibilityIdentifier(icon == .crop ? "geometry.crop" : "geometry.ratio")
+    }
+    private var cropParameters: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.text("裁切参数")).font(AppFont.captionMedium).foregroundStyle(BrandColor.textPrimary)
+            HStack(spacing: 8) {
+                Text(L10n.text("宽高比")).font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary)
+                ForEach(CropAspect.allCases) { aspect in
+                    Button(L10n.text(aspect.rawValue)) { applyAspect(aspect) }
+                        .buttonStyle(CropAspectButtonStyle(isActive: isAspectActive(aspect)))
+                }
+            }
+            HStack(spacing: 10) {
+                cropField("X", text: $xText); cropField("Y", text: $yText)
+                cropField("W", text: $widthText); cropField("H", text: $heightText)
+            }
+        }
+    }
+    private var ratioParameters: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                ForEach(AspectRatioPreset.allCases) { preset in
+                    Button(preset.title) { selectRatio(preset) }
+                        .buttonStyle(CropAspectButtonStyle(isActive: ratioPreset == preset))
+                        .accessibilityIdentifier("geometry.preset." + preset.rawValue)
+                }
+            }
+            HStack(alignment: .bottom, spacing: 10) {
+                ratioField("比例宽", text: $ratioWidthText, identifier: "geometry.width")
+                Text(":").font(AppFont.section).padding(.bottom, 8)
+                ratioField("比例高", text: $ratioHeightText, identifier: "geometry.height")
+                Spacer(minLength: 8)
+                Text(aspectRatio.map { L10n.format("比例 %@", $0.summary) } ?? L10n.text("保持原画比例"))
+                    .font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
+                    .padding(.bottom, 8)
+            }
+            Text(L10n.text(invalidRatio ? "请输入有效比例（1:10–10:1）。" : "调整比例，不新增裁切。"))
+                .font(AppFont.caption).foregroundStyle(invalidRatio ? BrandColor.warning : BrandColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    private func ratioField(_ title: String, text: Binding<String>, identifier: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(L10n.text(title)).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
+            TextField("", text: text)
+                .textFieldStyle(.plain).font(AppFont.medium)
+                .padding(.horizontal, 10).frame(height: 32)
+                .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7))
+                .overlay { RoundedRectangle(cornerRadius: 7).stroke(BrandColor.selectStroke, lineWidth: 1) }
+                .accessibilityLabel(L10n.text(title)).accessibilityIdentifier(identifier)
+                .disabled(ratioPreset != .custom)
+                .onChange(of: text.wrappedValue) { _ in
+                    if ratioPreset == .custom, let ratio = DisplayAspectRatio(widthText: ratioWidthText, heightText: ratioHeightText) { aspectRatio = ratio }
+                }
+        }
+        .frame(width: 110)
+    }
+    private func selectRatio(_ preset: AspectRatioPreset) {
+        if preset == .custom && aspectRatio == nil { seedOriginalRatio() }
+        ratioPreset = preset
+        if preset == .original { aspectRatio = nil; seedOriginalRatio() }
+        else if let ratio = preset.ratio {
+            aspectRatio = ratio
+            ratioWidthText = String(ratio.width); ratioHeightText = String(ratio.height)
+        } else { aspectRatio = DisplayAspectRatio(widthText: ratioWidthText, heightText: ratioHeightText) }
+    }
+
+    private func seedOriginalRatio() {
+        let frame = crop ?? fullRect
+        let displayRatio = AspectGeometry.displayRatio(width: frame.width, height: frame.height, pixelRatio: sourcePixelRatio, rotation: rotation)
+        if let ratio = DisplayAspectRatio.approximating(displayRatio) {
+            ratioWidthText = String(ratio.width)
+            ratioHeightText = String(ratio.height)
+        }
     }
 
     private func cropField(_ title: String, text: Binding<String>) -> some View {
@@ -1862,8 +1967,16 @@ private struct CropEditor: View {
             }
             sourceWidth = media.width
             sourceHeight = media.height
+            sourcePixelRatio = media.pixelRatio
+            aspectRatio = initialAspectRatio
+            isCorrectingRatio = initialAspectRatio != nil
+            ratioPreset = initialAspectRatio.flatMap { ratio in AspectRatioPreset.allCases.first { $0.ratio == ratio } } ?? (initialAspectRatio == nil ? .original : .custom)
+            if let initialAspectRatio {
+                ratioWidthText = String(initialAspectRatio.width); ratioHeightText = String(initialAspectRatio.height)
+            }
             mediaDuration = media.duration
             crop = initialCrop.map(normalized) ?? fullRect
+            if initialAspectRatio == nil { seedOriginalRatio() }
             syncFields()
             // AVPlayerView can otherwise remain black until the user presses
             // play on some files. Seek once after the view has a valid item so
@@ -1877,7 +1990,7 @@ private struct CropEditor: View {
 
     private func applyAspect(_ aspect: CropAspect) {
         guard let ratio = aspect.ratio else { crop = fullRect; syncFields(); return }
-        crop = CropGeometry.centered(ratio: ratio, sourceWidth: sourceWidth, sourceHeight: sourceHeight)
+        crop = CropGeometry.centered(ratio: ratio / sourcePixelRatio, sourceWidth: sourceWidth, sourceHeight: sourceHeight)
         syncFields()
     }
 
@@ -1904,7 +2017,7 @@ private struct CropEditor: View {
     private func isAspectActive(_ aspect: CropAspect) -> Bool {
         guard let crop else { return aspect == .original }
         guard let ratio = aspect.ratio else { return isFull(crop) }
-        return abs(Double(crop.width) / Double(crop.height) - ratio) < 0.01
+        return abs(Double(crop.width) / Double(crop.height) * sourcePixelRatio - ratio) < 0.01
     }
 }
 
@@ -1912,6 +2025,7 @@ private struct CropGuide: View {
     let crop: CropRect
     let sourceWidth: Int
     let sourceHeight: Int
+    var displayAspectRatio: Double? = nil
     let onChange: (CropRect) -> Void
     @State private var moveOrigin: CropRect?
     @State private var resizeOrigin: CropRect?
@@ -1946,7 +2060,7 @@ private struct CropGuide: View {
     }
 
     private func fittedVideoRect(in size: CGSize) -> CGRect {
-        let videoRatio = CGFloat(sourceWidth) / CGFloat(sourceHeight)
+        let videoRatio = CGFloat(displayAspectRatio ?? Double(sourceWidth) / Double(sourceHeight))
         let containerRatio = size.width / size.height
         if containerRatio > videoRatio {
             let height = size.height
@@ -2077,6 +2191,7 @@ struct EditorMediaInfo: Sendable {
     let width: Int
     let height: Int
     let frameRate: Double
+    var pixelRatio: Double = 1
 
     var frameDuration: Double { 1 / frameRate }
 }
@@ -2095,13 +2210,18 @@ enum EditorMediaProbe {
         let width: Int?
         let height: Int?
         let frameRate: String?
+        let sampleAspectRatio: String?
+        let sideDataList: [RotationData]?
+        let tags: [String: String]?
         enum CodingKeys: String, CodingKey {
             case disposition
             case codecType = "codec_type"
             case width, height
             case frameRate = "r_frame_rate"
+            case sampleAspectRatio = "sample_aspect_ratio", sideDataList = "side_data_list", tags
         }
     }
+    private struct RotationData: Decodable { let rotation: Double? }
     private struct Format: Decodable {
         let duration: String?
     }
@@ -2117,7 +2237,7 @@ enum EditorMediaProbe {
         // detached probe alive, and stderr cannot fill an undrained pipe.
         let result = await FFmpegProcessRunner(
             executable: binary,
-            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate:stream_disposition=attached_pic,timed_thumbnails:format=duration", "-of", "json", source.path],
+            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:format=duration", "-of", "json", source.path],
             configuration: FFmpegProcessRunner.Configuration(inactivityTimeout: 5, terminationGrace: 0.5, maximumOutputBytes: 1_000_000)
         ).run()
         guard !Task.isCancelled, result.succeeded,
@@ -2126,7 +2246,11 @@ enum EditorMediaProbe {
               let width = video.width, let height = video.height,
               width > 0, height > 0,
               let duration = Double(response.format?.duration ?? ""), duration.isFinite, duration > 0 else { return nil }
-        return EditorMediaInfo(duration: duration, width: width, height: height, frameRate: parseFrameRate(video.frameRate) ?? 30)
+        let angle = video.sideDataList?.compactMap(\.rotation).first ?? video.tags?["rotate"].flatMap(Double.init)
+        guard let geometry = VideoGeometry.displayed(width: width, height: height, sampleAspectRatio: video.sampleAspectRatio, rotation: angle) else { return nil }
+        let sar = AspectGeometry.pixelRatio(video.sampleAspectRatio)
+        let swapped = abs(((angle ?? 0) / 90).rounded().truncatingRemainder(dividingBy: 2)) == 1
+        return EditorMediaInfo(duration: duration, width: geometry.width, height: geometry.height, frameRate: parseFrameRate(video.frameRate) ?? 30, pixelRatio: swapped ? 1 / sar : sar)
     }
 
     private static func parseFrameRate(_ value: String?) -> Double? {

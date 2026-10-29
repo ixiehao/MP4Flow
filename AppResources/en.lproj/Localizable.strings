@@ -386,3 +386,27 @@
 "menu.showAll" = "Show All";
 "menu.quit" = "Quit %@";
 "menu.settings" = "Settings…";
+
+"裁切与比例" = "Crop & Aspect";
+"比例矫正" = "Aspect Correction";
+"原比例" = "Original";
+"自定义" = "Custom";
+"比例预览" = "Aspect preview";
+"应用编辑" = "Apply";
+"比例宽" = "Width";
+"比例高" = "Height";
+"比例 %@" = "Aspect %@";
+"保持原画比例" = "Keep source aspect";
+"请输入有效比例（1:10–10:1）。" = "Enter a ratio from 1:10 to 10:1.";
+"调整比例，不新增裁切。" = "Reshape the frame without further cropping.";
+"目标比例或尺寸超出支持范围" = "Output aspect or size is too large";
+"请选择较小分辨率或接近原画的比例。" = "Choose a lower resolution or a ratio closer to the source.";
+"智能增强不支持画面编辑" = "Smart Enhance cannot apply frame edits";
+"请先完成画面编辑，再添加新文件增强。" = "Convert the edited video first, then add the new file to enhance it.";
+"输出画面比例异常" = "Output aspect does not match";
+
+"请使用「最稳妥转换」重试，或检查比例设置。" = "Retry with Reliable (Slow) or check the aspect setting.";
+
+"去掉画面边缘，保留选中区域。" = "Remove edges; keep the selected area.";
+
+"修正画面拉伸，不新增裁切。" = "Fix stretched proportions without more cropping.";

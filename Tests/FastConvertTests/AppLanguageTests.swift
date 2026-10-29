@@ -31,7 +31,10 @@ final class AppLanguageTests: XCTestCase {
         for language in AppLanguage.allCases {
             let data = try Data(contentsOf: resourceURL.appendingPathComponent("\(language.rawValue).lproj/Localizable.strings"))
             let catalog = try XCTUnwrap(PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String])
-            XCTAssertEqual(catalog.count, 385, language.rawValue)
+            let referenceData = try Data(contentsOf: resourceURL.appendingPathComponent("en.lproj/Localizable.strings"))
+            let reference = try XCTUnwrap(PropertyListSerialization.propertyList(from: referenceData, format: nil) as? [String: String])
+            XCTAssertEqual(Set(catalog.keys), Set(reference.keys), language.rawValue)
+            XCTAssertGreaterThan(catalog.count, 380)
             XCTAssertEqual(language.text("添加视频", in: bundle), catalog["添加视频"])
             XCTAssertEqual(language.text("__unknown_key__", in: bundle), "__unknown_key__")
             for (key, translation) in catalog {

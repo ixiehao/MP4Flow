@@ -387,3 +387,27 @@
 "menu.showAll" = "Mostrar todo";
 "menu.quit" = "Salir de %@";
 "menu.settings" = "Ajustes…";
+
+"裁切与比例" = "Recorte y proporción";
+"比例矫正" = "Corregir proporción";
+"原比例" = "Original";
+"自定义" = "Personalizada";
+"比例预览" = "Vista previa de proporción";
+"应用编辑" = "Aplicar";
+"比例宽" = "Ancho";
+"比例高" = "Alto";
+"比例 %@" = "Proporción %@";
+"保持原画比例" = "Proporción original";
+"请输入有效比例（1:10–10:1）。" = "Introduce una proporción de 1:10 a 10:1.";
+"调整比例，不新增裁切。" = "Ajusta la proporción sin recortar más.";
+"目标比例或尺寸超出支持范围" = "Proporción o tamaño de salida excesivo";
+"请选择较小分辨率或接近原画的比例。" = "Elige menor resolución o una proporción más cercana a la original.";
+"智能增强不支持画面编辑" = "Mejora inteligente no admite editar el encuadre";
+"请先完成画面编辑，再添加新文件增强。" = "Convierte primero el video editado y añade el nuevo archivo para mejorarlo.";
+"输出画面比例异常" = "Proporción de salida incorrecta";
+
+"请使用「最稳妥转换」重试，或检查比例设置。" = "Reintenta con «Fiable (lento)» o revisa la proporción.";
+
+"去掉画面边缘，保留选中区域。" = "Quita los bordes y conserva el área elegida.";
+
+"修正画面拉伸，不新增裁切。" = "Corrige el estiramiento sin recortar más.";
