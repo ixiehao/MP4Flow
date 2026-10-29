@@ -706,6 +706,11 @@ struct ContentView: View {
                             }
                         }
                     }
+                    // Removing offscreen rows can leave LazyVStack's cached
+                    // height and scroll offset beyond the remaining content.
+                    // Recreate only the viewport when queue membership changes;
+                    // progress updates keep the same identity and scroll position.
+                    .id(store.items.map(\.id))
                     .scrollIndicators(.visible)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
