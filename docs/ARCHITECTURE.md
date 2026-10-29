@@ -10,6 +10,7 @@ MP4Flow is a small native SwiftUI application without a server.
 - `AppLanguage.swift` resolves the selected language and exposes `L10n` for dynamic strings that SwiftUI cannot localize automatically.
 - `AppResources/*.lproj/Localizable.strings` holds seven App languages, with English as the fallback. CI checks matching keys and format arguments across all catalogs; see [Localization](LOCALIZATION.md).
 - `MenuBarLocalization.swift` refreshes native menu titles through public roles and actions, preserving targets, shortcuts and validation. Language selection lives in the menu bar.
+- `AspectCorrection.swift` stores validated rational display ratios and bounded square-pixel output dimensions. `AspectPreview.swift` reshapes the existing player live, applying the same crop → rotation → final display-ratio order as export; no preview transcodes or per-keystroke probing are required.
 - `CropGeometry.swift` normalizes crop coordinates and presets within even-pixel source bounds; zero is a valid origin.
 - `Scripts/build-app.sh` produces an app bundle; `Scripts/package-dmg.sh` creates an installer from an isolated temporary build.
 
@@ -55,3 +56,30 @@ The checker neither downloads nor installs updates and uses no account token.
 
 References: [official latest-release links](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases)
 and [REST API rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+
+## Frame geometry and aspect correction
+
+The crop/aspect editor probes the selected real video stream, its sample aspect
+ratio and display rotation. Its coordinates match FFmpeg's automatically oriented
+frame, while the crop guide fits the displayed pixel shape. Crop ratio presets
+account for non-square pixels. Correction applies to the final cropped/rotated
+frame and exports even square-pixel dimensions, preserving the complete selected
+frame. Decimal custom inputs accept a dot or comma; numeric parsing rejects
+expressions and invalid ratios outside 1:10–10:1. Extremely large output
+dimensions are rejected before encoding. A correction forces encoding even
+under Smart Convert or remux; native enhancement requires a separate ordinary
+edit/conversion first. Edited pending sources cannot be merged before conversion.
+
+Hardware decoding does not reliably bake input display matrices into frames.
+For known orthogonal rotations, clear the input display rotation and apply it
+explicitly with transpose_vt, then invert SAR for quarter turns before any user
+rotation. CPU fallbacks retain FFmpeg's automatic orientation. Non-orthogonal
+rotations avoid the hardware-filter pipeline. Missing display_rotation support
+or transpose_vt falls back to CPU decoding/filtering without changing the edit.
+
+Output verification compares displayed aspect against the inspected source and
+edits (or the explicitly chosen correction), allowing bounded integer-pixel
+rounding. Corrected outputs must also have square pixels. A decodable file with
+the wrong geometry is rejected and its partial output removed. Regression
+fixtures assert actual decoded circle shape and four-corner positions, not just
+DAR metadata; quarter-turn input matrices are verified in fixtures before use.

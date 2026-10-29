@@ -46,6 +46,21 @@ final class EditorPreviewTests: XCTestCase {
         }
     }
 
+    func testEditorProbeUsesDisplayedCoordinatesAndPixelShape() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("rotated response.json")
+        let payload = #"{"streams":[{"codec_type":"video","width":64,"height":64,"disposition":{"attached_pic":1}},{"codec_type":"video","width":320,"height":240,"sample_aspect_ratio":"4:3","side_data_list":[{"rotation":90}],"r_frame_rate":"12/1"}],"format":{"duration":"2"}}"#
+        try payload.write(to: source, atomically: true, encoding: .utf8)
+        let probe = try makeJSONProbe(in: directory)
+        let result = await EditorMediaProbe.inspect(source: source, using: probe)
+        let media = try XCTUnwrap(result)
+        XCTAssertEqual(media.width, 240)
+        XCTAssertEqual(media.height, 320)
+        XCTAssertEqual(media.pixelRatio, 0.75, accuracy: 0.0001)
+        XCTAssertEqual(Double(media.width) / Double(media.height) * media.pixelRatio, 9.0 / 16, accuracy: 0.0001)
+    }
+
     func testClosingEditorCancelsSilentProbeAndReapsItsProcess() async throws {
         guard FileManager.default.isExecutableFile(atPath: "/usr/bin/perl") else {
             throw XCTSkip("System Perl is required for the single-process cancellation fixture")

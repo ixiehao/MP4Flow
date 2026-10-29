@@ -387,3 +387,23 @@
 "menu.showAll" = "Tout afficher";
 "menu.quit" = "Quitter %@";
 "menu.settings" = "Réglages…";
+
+"裁切与比例" = "Recadrage et ratio";
+"比例矫正" = "Correction du ratio";
+"原比例" = "Original";
+"自定义" = "Personnalisé";
+"比例预览" = "Aperçu du ratio";
+"应用编辑" = "Appliquer";
+"比例宽" = "Largeur";
+"比例高" = "Hauteur";
+"比例 %@" = "Ratio %@";
+"保持原画比例" = "Ratio d’origine";
+"请输入有效比例（1:10–10:1）。" = "Saisissez un ratio de 1:10 à 10:1.";
+"调整比例，不新增裁切。" = "Modifie le ratio sans recadrage supplémentaire.";
+"目标比例或尺寸超出支持范围" = "Ratio ou taille de sortie trop grand";
+"请选择较小分辨率或接近原画的比例。" = "Choisissez une résolution plus basse ou un ratio proche de l’original.";
+"智能增强不支持画面编辑" = "Amélioration IA : retouches non prises en charge";
+"请先完成画面编辑，再添加新文件增强。" = "Convertissez d’abord la vidéo retouchée, puis ajoutez le nouveau fichier pour l’améliorer.";
+"输出画面比例异常" = "Ratio de sortie incorrect";
+
+"请使用「最稳妥转换」重试，或检查比例设置。" = "Réessayez avec « Fiable (lent) » ou vérifiez le ratio.";

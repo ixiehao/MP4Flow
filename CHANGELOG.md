@@ -3,18 +3,26 @@
 ## 1.3.2 — Unreleased
 
 ### English
+- Added live aspect correction with presets and custom ratios in seven languages.
+- Fixed hardware conversion of rotated video with non-square pixels; added output aspect checks.
 - Update checks now use the official latest-release link, with an API fallback and rate-limit backoff.
 - Keeps the 60-second startup check and manual checks; no GitHub login is needed.
 
 ### 中文
+- 新增七语比例矫正，支持常用比例、自定义比例和实时预览。
+- 修复带旋转标记、非方形像素视频的硬件转换比例，增加导出比例校验。
 - 更新检查优先使用官方最新版入口，补充 API 备用检查和限流退避。
 - 保留启动 60 秒后的自动检查与手动检查，无需登录 GitHub。
 
 ### 日本語
+- 7言語対応の縦横比補正を追加。プリセット、カスタム比率、リアルタイムプレビューに対応。
+- 回転情報と非正方形ピクセルを持つ動画のハードウェア変換を修正し、出力比率を検証。
 - 公式の最新版リンクを使って更新を確認し、API の代替確認と制限時の待機処理を追加。
 - 起動60秒後の自動確認と手動確認に対応。GitHub へのログインは不要です。
 
 ### 한국어
+- 7개 언어로 화면 비율 보정을 추가했습니다. 기본·사용자 지정 비율과 실시간 미리보기를 지원합니다.
+- 회전 정보와 비정사각형 픽셀이 있는 영상의 하드웨어 변환을 수정하고 출력 비율을 검증합니다.
 - 공식 최신 릴리스 링크로 업데이트를 확인하고 API 대체 경로와 요청 제한 시 대기 처리를 추가했습니다.
 - 시작 60초 후 자동 확인과 수동 확인을 유지하며 GitHub 로그인이 필요 없습니다.
 

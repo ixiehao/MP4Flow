@@ -300,12 +300,13 @@ struct ConversionItem: Identifiable, Equatable {
     var trimRange: ClipRange?
     var rotation: VideoRotation?
     var crop: CropRect?
+    var aspectRatio: DisplayAspectRatio?
     var phase: ConversionPhase?
     var failure: ConversionFailure?
     var mediaHandling: MediaHandlingNotice?
 
     static func == (lhs: ConversionItem, rhs: ConversionItem) -> Bool {
-        lhs.id == rhs.id && lhs.source == rhs.source && lhs.state == rhs.state && lhs.presentation == rhs.presentation && lhs.trimRange == rhs.trimRange && lhs.rotation == rhs.rotation && lhs.crop == rhs.crop && lhs.phase == rhs.phase && lhs.failure == rhs.failure && lhs.mediaHandling == rhs.mediaHandling
+        lhs.id == rhs.id && lhs.source == rhs.source && lhs.state == rhs.state && lhs.presentation == rhs.presentation && lhs.trimRange == rhs.trimRange && lhs.rotation == rhs.rotation && lhs.crop == rhs.crop && lhs.aspectRatio == rhs.aspectRatio && lhs.phase == rhs.phase && lhs.failure == rhs.failure && lhs.mediaHandling == rhs.mediaHandling
     }
 }
 
@@ -435,6 +436,22 @@ struct VideoInfo: Sendable {
         }
         guard rotation?.swapsDimensions == true else { return geometry }
         return VideoGeometry(width: geometry.height, height: geometry.width, hasSquarePixels: geometry.hasSquarePixels)
+    }
+
+    func displayAspectRatio(crop: CropRect? = nil, rotation: VideoRotation? = nil) -> Double? {
+        guard let geometry = geometry(crop: crop, rotation: nil) else { return nil }
+        let sar = AspectGeometry.pixelRatio(sampleAspectRatio)
+        let swaps = abs(((displayRotation ?? 0) / 90).rounded().truncatingRemainder(dividingBy: 2)) == 1
+        return AspectGeometry.displayRatio(width: geometry.width, height: geometry.height, pixelRatio: swaps ? 1 / sar : sar, rotation: rotation)
+    }
+
+    var hardwareDisplayRotation: VideoRotation? {
+        guard let angle = displayRotation, angle.isFinite else { return nil }
+        let normalized = (angle.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+        if abs(normalized - 90) < 0.01 { return .counterclockwise }
+        if abs(normalized - 270) < 0.01 { return .clockwise }
+        if abs(normalized - 180) < 0.01 { return .upsideDown }
+        return nil
     }
 
     /// Match the demuxer's clock so VFR timestamps are not rounded to the
@@ -596,6 +613,9 @@ enum FFmpegHardwareRetryClassifier {
         guard !terminalFailure else { return nil }
 
         if usedHardwarePipeline {
+            if lines.contains(where: { $0.contains("display_rotation") && ($0.contains("unrecognized option") || $0.contains("option not found")) }) {
+                return .cpuDecodeAndFilter
+            }
             let filterMarkers = ["scale_vt", "transpose_vt"]
             let filterFailurePhrases = [
                 "no such filter", "not found", "not supported", "failed", "error",
@@ -704,7 +724,7 @@ final class ConverterStore: ObservableObject {
     var hasWaiting: Bool { items.contains { if case .waiting = $0.state { return true }; return false } }
     var hasCompleted: Bool { items.contains { if case .complete = $0.state { return true }; return false } }
     var hasIncomplete: Bool { items.contains { if case .failed = $0.state { return true }; if case .cancelled = $0.state { return true }; return false } }
-    var mergeCandidateCount: Int { items.reduce(into: 0) { if case .waiting = $1.state, $1.trimRange == nil, $1.rotation == nil, $1.crop == nil { $0 += 1 } } }
+    var mergeCandidateCount: Int { items.reduce(into: 0) { if case .waiting = $1.state, $1.trimRange == nil, $1.rotation == nil, $1.crop == nil, $1.aspectRatio == nil { $0 += 1 } } }
     var mergeDisplayCount: Int { isMerging ? mergeItemIDs.count : mergeCandidateCount }
     var canMerge: Bool { !isBusy && mergeCandidateCount >= 2 }
     var isBusy: Bool { isRunning || isMerging }
@@ -839,8 +859,8 @@ final class ConverterStore: ObservableObject {
     func mergeWaitingItems() {
         guard canMerge else { return }
         guard let binary = locateFFmpeg() else { showFFmpegSetup = true; return }
-        let sources = items.compactMap { item -> URL? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil { return item.source }; return nil }
-        mergeItemIDs = items.compactMap { item -> UUID? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil { return item.id }; return nil }
+        let sources = items.compactMap { item -> URL? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil { return item.source }; return nil }
+        mergeItemIDs = items.compactMap { item -> UUID? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil { return item.id }; return nil }
         for index in items.indices where mergeItemIDs.contains(items[index].id) { items[index].state = .merging(nil) }
         cancellationRequested = false
         isVerifyingMerge = false
@@ -860,7 +880,7 @@ final class ConverterStore: ObservableObject {
             return
         }
         let candidates = items.filter { item in
-            guard compatibleMergeIDs.contains(item.id), item.trimRange == nil, item.rotation == nil, item.crop == nil else { return false }
+            guard compatibleMergeIDs.contains(item.id), item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil else { return false }
             if case .waiting = item.state { return true }
             return false
         }
@@ -941,6 +961,10 @@ final class ConverterStore: ObservableObject {
         scheduleEdit(item) { $0.crop = crop }
     }
 
+    func scheduleGeometry(_ item: ConversionItem, crop: CropRect?, aspectRatio: DisplayAspectRatio?) {
+        scheduleEdit(item) { $0.crop = crop; $0.aspectRatio = aspectRatio }
+    }
+
     /// Editing a finished or failed row creates new work from the original
     /// source. Keep the existing output on disk and discard only stale results.
     /// Confirming unchanged settings must not unnecessarily requeue a video.
@@ -949,7 +973,7 @@ final class ConverterStore: ObservableObject {
         let previous = items[index]
         var edited = previous
         update(&edited)
-        guard edited.trimRange != previous.trimRange || edited.rotation != previous.rotation || edited.crop != previous.crop else { return }
+        guard edited.trimRange != previous.trimRange || edited.rotation != previous.rotation || edited.crop != previous.crop || edited.aspectRatio != previous.aspectRatio else { return }
         edited.state = .waiting
         edited.phase = nil
         edited.failure = nil
@@ -1340,6 +1364,7 @@ final class ConverterStore: ObservableObject {
         let trim = item.trimRange
         let rotation = item.rotation
         let crop = item.crop
+        let aspectRatio = item.aspectRatio
         setPhase(.inspecting, for: id, progress: nil, count: count)
         var info = await probe(source, ffmpegURL: ffmpegURL)
         // A transient file-provider or network-volume read may make ffprobe
@@ -1383,12 +1408,12 @@ final class ConverterStore: ObservableObject {
         // perfectly compatible video through a full decode/encode cycle.
         // Restrict this route to complete, unedited source timelines.
         let copyVideoAndEncodeAudio = preset == .smartMP4
-            && trim == nil && rotation == nil && crop == nil && !resizeRequiresEncoding
+            && trim == nil && rotation == nil && crop == nil && aspectRatio == nil && !resizeRequiresEncoding
             && info.canCopyVideoToMP4 && info.audioCodec != nil && info.audioCodec?.lowercased() != "aac"
         let effectivePreset: ConversionPreset
         if preset == .smartEnhanceUpscale {
             effectivePreset = preset
-        } else if rotation != nil || crop != nil || resizeRequiresEncoding {
+        } else if rotation != nil || crop != nil || aspectRatio != nil || resizeRequiresEncoding {
             // Edits require re-encoding, but retain an explicitly selected
             // software or HEVC encoder. Only copy/automatic presets need a
             // concrete H.264 encoding path here.
@@ -1403,17 +1428,21 @@ final class ConverterStore: ObservableObject {
         items[index].failure = nil
         items[index].mediaHandling = Self.mediaHandlingNotice(for: info, preset: effectivePreset)
         setPhase(copyVideoAndEncodeAudio ? .audioTranscoding : phase(for: effectivePreset, preferHardwareEncoder: true), for: id, progress: info.duration == nil ? nil : 0, count: count, detail: copyVideoAndEncodeAudio ? nil : outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution, sourceHeight: editedGeometry?.height))
-        let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop)
+        if let aspectRatio, aspectRatio.outputSize(height: resolution.targetHeight ?? editedGeometry?.height ?? 0) == nil {
+            markFailed(id, failure: ConversionFailure(reasonKey: "目标比例或尺寸超出支持范围", solutionKey: "请选择较小分辨率或接近原画的比例。", diagnostic: "geometry:unsupported-size"), count: count)
+            return
+        }
+        let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio)
         let temporary = final.deletingLastPathComponent().appendingPathComponent(".MP4Flow-\(UUID().uuidString).partial.mp4")
         // The worker owns only its partial file; a successful move leaves the
         // published output untouched, while every early return also cleans up.
         defer { try? FileManager.default.removeItem(at: temporary) }
         var result: ProcessResult
         if effectivePreset == .smartEnhanceUpscale {
-            guard rotation == nil, crop == nil else {
+            guard rotation == nil, crop == nil, aspectRatio == nil else {
                 markFailed(id, failure: ConversionFailure(
-                    reasonKey: "智能增强不支持裁切或旋转",
-                    solutionKey: "请取消裁切和旋转后再增强；或先完成普通编辑，再添加新文件增强。",
+                    reasonKey: "智能增强不支持画面编辑",
+                    solutionKey: "请先完成画面编辑，再添加新文件增强。",
                     diagnostic: "enhance:unsupported-edit"
                 ), count: count)
                 return
@@ -1430,7 +1459,7 @@ final class ConverterStore: ObservableObject {
             statusText = L10n.format("智能增强放大至 %@", plan.outputSummary)
             result = await runSmartEnhance(source: source, output: temporary, info: info, plan: plan, trim: trim, quality: quality, id: id, count: count)
         } else {
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio)
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, id: id, count: count, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio)
         }
         // Keep the fast VideoToolbox path as the default. Retry only when the
         // stderr allowlist identifies a specific VideoToolbox component: a
@@ -1441,18 +1470,18 @@ final class ConverterStore: ObservableObject {
            !cancellationRequested,
            effectivePreset != .smartEnhanceUpscale {
             setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件处理失败，正在使用兼容方式重试"))
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false)
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, id: id, count: count, preferHardwarePipeline: false)
         }
         if case .retryableFailure(_, .softwareEncoder) = result,
            !cancellationRequested,
            effectivePreset != .smartEnhanceUpscale,
            usesVideoToolboxEncoder(effectivePreset) {
             setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件编码不可用，正在使用兼容编码重试"))
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false)
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false)
         }
         if case .success = result, !cancellationRequested {
             setPhase(.verifying, for: id, progress: 0.999, count: count)
-            if let verificationFailure = await verifyOutput(temporary, ffmpegURL: ffmpegURL) {
+            if let verificationFailure = await verifyOutput(temporary, ffmpegURL: ffmpegURL, expectedAspectRatio: aspectRatio?.value ?? info.displayAspectRatio(crop: crop, rotation: rotation), requiresSquarePixels: aspectRatio != nil) {
                 result = .failure(verificationFailure.reason)
                 if let current = items.firstIndex(where: { $0.id == id }) {
                     items[current].failure = verificationFailure
@@ -1549,6 +1578,9 @@ final class ConverterStore: ObservableObject {
     }
 
     nonisolated static func failure(from message: String) -> ConversionFailure {
+        if message == "MP4Flow:aspect-mismatch" {
+            return ConversionFailure(reasonKey: "输出画面比例异常", solutionKey: "请使用「最稳妥转换」重试，或检查比例设置。", diagnostic: "MP4Flow:aspect-mismatch")
+        }
         if message == "MP4Flow:stalled" {
             return ConversionFailure(
                 reasonKey: "转换长时间无进度，已安全停止",
@@ -1646,7 +1678,7 @@ final class ConverterStore: ObservableObject {
     /// Validate the temporary result before atomically publishing it. This is
     /// deliberately metadata-only: it catches a zero-byte/truncated output
     /// without decoding a long video for a second time.
-    private func verifyOutput(_ output: URL, ffmpegURL: URL) async -> ConversionFailure? {
+    private func verifyOutput(_ output: URL, ffmpegURL: URL, expectedAspectRatio: Double? = nil, requiresSquarePixels: Bool = false) async -> ConversionFailure? {
         guard let values = try? output.resourceValues(forKeys: [.fileSizeKey]),
               let size = values.fileSize,
               size > 0 else {
@@ -1681,6 +1713,12 @@ final class ConverterStore: ObservableObject {
                 solutionKey: "请使用「最稳妥转换」重试。",
                 diagnostic: "verify:no-video-stream"
             )
+        }
+        if let expectedAspectRatio, let actual = info.displayAspectRatio() {
+            let tolerance = max(0.01, 2 / Double(min(info.width ?? 2, info.height ?? 2)))
+            if abs(actual / expectedAspectRatio - 1) > tolerance || (requiresSquarePixels && abs(AspectGeometry.pixelRatio(info.sampleAspectRatio) - 1) > 0.0001) {
+                return Self.failure(from: "MP4Flow:aspect-mismatch")
+            }
         }
         return nil
     }
@@ -1747,7 +1785,7 @@ final class ConverterStore: ObservableObject {
     }
 #endif
 
-    private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, id: UUID, count: Int, copyVideoAndEncodeAudio: Bool = false, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
+    private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, id: UUID, count: Int, copyVideoAndEncodeAudio: Bool = false, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
         guard !cancellationRequested else { return .cancelled }
         let generation = UUID()
         let usedHardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop)
@@ -1758,7 +1796,7 @@ final class ConverterStore: ObservableObject {
         lastProgressUpdate[id] = nil
         let runner = FFmpegProcessRunner(
             executable: ffmpegURL,
-            arguments: ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder),
+            arguments: ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder),
             configuration: processConfiguration
         )
         activeProcesses[id] = runner
@@ -1791,7 +1829,7 @@ final class ConverterStore: ObservableObject {
         return .failure(message)
     }
 
-    private func ffmpegArguments(source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool) -> [String] {
+    private func ffmpegArguments(source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool) -> [String] {
         // Privacy-first default: never copy source metadata or chapters, which
         // may contain title, author, device, location, or editing information.
         var args = ["-hide_banner", "-nostdin", "-y", "-thread_queue_size", "1024"]
@@ -1801,6 +1839,12 @@ final class ConverterStore: ObservableObject {
         // original-size conversion: not just resizes.
         if hardwarePipeline {
             args += ["-init_hw_device", "videotoolbox=vt", "-filter_hw_device", "vt", "-hwaccel", "videotoolbox", "-hwaccel_output_format", "videotoolbox_vld"]
+            if info.hardwareDisplayRotation != nil {
+                // Hardware decoding does not reliably apply display matrices.
+                // Clear the input matrix and apply its known transform below;
+                // otherwise pixels can stay sideways or the matrix applies twice.
+                args += ["-display_rotation:v", "0"]
+            }
         }
         // Input seeking decodes only from the preceding keyframe, including
         // accurate discarding during re-encoding. Output seeking would decode
@@ -1827,6 +1871,10 @@ final class ConverterStore: ObservableObject {
         let editedGeometry = info.geometry(crop: crop, rotation: rotation)
         let rotatedSourceHeight = editedGeometry?.height
         var filters = [crop?.filter].compactMap { $0 }
+        if hardwarePipeline, let displayRotation = info.hardwareDisplayRotation {
+            filters.append(displayRotation.videoToolboxFilter)
+            if displayRotation.swapsDimensions { filters.append("setsar=1/sar") }
+        }
         if preset != .remux, let trim, trim.start > 0, let firstFrameFilter = info.trimmedFirstFrameFilter {
             filters.append(firstFrameFilter)
         }
@@ -1836,7 +1884,14 @@ final class ConverterStore: ObservableObject {
                 filters.append("setsar=1/sar")
             }
         }
-        if let resolutionFilter = resolution.filter(sourceHeight: rotatedSourceHeight, quality: quality, useVideoToolbox: hardwarePipeline, canSkipUnchangedSize: editedGeometry?.canSkipUnchangedSize == true) {
+        if let aspectRatio, let size = aspectRatio.outputSize(height: resolution.targetHeight ?? rotatedSourceHeight ?? 0) {
+            // A correction intentionally reshapes the complete edited frame.
+            // Export square pixels so players agree on the corrected geometry.
+            filters.append(hardwarePipeline
+                ? "scale_vt=w=\(size.width):h=\(size.height)"
+                : "scale=\(size.width):\(size.height):flags=bicubic")
+            filters.append("setsar=1")
+        } else if let resolutionFilter = resolution.filter(sourceHeight: rotatedSourceHeight, quality: quality, useVideoToolbox: hardwarePipeline, canSkipUnchangedSize: editedGeometry?.canSkipUnchangedSize == true) {
             filters.append(resolutionFilter)
         }
         if !filters.isEmpty { args += ["-vf", filters.joined(separator: ",")] }
@@ -1877,6 +1932,7 @@ final class ConverterStore: ObservableObject {
     private func canUseVideoToolboxPipeline(info: VideoInfo, preset: ConversionPreset, crop: CropRect?) -> Bool {
         usesVideoToolboxEncoder(preset)
             && crop == nil
+            && (info.displayRotation == nil || info.displayGeometry != nil)
             && ["h264", "hevc"].contains(info.videoCodec?.lowercased() ?? "")
     }
 
@@ -2033,10 +2089,11 @@ final class ConverterStore: ObservableObject {
     private func canonicalURL(_ url: URL) -> URL {
         url.standardizedFileURL.resolvingSymlinksInPath()
     }
-    private func uniqueOutput(for source: URL, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?) -> URL {
+    private func uniqueOutput(for source: URL, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?) -> URL {
         let directory = outputDirectory ?? source.deletingLastPathComponent(), stem = source.deletingPathExtension().lastPathComponent
         var suffix = trim.map { "-trim-\(fileNameTime($0.start))-\(fileNameTime($0.end))" } ?? "-MP4FlowConverted"
         if crop != nil { suffix += "-cropped" }
+        if let aspectRatio { suffix += "-aspect-\(aspectRatio.width)x\(aspectRatio.height)" }
         if let rotation { suffix += "-\(rotation.fileSuffix)" }
         var result = directory.appendingPathComponent("\(stem)\(suffix).mp4"), number = 2
         while FileManager.default.fileExists(atPath: result.path) { result = directory.appendingPathComponent("\(stem)\(suffix)-\(number).mp4"); number += 1 }
