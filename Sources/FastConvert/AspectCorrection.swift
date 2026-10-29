@@ -25,6 +25,16 @@ struct DisplayAspectRatio: Equatable, Sendable {
     var value: Double { Double(width) / Double(height) }
     var summary: String { "\(width):\(height)" }
 
+    /// Seed custom input from the displayed frame instead of imposing 16:9 on
+    /// portrait or cropped sources. Prefer familiar exact ratios when equal.
+    static func approximating(_ value: Double) -> DisplayAspectRatio? {
+        guard value.isFinite, (0.1...10).contains(value) else { return nil }
+        let common = [(16, 9), (9, 16), (4, 3), (3, 4), (1, 1)]
+            .compactMap { DisplayAspectRatio(width: $0.0, height: $0.1) }
+        return common.first { abs($0.value - value) < 0.000001 }
+            ?? DisplayAspectRatio(width: Int((value * 1_000_000).rounded()), height: 1_000_000)
+    }
+
     func outputSize(height targetHeight: Int) -> (width: Int, height: Int)? {
         guard (2...16_384).contains(targetHeight) else { return nil }
         let height = targetHeight / 2 * 2

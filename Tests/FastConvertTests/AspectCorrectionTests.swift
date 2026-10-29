@@ -20,6 +20,11 @@ final class AspectCorrectionTests: XCTestCase {
         XCTAssertEqual(fourThirds.outputSize(height: 481)?.height, 480)
         XCTAssertNil(fourThirds.outputSize(height: 0))
         XCTAssertNil(DisplayAspectRatio(width: 10, height: 1)?.outputSize(height: 2160))
+        XCTAssertEqual(DisplayAspectRatio.approximating(9.0 / 16)?.summary, "9:16")
+        XCTAssertEqual(DisplayAspectRatio.approximating(3.0 / 4)?.summary, "3:4")
+        XCTAssertEqual(DisplayAspectRatio.approximating(4.0 / 3)?.summary, "4:3")
+        XCTAssertEqual(DisplayAspectRatio.approximating(2.39)?.summary, "239:100")
+        XCTAssertNil(DisplayAspectRatio.approximating(.infinity))
     }
 
     func testPreviewFitsWholeFrameAndKeepsPixelShapeThroughRotations() {

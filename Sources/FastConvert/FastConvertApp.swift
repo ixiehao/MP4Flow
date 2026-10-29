@@ -1753,9 +1753,8 @@ private struct CropEditor: View {
                 Text(source.lastPathComponent).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
             }
             HStack(spacing: 8) {
-                editorTab("裁切", icon: .crop, active: !isCorrectingRatio) { isCorrectingRatio = false }
-                editorTab("比例矫正", icon: .aspectRatio, active: isCorrectingRatio) { isCorrectingRatio = true }
-                Spacer()
+                editorTab("裁切画面", detail: "去掉画面边缘，保留选中区域。", icon: .crop, active: !isCorrectingRatio) { isCorrectingRatio = false }
+                editorTab("比例矫正", detail: "修正画面拉伸，不新增裁切。", icon: .aspectRatio, active: isCorrectingRatio) { isCorrectingRatio = true }
             }
             if sourceWidth > 0, sourceHeight > 0 {
                 ZStack {
@@ -1775,7 +1774,7 @@ private struct CropEditor: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 246)
+                .frame(height: 230)
                 .background(Color.black, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
                 .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
@@ -1817,7 +1816,7 @@ private struct CropEditor: View {
             Spacer(minLength: 0)
         }
         .padding(20)
-        .frame(width: 780, height: 610, alignment: .top)
+        .frame(width: 780, height: 650, alignment: .top)
         .onAppear { loadMedia() }
         .onDisappear { inspectionTask?.cancel(); player?.pause() }
     }
@@ -1828,14 +1827,39 @@ private struct CropEditor: View {
     private var invalidRatio: Bool {
         ratioPreset == .custom && DisplayAspectRatio(widthText: ratioWidthText, heightText: ratioHeightText) == nil
     }
-    private func editorTab(_ title: String, icon: TablerIconName, active: Bool, action: @escaping () -> Void) -> some View {
+    private func editorTab(_ title: String, detail: String, icon: TablerIconName, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 7) {
-                TablerIcon(name: icon, color: active ? .white : BrandColor.textSecondary).frame(width: 16, height: 16)
-                Text(L10n.text(title)).lineLimit(1)
+            HStack(spacing: 10) {
+                TablerIcon(name: icon, color: BrandColor.blue)
+                    .frame(width: 23, height: 23)
+                    .frame(width: 42, height: 42)
+                    .background(active ? BrandColor.blue.opacity(0.12) : BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(L10n.text(title))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(active ? BrandColor.blue : BrandColor.textPrimary)
+                        .lineLimit(1)
+                    Text(L10n.text(detail))
+                        .font(AppFont.caption)
+                        .foregroundStyle(BrandColor.textSecondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if active {
+                    TablerIcon(name: .circleCheck, color: BrandColor.blue).frame(width: 20, height: 20)
+                } else { Color.clear.frame(width: 20, height: 20) }
             }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 82, maxHeight: 82)
+            .background(active ? BrandColor.blue.opacity(0.06) : BrandColor.surface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay { RoundedRectangle(cornerRadius: 12).stroke(active ? BrandColor.blue : BrandColor.selectStroke, lineWidth: active ? 1.5 : 1) }
+            .contentShape(RoundedRectangle(cornerRadius: 12))
         }
-        .buttonStyle(CropAspectButtonStyle(isActive: active))
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.text(title))
+        .accessibilityHint(L10n.text(detail))
+        .accessibilityAddTraits(active ? .isSelected : [])
         .accessibilityIdentifier(icon == .crop ? "geometry.crop" : "geometry.ratio")
     }
     private var cropParameters: some View {
@@ -1894,12 +1918,22 @@ private struct CropEditor: View {
         .frame(width: 110)
     }
     private func selectRatio(_ preset: AspectRatioPreset) {
+        if preset == .custom && aspectRatio == nil { seedOriginalRatio() }
         ratioPreset = preset
-        if preset == .original { aspectRatio = nil }
+        if preset == .original { aspectRatio = nil; seedOriginalRatio() }
         else if let ratio = preset.ratio {
             aspectRatio = ratio
             ratioWidthText = String(ratio.width); ratioHeightText = String(ratio.height)
         } else { aspectRatio = DisplayAspectRatio(widthText: ratioWidthText, heightText: ratioHeightText) }
+    }
+
+    private func seedOriginalRatio() {
+        let frame = crop ?? fullRect
+        let displayRatio = AspectGeometry.displayRatio(width: frame.width, height: frame.height, pixelRatio: sourcePixelRatio, rotation: rotation)
+        if let ratio = DisplayAspectRatio.approximating(displayRatio) {
+            ratioWidthText = String(ratio.width)
+            ratioHeightText = String(ratio.height)
+        }
     }
 
     private func cropField(_ title: String, text: Binding<String>) -> some View {
@@ -1942,6 +1976,7 @@ private struct CropEditor: View {
             }
             mediaDuration = media.duration
             crop = initialCrop.map(normalized) ?? fullRect
+            if initialAspectRatio == nil { seedOriginalRatio() }
             syncFields()
             // AVPlayerView can otherwise remain black until the user presses
             // play on some files. Seek once after the view has a valid item so

@@ -406,3 +406,7 @@
 "输出画面比例异常" = "Output aspect does not match";
 
 "请使用「最稳妥转换」重试，或检查比例设置。" = "Retry with Reliable (Slow) or check the aspect setting.";
+
+"去掉画面边缘，保留选中区域。" = "Remove edges; keep the selected area.";
+
+"修正画面拉伸，不新增裁切。" = "Fix stretched proportions without more cropping.";

@@ -407,3 +407,7 @@
 "输出画面比例异常" = "Ratio de sortie incorrect";
 
 "请使用「最稳妥转换」重试，或检查比例设置。" = "Réessayez avec « Fiable (lent) » ou vérifiez le ratio.";
+
+"去掉画面边缘，保留选中区域。" = "Retirez les bords et gardez la zone choisie.";
+
+"修正画面拉伸，不新增裁切。" = "Corrige l’étirement sans recadrer davantage.";
