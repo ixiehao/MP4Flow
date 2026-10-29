@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.2 — Unreleased
+
+### English
+- Update checks now use the official latest-release link, with an API fallback and rate-limit backoff.
+- Keeps the 60-second startup check and manual checks; no GitHub login is needed.
+
+### 中文
+- 更新检查优先使用官方最新版入口，补充 API 备用检查和限流退避。
+- 保留启动 60 秒后的自动检查与手动检查，无需登录 GitHub。
+
+### 日本語
+- 公式の最新版リンクを使って更新を確認し、API の代替確認と制限時の待機処理を追加。
+- 起動60秒後の自動確認と手動確認に対応。GitHub へのログインは不要です。
+
+### 한국어
+- 공식 최신 릴리스 링크로 업데이트를 확인하고 API 대체 경로와 요청 제한 시 대기 처리를 추가했습니다.
+- 시작 60초 후 자동 확인과 수동 확인을 유지하며 GitHub 로그인이 필요 없습니다.
+
 ## 1.3.1 — 2026-10-29
 
 ### English

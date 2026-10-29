@@ -50,6 +50,242 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertNil(release(url: "http://github.com/ixiehao/MP4Flow/releases/tag/v1.1.2").update(newerThan: installed))
         XCTAssertNil(release(url: "https://example.com/MP4Flow/releases/tag/v1.1.2").update(newerThan: installed))
         XCTAssertNil(release(url: "https://github.com/ixiehao/other/releases/tag/v1.1.2").update(newerThan: installed))
+        XCTAssertNil(release(url: "https://github.com/ixiehao/MP4Flow/releases/tag/v9.9.9").update(newerThan: installed))
+    }
+
+    func testReleaseRedirectOnlyAcceptsExactStableOfficialTagPages() throws {
+        let good = "https://github.com/ixiehao/MP4Flow/releases/tag/v1.3.1"
+        XCTAssertEqual(ReleaseEndpoint.version(at: try XCTUnwrap(URL(string: good)))?.displayString, "1.3.1")
+        for url in [
+            "http://github.com/ixiehao/MP4Flow/releases/tag/v1.3.1",
+            "https://github.com.example.com/ixiehao/MP4Flow/releases/tag/v1.3.1",
+            "https://github.com/another/MP4Flow/releases/tag/v1.3.1",
+            "https://github.com/ixiehao/MP4Flow/releases/latest",
+            good + "-beta", good + "/more", good + "?other=1", good + "#other",
+            "https://user@github.com/ixiehao/MP4Flow/releases/tag/v1.3.1",
+            "https://github.com:443/ixiehao/MP4Flow/releases/tag/v1.3.1",
+            "https://github.com/ixiehao/MP4Flow/releases/tag/v01.3.1"
+        ] {
+            XCTAssertNil(ReleaseEndpoint.version(at: try XCTUnwrap(URL(string: url))), url)
+        }
+    }
+
+    @MainActor
+    func testLatestRedirectFindsUpdateWithoutUsingRateLimitedAPI() async throws {
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            guard request.url == ReleaseEndpoint.latest else {
+                return (try Self.response(for: request, statusCode: 403), Data())
+            }
+            XCTAssertEqual(request.httpMethod, "HEAD")
+            XCTAssertFalse(request.httpShouldHandleCookies)
+            XCTAssertEqual(request.cachePolicy, .reloadIgnoringLocalCacheData)
+            XCTAssertEqual(request.timeoutInterval, 5)
+            return (try Self.response(for: request, statusCode: 302, headers: [
+                "Location": "https://github.com/ixiehao/MP4Flow/releases/tag/v1.3.1"
+            ]), Data())
+        }
+        let checker = makeChecker(installed: "1.3.0")
+        await expectResult(checker, .available(AvailableUpdate(
+            version: "1.3.1", downloadURL: URL(string: "https://github.com/ixiehao/MP4Flow/releases/tag/v1.3.1")!
+        )))
+        XCTAssertEqual(requests.values.count, 1)
+        XCTAssertTrue(checker.shouldShowUpdateBanner)
+        XCTAssertFalse(checker.lastCheckFailed)
+    }
+
+    @MainActor
+    func testAutomaticCheckUsesRedirectAfter60SecondsAndHonorsDismissedVersion() async throws {
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            return (try Self.response(for: request, statusCode: 302, headers: [
+                "Location": "/ixiehao/MP4Flow/releases/tag/v1.3.1"
+            ]), Data())
+        }
+        let checker = UpdateChecker(
+            currentVersion: ReleaseVersion(tag: "1.3.0"), session: makeStubSession(), defaults: defaults,
+            pause: { delay in XCTAssertEqual(delay, 60) }
+        )
+        guard case .available? = await checker.checkAfterStartupDelay() else {
+            return XCTFail("Startup must find the stable update without the API")
+        }
+        XCTAssertTrue(checker.shouldShowUpdateBanner)
+        checker.dismissAvailableUpdateBanner()
+        XCTAssertFalse(checker.shouldShowUpdateBanner)
+        guard case .available = await checker.checkForUpdate() else { return XCTFail("Manual result missing") }
+        XCTAssertFalse(checker.shouldShowUpdateBanner)
+        let repeated = await checker.checkAfterStartupDelay()
+        XCTAssertNil(repeated)
+        XCTAssertEqual(requests.values.count, 2)
+    }
+
+    @MainActor
+    func testCurrentOrOlderRedirectIsUpToDateWithoutAPIFallback() async throws {
+        for tag in ["v1.3.1", "v1.3.0"] {
+            let requests = RequestLog()
+            StubURLProtocol.handler = { request in
+                requests.append(request)
+                return (try Self.response(for: request, statusCode: 302, headers: [
+                    "Location": "/ixiehao/MP4Flow/releases/tag/" + tag
+                ]), Data())
+            }
+            let checker = makeChecker(installed: "1.3.1")
+            await expectResult(checker, .upToDate)
+            XCTAssertFalse(checker.hasUpdate)
+            XCTAssertEqual(requests.values.count, 1)
+        }
+    }
+
+    @MainActor
+    func testBlockedUnsupportedOrTimedOutPageFallsBackToPublicAPI() async throws {
+        for status in [403, 405, 429, 500, 200, -1] {
+            let requests = RequestLog()
+            StubURLProtocol.handler = { request in
+                requests.append(request)
+                if request.url == ReleaseEndpoint.latest {
+                    if status == -1 { throw URLError(.timedOut) }
+                    return (try Self.response(for: request, statusCode: status), Data("not a release".utf8))
+                }
+                XCTAssertEqual(request.url, ReleaseEndpoint.api)
+                return (try Self.response(for: request, statusCode: 200), try Self.validRelease())
+            }
+            let checker = makeChecker(installed: "1.3.0")
+            guard case .available(let update) = await checker.checkForUpdate() else {
+                return XCTFail("API fallback failed for page status \(status)")
+            }
+            XCTAssertEqual(update.version, "1.3.1")
+            XCTAssertEqual(requests.values.count, 2)
+        }
+    }
+
+    @MainActor
+    func testAPIBackoffPersistsAcrossLaunchesButDoesNotSuppressPageChecks() async throws {
+        let requests = RequestLog()
+        let current = Date(timeIntervalSince1970: 1_800_000_000)
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+            return (try Self.response(for: request, statusCode: 403, headers: [
+                "X-RateLimit-Reset": String(Int(current.timeIntervalSince1970 + 300)), "Retry-After": "120"
+            ]), Data())
+        }
+        let checker = makeChecker(installed: "1.3.0", now: { current })
+        await expectResult(checker, .failed)
+        let relaunched = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(200) })
+        await expectResult(relaunched, .failed)
+        XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 1)
+
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            return (try Self.response(for: request, statusCode: 302, headers: [
+                "Location": "/ixiehao/MP4Flow/releases/tag/v1.3.1"
+            ]), Data())
+        }
+        guard case .available = await relaunched.checkForUpdate() else {
+            return XCTFail("API cooldown must not block a valid page redirect")
+        }
+        XCTAssertFalse(relaunched.lastCheckFailed)
+    }
+
+    @MainActor
+    func testAPIBackoffExpiresAndRespectsRetryAfterDate() async throws {
+        let current = Date(timeIntervalSince1970: 1_800_000_000)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss z"
+        let after = formatter.string(from: current.addingTimeInterval(120))
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+            return (try Self.response(for: request, statusCode: 429, headers: ["Retry-After": after]), Data())
+        }
+        let first = makeChecker(installed: "1.3.0", now: { current })
+        await expectResult(first, .failed)
+        let before = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(119) })
+        await expectResult(before, .failed)
+        XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 1)
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+            return (try Self.response(for: request, statusCode: 200), try Self.validRelease())
+        }
+        let expired = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(121) })
+        guard case .available = await expired.checkForUpdate() else { return XCTFail("API should recover after cooldown") }
+        XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 2)
+    }
+
+    @MainActor
+    func testUntrustedRedirectAndInvalidAPIMetadataNeverReportUpToDate() async throws {
+        for payload in [Data("invalid JSON".utf8), try Self.validRelease(url: "https://example.com/v1.3.1"),
+                        try Self.validRelease(tag: "v1.3.2"), try Self.validRelease(prerelease: true)] {
+            StubURLProtocol.handler = { request in
+                if request.url == ReleaseEndpoint.latest {
+                    return (try Self.response(for: request, statusCode: 302, headers: ["Location": "https://example.com/v1.3.1"]), Data())
+                }
+                return (try Self.response(for: request, statusCode: 200), payload)
+            }
+            let checker = makeChecker(installed: "1.3.0")
+            await expectResult(checker, .failed)
+            XCTAssertTrue(checker.lastCheckFailed)
+            XCTAssertFalse(checker.hasUpdate)
+        }
+    }
+
+    @MainActor
+    func testFailedSourcesPreserveKnownUpdateAndCheckingStateRecovers() async throws {
+        StubURLProtocol.handler = { request in
+            (try Self.response(for: request, statusCode: 302, headers: ["Location": "/ixiehao/MP4Flow/releases/tag/v1.3.1"]), Data())
+        }
+        let checker = makeChecker(installed: "1.3.0")
+        guard case .available = await checker.checkForUpdate() else { return XCTFail("Initial check failed") }
+        StubURLProtocol.handler = { _ in throw URLError(.notConnectedToInternet) }
+        await expectResult(checker, .failed)
+        XCTAssertEqual(checker.availableUpdate?.version, "1.3.1")
+        XCTAssertTrue(checker.shouldShowUpdateBanner)
+        XCTAssertTrue(checker.lastCheckFailed)
+        XCTAssertFalse(checker.isChecking)
+    }
+
+    @MainActor
+    func testDismissalOnlyAppliesToThatVersionAndNewReleaseStillNotifies() async throws {
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            let tag = requests.values.count == 1 ? "v1.3.1" : "v1.3.2"
+            return (try Self.response(for: request, statusCode: 302, headers: [
+                "Location": "/ixiehao/MP4Flow/releases/tag/" + tag
+            ]), Data())
+        }
+        let checker = makeChecker(installed: "1.3.0")
+        _ = await checker.checkForUpdate()
+        checker.dismissAvailableUpdateBanner()
+        XCTAssertFalse(checker.shouldShowUpdateBanner)
+        _ = await checker.checkForUpdate()
+        XCTAssertEqual(checker.availableUpdate?.version, "1.3.2")
+        XCTAssertTrue(checker.shouldShowUpdateBanner)
+    }
+
+    @MainActor
+    func testConcurrentCheckDoesNotDuplicateNetworkRequests() async throws {
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            Thread.sleep(forTimeInterval: 0.05)
+            return (try Self.response(for: request, statusCode: 302, headers: [
+                "Location": "/ixiehao/MP4Flow/releases/tag/v1.3.1"
+            ]), Data())
+        }
+        let checker = makeChecker(installed: "1.3.0")
+        let first = Task { await checker.checkForUpdate() }
+        while !checker.isChecking { await Task.yield() }
+        await expectResult(checker, .checking)
+        guard case .available = await first.value else { return XCTFail("Initial request failed") }
+        XCTAssertEqual(requests.values.count, 1)
+        XCTAssertFalse(checker.isChecking)
     }
 
     @MainActor
@@ -163,9 +399,36 @@ final class UpdateCheckerTests: XCTestCase {
         return URLSession(configuration: configuration)
     }
 
-    private static func response(for request: URLRequest, statusCode: Int) throws -> HTTPURLResponse {
-        try XCTUnwrap(HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: statusCode, httpVersion: nil, headerFields: nil))
+    @MainActor
+    private func expectResult(
+        _ checker: UpdateChecker, _ expected: UpdateCheckResult,
+        file: StaticString = #filePath, line: UInt = #line
+    ) async {
+        let result = await checker.checkForUpdate()
+        XCTAssertEqual(result, expected, file: file, line: line)
     }
+
+    @MainActor
+    private func makeChecker(installed: String, now: @escaping @Sendable () -> Date = { Date() }) -> UpdateChecker {
+        UpdateChecker(currentVersion: ReleaseVersion(tag: installed), session: makeStubSession(), defaults: defaults, now: now)
+    }
+
+    private static func validRelease(
+        tag: String = "v1.3.1", url: String = "https://github.com/ixiehao/MP4Flow/releases/tag/v1.3.1", prerelease: Bool = false
+    ) throws -> Data {
+        try JSONSerialization.data(withJSONObject: ["tag_name": tag, "html_url": url, "draft": false, "prerelease": prerelease])
+    }
+
+    private static func response(for request: URLRequest, statusCode: Int, headers: [String: String] = [:]) throws -> HTTPURLResponse {
+        try XCTUnwrap(HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: statusCode, httpVersion: nil, headerFields: headers))
+    }
+}
+
+private final class RequestLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [URLRequest] = []
+    func append(_ request: URLRequest) { lock.lock(); defer { lock.unlock() }; storage.append(request) }
+    var values: [URLRequest] { lock.lock(); defer { lock.unlock() }; return storage }
 }
 
 private actor StartupDelayGate {

@@ -35,3 +35,23 @@ cadence. Longer leading gaps and stream-copy cuts retain their original timing.
 Lossless merge compatibility includes the video time base, pixel aspect ratio and display rotation. Compatible merge normalizes pixel aspect ratio before proportional fitting and padding, and chooses its canvas from displayed geometry so orientation metadata cannot squash the content.
 
 User notices describe actual affected media, not routine mapping policy. Ordinary single-track and video-only inputs have no per-row notice. Extra video/audio, subtitles, chapters and at-risk HDR handling remain visible after completion; full default policy is accessible from the queue and environment details. Cancellation and output verification have distinct UI states. Controlled native-enhancement errors are classified by type rather than their translated message.
+
+## Update checks
+
+The shared checker runs once 60 seconds after launch when enabled; manual checks
+use the same path. It first sends a no-cache, cookie-free HEAD request to the
+repository's official `releases/latest` URL. Redirects are not followed: only an
+exact HTTPS tag page for this repository with a canonical stable version is
+accepted. This avoids the shared unauthenticated REST API quota and downloads no
+release HTML. If the link check fails, a bounded GET to the public REST endpoint
+is used instead. Each request has a five-second timeout; there is no retry loop.
+
+API 403/429 responses store a retry deadline from Retry-After / X-RateLimit-Reset
+(with at least a minute of backoff), including across relaunches. Link checks
+remain available during API cooldown. Offline or invalid responses are failures,
+never proof that the app is up to date; an already-found update stays visible.
+A dismissed version stays dismissed, while a later version can notify normally.
+The checker neither downloads nor installs updates and uses no account token.
+
+References: [official latest-release links](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases)
+and [REST API rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
