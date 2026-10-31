@@ -1,6 +1,23 @@
 import AVFoundation
 import CoreImage
+import CoreVideo
 import Foundation
+
+/// Keep sRGB screen recordings in their original transfer function. Video
+/// Rec.709 and sRGB use the same primaries but different dark-tone encoding.
+enum SDRWorkingSpace: String, Sendable {
+    case rec709 = "bt709"
+    case sRGB = "iec61966-2-1"
+
+    init(colorTransfer: String?) {
+        self = ["srgb", "iec61966-2-1"].contains(colorTransfer ?? "") ? .sRGB : .rec709
+    }
+
+    var avTransferFunction: String {
+        // The equivalent AVFoundation constant is only declared from macOS 15.
+        self == .sRGB ? kCVImageBufferTransferFunction_sRGB as String : AVVideoTransferFunction_ITU_R_709_2
+    }
+}
 
 /// Small, bounded values shared by preview and export. Neutral settings leave
 /// stream-copy and the zero-copy VideoToolbox path completely unchanged.
@@ -78,8 +95,7 @@ struct ImageAdjustment: Equatable, Sendable {
         }
         if let curveData {
             result = result.applyingFilter("CIColorCurves", parameters: [
-                "inputCurvesData": curveData, "inputCurvesDomain": CIVector(x: 0, y: 1),
-                "inputColorSpace": Self.encodedColorSpace
+                "inputCurvesData": curveData, "inputCurvesDomain": CIVector(x: 0, y: 1)
             ])
         }
         return result.applyingFilter("CIColorClamp", parameters: [
@@ -88,16 +104,15 @@ struct ImageAdjustment: Equatable, Sendable {
         ]).cropped(to: source.extent)
     }
 
-    // Disable an implicit linear-light conversion: the FFmpeg LUT and these
-    // filters operate on the same encoded SDR RGB values. No frame cache or
-    // additional media runtime is installed or bundled.
-    private static let encodedColorSpace = CGColorSpace(name: CGColorSpace.itur_709)!
+    // Preview/export explicitly choose the same SDR transfer function. Work on
+    // encoded RGB values without another implicit ColorSync transfer conversion;
+    // that conversion differs across supported macOS releases.
     static let previewContext = CIContext(options: [
-        .workingColorSpace: encodedColorSpace,
-        .outputColorSpace: encodedColorSpace, .cacheIntermediates: false
+        .workingColorSpace: NSNull(),
+        .outputColorSpace: NSNull(), .cacheIntermediates: false
     ])
 
-    func composition(for asset: AVAsset) -> AVVideoComposition? {
+    func composition(for asset: AVAsset, workingSpace: SDRWorkingSpace = .rec709) -> AVVideoComposition? {
         guard !isIdentity else { return nil }
         let curveData = makeCurveData()
         let composition = AVMutableVideoComposition(asset: asset, applyingCIFiltersWithHandler: { request in
@@ -106,16 +121,18 @@ struct ImageAdjustment: Equatable, Sendable {
         // AVFoundation otherwise inherits source tags and chooses defaults that
         // differ between macOS versions. Match the export's explicit SDR space.
         composition.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
-        composition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+        composition.colorTransferFunction = workingSpace.avTransferFunction
         composition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
         return composition
     }
 }
 
-// AVFoundation supplies SDR filtering requests in CoreMedia709. Normalize the
-// export into that same space before applying the identical encoded-RGB curve.
+// Normalize primaries/matrix for both pipelines, preserving sRGB's transfer for
+// screen recordings. Apply the identical curve in that chosen encoded space.
 // Respect recognized source metadata; defaults cover untagged consumer video.
 extension VideoInfo {
+    var imageAdjustmentWorkingSpace: SDRWorkingSpace { SDRWorkingSpace(colorTransfer: colorTransfer) }
+
     var imageAdjustmentColorNormalization: String {
         let matrices = ["bt709", "fcc", "bt470bg", "smpte170m", "smpte240m", "ycgco", "gbr", "bt2020nc", "bt2020ncl"]
         let primaries = ["bt709", "bt470m", "bt470bg", "smpte170m", "smpte240m", "film", "bt2020", "smpte428", "smpte431", "smpte432", "jedec-p22"]
@@ -124,6 +141,6 @@ extension VideoInfo {
         let primary = colorPrimaries.flatMap { primaries.contains($0) ? $0 : nil } ?? "bt709"
         let transfer = colorTransfer.flatMap { transfers.contains($0) ? $0 : nil } ?? "bt709"
         let range = ["pc", "jpeg"].contains(colorRange ?? "") || matrix == "gbr" ? "pc" : "tv"
-        return "colorspace=all=bt709:format=yuv444p12:range=tv:ispace=\(matrix):iprimaries=\(primary):itrc=\(transfer):irange=\(range)"
+        return "colorspace=all=bt709:trc=\(imageAdjustmentWorkingSpace.rawValue):format=yuv444p12:range=tv:ispace=\(matrix):iprimaries=\(primary):itrc=\(transfer):irange=\(range)"
     }
 }

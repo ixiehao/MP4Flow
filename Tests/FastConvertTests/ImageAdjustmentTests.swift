@@ -238,27 +238,41 @@ final class ImageAdjustmentTests: XCTestCase {
                                ("untagged", ""), ("rotated", "colorprim=bt709:transfer=bt709:colormatrix=bt709"),
                                ("grain", "colorprim=bt709:transfer=bt709:colormatrix=bt709")] {
         var candidate = directory.appendingPathComponent(name + ".mp4")
+        let tags = params.replacingOccurrences(of: "colorprim=", with: "color_primaries=")
+            .replacingOccurrences(of: "transfer=", with: "color_trc=")
+            .replacingOccurrences(of: "colormatrix=", with: "colorspace=")
         let pixelMetadata = name == "untagged" ? "setparams=color_primaries=unknown:color_trc=unknown:colorspace=unknown"
-            : (name == "grain" ? "noise=alls=8:allf=t+u:all_seed=7" : "null")
+            : (name == "grain" ? "noise=alls=8:allf=t+u:all_seed=7," : "") + "setparams=" + tags
         _ = try capture(tools.ffmpeg, ["-v","error","-i",source.path,"-vf",pixelMetadata,"-c:v","libx264","-x264-params",params,"-c:a","copy",candidate.path])
         if name == "rotated" {
             let rotated = directory.appendingPathComponent("camera-rotated.mp4")
             _ = try capture(tools.ffmpeg, ["-v","error","-display_rotation:v:0","90","-i",candidate.path,"-c","copy",rotated.path])
             candidate = rotated
         }
+        // Encoder bitstream tags alone may leave inherited container tags in
+        // place. Verify the media actually exercises each intended color space.
+        let inspected = await ConverterStore.inspectMedia(at: candidate, using: tools.ffprobe)
+        XCTAssertEqual(inspected.colorSpace, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : "bt709"), name)
+        XCTAssertEqual(inspected.colorTransfer, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : (name == "srgb" ? "iec61966-2-1" : "bt709")), name)
+        XCTAssertEqual(inspected.colorPrimaries, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : "bt709"), name)
         let setting = ImageAdjustment(brightness: 12, shadows: 60, denoise: true)
         let store = ConverterStore(); store.preset = .h264Software; store.outputDirectory = directory
         store.items = [ConversionItem(source: candidate)]
         store.scheduleFrameEdits(store.items[0], crop: nil, aspectRatio: nil, imageAdjustment: setting)
         store.start(); try await wait(store)
         guard case .complete(let output) = store.items[0].state else { return XCTFail("Export failed") }
+        let outputInfo = await ConverterStore.inspectMedia(at: output, using: tools.ffprobe)
+        XCTAssertEqual(outputInfo.colorSpace, "bt709", name)
+        XCTAssertEqual(outputInfo.colorTransfer, inspected.imageAdjustmentWorkingSpace.rawValue, name)
+        XCTAssertEqual(outputInfo.colorPrimaries, "bt709", name)
+        XCTAssertEqual(outputInfo.colorRange, "tv", name)
         let asset = AVURLAsset(url: candidate)
         _ = try await asset.load(.duration)
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
-        let composition = try XCTUnwrap(setting.composition(for: asset))
+        let composition = try XCTUnwrap(setting.composition(for: asset, workingSpace: inspected.imageAdjustmentWorkingSpace))
         XCTAssertEqual(composition.colorPrimaries, AVVideoColorPrimaries_ITU_R_709_2)
-        XCTAssertEqual(composition.colorTransferFunction, AVVideoTransferFunction_ITU_R_709_2)
+        XCTAssertEqual(composition.colorTransferFunction, inspected.imageAdjustmentWorkingSpace.avTransferFunction)
         XCTAssertEqual(composition.colorYCbCrMatrix, AVVideoYCbCrMatrix_ITU_R_709_2)
         generator.videoComposition = composition
         let preview = try generator.copyCGImage(at: CMTime(seconds: 0.5, preferredTimescale: 600), actualTime: nil)

@@ -1940,6 +1940,11 @@ final class ConverterStore: ObservableObject {
             args += audioArguments(inputAudioCodec: info.audioCodec, audioRate: audioRate)
         case .remux: args += ["-c", "copy"]
         }
+        if !imageAdjustment.isIdentity, preset != .remux {
+            // Match the chosen working transfer in both encoder and container;
+            // inherited tags must not reinterpret the normalized RGB values.
+            args += ["-color_primaries", "bt709", "-color_trc", info.imageAdjustmentWorkingSpace.rawValue, "-colorspace", "bt709", "-color_range", "tv"]
+        }
         return args + ["-movflags", "+faststart", "-progress", "pipe:1", "-nostats", output.path]
     }
 

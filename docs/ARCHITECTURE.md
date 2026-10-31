@@ -98,10 +98,13 @@ Shadow lift uses `x + gain*x²*(1-x)²/(x+0.08)`, with gain in 0–1.2. Its slop
 approaches one at black and white, avoiding the unbounded near-black gain of
 the earlier gamma curve. FFmpeg builds a LUT once; Core Image uses a small
 interpolated RGB curve table prepared once per video composition.
-AVFoundation supplies SDR composition requests in CoreMedia709, so exports first
-normalize recognized source metadata into Rec.709 before applying the same LUT.
-Core Image uses a nonlinear Rec.709 working space rather than implicit linear
-light. A new video composition refreshes paused frames too (Apple QA1966), without
+Preview and export explicitly select matching SDR color tags. Primaries and the
+YCbCr matrix normalize to Rec.709; sRGB recordings retain their sRGB transfer
+function, while ordinary video uses Rec.709. Encoder/container tags match that
+selection. Core Image automatic color matching is disabled so filters operate on
+the same encoded RGB values as the FFmpeg LUT across macOS versions. Regression
+fixtures set and verify actual frame/container tags rather than relying on encoder
+bitstream flags alone. A new video composition refreshes paused frames too (Apple QA1966), without
 seeking, creating preview files or replacing the player item. Original comparison
 bypasses color adjustments while retaining the current crop, rotation and ratio.
 

@@ -1745,6 +1745,7 @@ private struct FrameEditor: View {
     @State private var imageAdjustment = ImageAdjustment()
     @State private var showsOriginal = false
     @State private var colorPreviewReady = false
+    @State private var previewWorkingSpace = SDRWorkingSpace.rec709
     @State private var colorPreviewUnavailable = false
     @State private var sourceIsHDR = false
     @State private var aspectRatio: DisplayAspectRatio?
@@ -1989,7 +1990,7 @@ private struct FrameEditor: View {
         guard colorPreviewReady, let item = player?.currentItem else { return }
         // Assign a fresh composition so a paused AVPlayer re-renders its current
         // frame too (Apple QA1966); no seeks, proxy encodes or frame caches.
-        item.videoComposition = (showsOriginal ? ImageAdjustment() : imageAdjustment).composition(for: item.asset)
+        item.videoComposition = (showsOriginal ? ImageAdjustment() : imageAdjustment).composition(for: item.asset, workingSpace: previewWorkingSpace)
     }
 
     private var cropParameters: some View {
@@ -2104,6 +2105,7 @@ private struct FrameEditor: View {
             imageAdjustment = initialImageAdjustment
             mode = !initialImageAdjustment.isIdentity ? .adjustment : (initialAspectRatio != nil ? .ratio : .crop)
             sourceIsHDR = media.isHDR
+            previewWorkingSpace = SDRWorkingSpace(colorTransfer: media.colorTransfer)
             ratioPreset = initialAspectRatio.flatMap { ratio in AspectRatioPreset.allCases.first { $0.ratio == ratio } } ?? (initialAspectRatio == nil ? .original : .custom)
             if let initialAspectRatio {
                 ratioWidthText = String(initialAspectRatio.width); ratioHeightText = String(initialAspectRatio.height)
@@ -2363,6 +2365,7 @@ struct EditorMediaInfo: Sendable {
     let frameRate: Double
     var pixelRatio: Double = 1
     var isHDR: Bool = false
+    var colorTransfer: String? = nil
 
     var frameDuration: Double { 1 / frameRate }
 }
@@ -2423,7 +2426,7 @@ enum EditorMediaProbe {
         guard let geometry = VideoGeometry.displayed(width: width, height: height, sampleAspectRatio: video.sampleAspectRatio, rotation: angle) else { return nil }
         let sar = AspectGeometry.pixelRatio(video.sampleAspectRatio)
         let swapped = abs(((angle ?? 0) / 90).rounded().truncatingRemainder(dividingBy: 2)) == 1
-        return EditorMediaInfo(duration: duration, width: geometry.width, height: geometry.height, frameRate: parseFrameRate(video.frameRate) ?? 30, pixelRatio: swapped ? 1 / sar : sar, isHDR: ["smpte2084", "arib-std-b67"].contains(video.colorTransfer?.lowercased() ?? ""))
+        return EditorMediaInfo(duration: duration, width: geometry.width, height: geometry.height, frameRate: parseFrameRate(video.frameRate) ?? 30, pixelRatio: swapped ? 1 / sar : sar, isHDR: ["smpte2084", "arib-std-b67"].contains(video.colorTransfer?.lowercased() ?? ""), colorTransfer: video.colorTransfer)
     }
 
     private static func parseFrameRate(_ value: String?) -> Double? {
