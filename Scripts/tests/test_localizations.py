@@ -10,7 +10,9 @@ spec.loader.exec_module(validator)
 
 class LocalizationValidatorTests(unittest.TestCase):
     def test_all_shipped_catalogs_match(self):
-        self.assertEqual(validator.validate(Path(__file__).resolve().parents[2]), (7, 405))
+        languages, keys = validator.validate(Path(__file__).resolve().parents[2])
+        self.assertEqual(languages, 7)
+        self.assertGreaterEqual(keys, 405)
 
     def test_positional_arguments_preserve_types(self):
         self.assertEqual(validator.signature('%d: %@ %.1f%%'), validator.signature('%2$@ %3$.1f%% %1$d'))

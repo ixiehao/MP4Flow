@@ -410,3 +410,23 @@
 "去掉画面边缘，保留选中区域。" = "Remove edges; keep the selected area.";
 
 "修正画面拉伸，不新增裁切。" = "Fix stretched proportions without more cropping.";
+
+// Image adjustments
+"画面编辑" = "Edit Video";
+"画面调整" = "Image Adjustments";
+"提亮暗部，改善偏暗画面。" = "Brighten dark scenes.";
+"亮度" = "Brightness";
+"暗部提亮" = "Shadows";
+"对比原片" = "Original";
+"对比原始亮度，保留当前裁切与比例。" = "Compare original brightness with the current crop and ratio.";
+"还原调整" = "Reset";
+"HDR 视频暂不支持画面调整" = "Image adjustments are unavailable for HDR";
+"请先导出 SDR 视频，再调整亮度。" = "Export an SDR video first, then adjust brightness.";
+"请先转换为 MP4，再调整亮度。" = "Convert to MP4 first, then adjust brightness.";
+"正在加载画面预览…" = "Loading preview…";
+"亮度 %+d · 暗部 %d" = "Brightness %+d · Shadows %d";
+"保留时长" = "Kept Duration";
+"无法加载画面预览" = "Unable to load video preview";
+"降噪" = "Denoise";
+"轻度降噪" = "Light Denoise";
+"轻度抑制噪点，可能略微柔化细节。" = "Light denoising may slightly soften detail.";

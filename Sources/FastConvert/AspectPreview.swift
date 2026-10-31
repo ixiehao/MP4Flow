@@ -1,4 +1,4 @@
-import AVKit
+import AVFoundation
 import SwiftUI
 
 /// Live geometry only: reuse the player and its timeline; no preview encodes,
@@ -20,7 +20,7 @@ struct AspectCorrectionPreview: View {
             let before = turns ? CGSize(width: fitted.height, height: fitted.width) : fitted.size
             let sx = before.width / CGFloat(crop.width)
             let sy = before.height / CGFloat(crop.height)
-            GeometryPlayerView(player: player)
+            NativeVideoPreview(player: player, stretches: true)
                 .frame(width: CGFloat(sourceWidth) * sx, height: CGFloat(sourceHeight) * sy)
                 .offset(x: -CGFloat(crop.x) * sx, y: -CGFloat(crop.y) * sy)
                 .frame(width: before.width, height: before.height, alignment: .topLeading)
@@ -42,30 +42,11 @@ struct AspectCorrectionPreview: View {
         }
     }
 }
-
 enum AspectPreviewLayout {
     static func fitted(ratio: Double, in size: CGSize) -> CGRect {
         guard ratio.isFinite, ratio > 0, size.width > 0, size.height > 0 else { return .zero }
         let width = min(size.width, size.height * ratio)
         let height = width / ratio
         return CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2, width: width, height: height)
-    }
-}
-
-private struct GeometryPlayerView: NSViewRepresentable {
-    let player: AVPlayer?
-
-    func makeNSView(context: Context) -> AVPlayerView {
-        let view = AVPlayerView()
-        view.controlsStyle = .none
-        view.videoGravity = .resize
-        view.player = player
-        return view
-    }
-
-    func updateNSView(_ view: AVPlayerView, context: Context) {
-        if view.player !== player { view.player = player }
-        view.videoGravity = .resize
-        view.controlsStyle = .none
     }
 }

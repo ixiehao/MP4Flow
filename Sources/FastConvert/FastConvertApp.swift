@@ -455,8 +455,8 @@ struct ContentView: View {
             }
         }
         .sheet(item: $cropItem) { item in
-            CropEditor(source: item.source, initialCrop: item.crop, initialAspectRatio: item.aspectRatio, rotation: item.rotation) { crop, aspectRatio in
-                store.scheduleGeometry(item, crop: crop, aspectRatio: aspectRatio)
+            FrameEditor(source: item.source, initialCrop: item.crop, initialAspectRatio: item.aspectRatio, initialImageAdjustment: item.imageAdjustment, rotation: item.rotation) { crop, aspectRatio, adjustment in
+                store.scheduleFrameEdits(item, crop: crop, aspectRatio: aspectRatio, imageAdjustment: adjustment)
             }
         }
     }
@@ -1132,7 +1132,7 @@ private struct QueueRow: View {
                 .layoutPriority(1)
             HStack(spacing: 7) {
                 QueueActionButton(mark: .scissors, title: "剪辑", isDisabled: !canEdit, action: edit)
-                QueueActionButton(mark: .crop, title: "裁切与比例", isDisabled: !canEdit, action: crop)
+                QueueActionButton(mark: .edit, title: "画面编辑", isDisabled: !canEdit, action: crop)
                 QueueRotationMenu(current: item.rotation, isDisabled: !canEdit, select: rotate)
                 QueueActionButton(mark: .folder, title: "打开文件夹", action: reveal)
                 QueueActionButton(mark: .trash, title: "从队列移除", isDisabled: !canRemove, action: remove)
@@ -1178,7 +1178,7 @@ private struct QueueRow: View {
                 }
             }
         case .waiting:
-            if item.trimRange != nil || item.rotation != nil || item.crop != nil || item.aspectRatio != nil {
+            if item.trimRange != nil || item.rotation != nil || item.crop != nil || item.aspectRatio != nil || !item.imageAdjustment.isIdentity {
                 HStack(spacing: 9) {
                     StatusMark(state: item.state)
                     VStack(alignment: .leading, spacing: 2) {
@@ -1256,7 +1256,8 @@ private struct QueueRow: View {
             (item.trimRange != nil, L10n.text("剪辑")),
             (item.crop != nil, L10n.text("裁切")),
             (item.rotation != nil, L10n.text("旋转")),
-            (item.aspectRatio != nil, L10n.text("比例矫正"))
+            (item.aspectRatio != nil, L10n.text("比例矫正")),
+            (!item.imageAdjustment.isIdentity, L10n.text("画面调整"))
         ]
             .compactMap { $0.0 ? $0.1 : nil }
         return operations.isEmpty ? L10n.text("等待中") : L10n.format("待%@", L10n.list(operations))
@@ -1268,6 +1269,10 @@ private struct QueueRow: View {
         if let crop = item.crop { parts.append(L10n.format("裁切为 %@", crop.summary)) }
         if let rotation = item.rotation { parts.append(rotation.title) }
         if let ratio = item.aspectRatio { parts.append(L10n.format("比例 %@", ratio.summary)) }
+        if item.imageAdjustment.brightness != 0 || item.imageAdjustment.shadows != 0 {
+            parts.append(L10n.format("亮度 %+d · 暗部 %d", item.imageAdjustment.brightness, item.imageAdjustment.shadows))
+        }
+        if item.imageAdjustment.denoise { parts.append(L10n.text("轻度降噪")) }
         return parts.joined(separator: " · ")
     }
 }
@@ -1422,6 +1427,7 @@ private struct RotationMenuRowStyle: ButtonStyle {
 /// inheriting the oversized spacing of the platform's default bordered styles.
 private struct EditorActionButtonStyle: ButtonStyle {
     let primary: Bool
+    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -1435,7 +1441,7 @@ private struct EditorActionButtonStyle: ButtonStyle {
                     .stroke(primary ? Color.clear : BrandColor.selectStroke.opacity(0.85), lineWidth: 1)
             }
             .shadow(color: primary ? BrandColor.blue.opacity(0.18) : Color.black.opacity(0.08), radius: 1.5, y: 1)
-            .opacity(configuration.isPressed ? 0.84 : 1)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.84 : 1) : 0.4)
     }
 
     private func background(isPressed: Bool) -> Color {
@@ -1484,11 +1490,10 @@ private struct TrimEditor: View {
             if duration > 0 {
                 // Scheme A keeps the image canvas free of controls. Playback, range,
                 // and trim fields sit in their own predictable layers below it.
-                PlayerPreview(player: player)
+                NativeVideoPreview(player: player)
                     .frame(maxWidth: .infinity)
                     .frame(height: 220)
-                    .background(Color.black, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                    .previewCanvas()
 
                 CropPlaybackControls(player: player, duration: duration)
 
@@ -1580,15 +1585,16 @@ private struct TrimEditor: View {
     }
 
     private var keptDurationField: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(L10n.text("保留")).font(AppFont.captionMedium)
+        VStack(alignment: .center, spacing: 2) {
+            Text(L10n.text("保留时长")).font(AppFont.captionMedium)
             Text(timeText(end - start))
                 .font(.system(size: 13, weight: .semibold, design: .monospaced))
                 .fixedSize()
         }
+        .multilineTextAlignment(.center)
         .foregroundStyle(BrandColor.blue)
         .padding(.horizontal, 8)
-        .frame(maxWidth: .infinity, minHeight: 48)
+        .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
         .background(BrandColor.selectHover.opacity(0.74), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(BrandColor.selectHoverStroke, lineWidth: 1) }
     }
@@ -1721,19 +1727,27 @@ private enum CropAspect: String, CaseIterable, Identifiable {
     }
 }
 
-private struct CropEditor: View {
+private struct FrameEditor: View {
     let source: URL
     let initialCrop: CropRect?
     let initialAspectRatio: DisplayAspectRatio?
+    let initialImageAdjustment: ImageAdjustment
     let rotation: VideoRotation?
-    let confirm: (CropRect?, DisplayAspectRatio?) -> Void
+    let confirm: (CropRect?, DisplayAspectRatio?, ImageAdjustment) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var player: AVPlayer?
     @State private var mediaDuration = 0.0
     @State private var sourceWidth = 0
     @State private var sourceHeight = 0
     @State private var crop: CropRect?
-    @State private var isCorrectingRatio = false
+    private enum Mode { case crop, ratio, adjustment }
+    @State private var mode = Mode.crop
+    @State private var imageAdjustment = ImageAdjustment()
+    @State private var showsOriginal = false
+    @State private var colorPreviewReady = false
+    @State private var previewWorkingSpace = SDRWorkingSpace.rec709
+    @State private var colorPreviewUnavailable = false
+    @State private var sourceIsHDR = false
     @State private var aspectRatio: DisplayAspectRatio?
     @State private var ratioPreset: AspectRatioPreset = .original
     @State private var ratioWidthText = "16"
@@ -1743,28 +1757,34 @@ private struct CropEditor: View {
     @State private var yText = "0"
     @State private var widthText = "0"
     @State private var heightText = "0"
+    @FocusState private var focusedCropField: String?
     @State private var loadError: String?
     @State private var inspectionTask: Task<Void, Never>?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                Text(L10n.text("裁切与比例")).font(AppFont.section).foregroundStyle(BrandColor.textPrimary)
+                Text(L10n.text("画面编辑")).font(AppFont.section).foregroundStyle(BrandColor.textPrimary)
                 Text(source.lastPathComponent).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
             }
             HStack(spacing: 8) {
-                editorTab("裁切画面", detail: "去掉画面边缘，保留选中区域。", icon: .crop, active: !isCorrectingRatio) { isCorrectingRatio = false }
-                editorTab("比例矫正", detail: "修正画面拉伸，不新增裁切。", icon: .aspectRatio, active: isCorrectingRatio) { isCorrectingRatio = true }
+                editorTab("裁切画面", detail: "去掉画面边缘，保留选中区域。", icon: .crop, active: mode == .crop) { mode = .crop }
+                editorTab("比例矫正", detail: "修正画面拉伸，不新增裁切。", icon: .aspectRatio, active: mode == .ratio) { mode = .ratio }
+                editorTab("画面调整", detail: "提亮暗部，改善偏暗画面。", icon: .sun, active: mode == .adjustment) { mode = .adjustment }
             }
-            if sourceWidth > 0, sourceHeight > 0 {
-                ZStack {
-                    if isCorrectingRatio {
+            .disabled(!mediaReady)
+            // Keep the full editor scaffold present during asynchronous inspection.
+            // Replacing a short loading sheet with taller content can leave macOS
+            // using the original vertical origin and clip the header on first open.
+            ZStack {
+                if mediaReady {
+                    if mode != .crop {
                         AspectCorrectionPreview(player: player, sourceWidth: sourceWidth, sourceHeight: sourceHeight,
                             crop: crop ?? fullRect, pixelRatio: sourcePixelRatio, rotation: rotation, correction: aspectRatio)
                     } else {
                         GeometryReader { proxy in
                             let fitted = AspectPreviewLayout.fitted(ratio: sourceDisplayRatio, in: proxy.size)
-                            PlayerPreview(player: player)
+                            NativeVideoPreview(player: player)
                                 .frame(width: fitted.width, height: fitted.height)
                                 .position(x: fitted.midX, y: fitted.midY)
                         }
@@ -1772,53 +1792,97 @@ private struct CropEditor: View {
                             CropGuide(crop: crop, sourceWidth: sourceWidth, sourceHeight: sourceHeight, displayAspectRatio: sourceDisplayRatio) { applyGuideCrop($0) }
                         }
                     }
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 230)
-                .background(Color.black, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-
-                CropPlaybackControls(player: player, duration: mediaDuration)
-                Group {
-                    if isCorrectingRatio { ratioParameters } else { cropParameters }
-                }
-                .frame(maxWidth: .infinity, minHeight: 108, alignment: .topLeading)
-                .padding(12)
-                .background(BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
-                HStack(spacing: 8) {
-                    Text(L10n.format("视频尺寸：%d × %d", sourceWidth, sourceHeight))
-                    Text(L10n.format("时长：%@", minuteSecondText(mediaDuration)))
-                    Spacer(minLength: 8)
-                    Button(L10n.text("取消")) { dismiss() }
-                        .buttonStyle(EditorActionButtonStyle(primary: false)).keyboardShortcut(.cancelAction)
-                    Button(L10n.text("应用编辑")) {
-                        confirm(crop.flatMap { isFull($0) ? nil : $0 }, aspectRatio)
-                        dismiss()
-                    }
-                    .buttonStyle(EditorActionButtonStyle(primary: true))
-                    .disabled(crop == nil || invalidRatio)
-                    .keyboardShortcut(.defaultAction)
-                    .accessibilityIdentifier("geometry.apply")
-                }
-                .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
-            } else {
-                Group {
-                    if let loadError { EditorLoadFailure(message: loadError) }
-                    else { HStack(spacing: 10) { ProgressView(); Text(L10n.text("正在加载裁切预览")) } }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                HStack {
-                    Spacer()
-                    Button(L10n.text("取消")) { dismiss() }.buttonStyle(EditorActionButtonStyle(primary: false)).keyboardShortcut(.cancelAction)
+                } else if let loadError {
+                    EditorLoadFailure(message: loadError)
+                } else {
+                    HStack(spacing: 10) { ProgressView(); Text(L10n.text("正在加载视频预览")) }
+                        .foregroundStyle(BrandColor.textSecondary)
                 }
             }
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity)
+            .frame(height: 230)
+            .previewCanvas()
+            .overlay(alignment: .bottom) {
+                if let adjustmentNotice {
+                    Text(L10n.text(adjustmentNotice))
+                        .font(AppFont.caption)
+                        .foregroundStyle(sourceIsHDR || colorPreviewUnavailable ? BrandColor.warning : BrandColor.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(BrandColor.surface.opacity(0.95), in: RoundedRectangle(cornerRadius: 7))
+                        .padding(10)
+                }
+            }
+
+            CropPlaybackControls(player: player, duration: mediaDuration)
+                .disabled(!mediaReady)
+            Group {
+                switch mode {
+                case .crop: cropParameters
+                case .ratio: ratioParameters
+                case .adjustment: adjustmentParameters
+                }
+            }
+            .disabled(!mediaReady)
+            .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+            .padding(12)
+            .background(BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
+            HStack(spacing: 8) {
+                if invalidRatio {
+                    Button(L10n.text("请输入有效比例（1:10–10:1）。")) { mode = .ratio }
+                        .buttonStyle(.plain).foregroundStyle(BrandColor.warning)
+                        .accessibilityIdentifier("geometry.invalid")
+                } else {
+                    Group {
+                        Text(L10n.format("视频尺寸：%d × %d", sourceWidth, sourceHeight))
+                        Text(L10n.format("时长：%@", minuteSecondText(mediaDuration)))
+                    }
+                    .opacity(mediaReady ? 1 : 0)
+                    .accessibilityHidden(!mediaReady)
+                }
+                Spacer(minLength: 8)
+                Button(L10n.text("取消")) { dismiss() }
+                    .buttonStyle(EditorActionButtonStyle(primary: false)).keyboardShortcut(.cancelAction)
+                Button(L10n.text("应用编辑")) {
+                    confirm(crop.flatMap { isFull($0) ? nil : $0 }, aspectRatio, imageAdjustment)
+                    dismiss()
+                }
+                .buttonStyle(EditorActionButtonStyle(primary: true))
+                .disabled(!mediaReady || crop == nil || invalidRatio || (!imageAdjustment.isIdentity && (!colorPreviewReady || sourceIsHDR)))
+                .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("geometry.apply")
+            }
+            .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
         }
         .padding(20)
-        .frame(width: 780, height: 650, alignment: .top)
+        .frame(width: 820, alignment: .top)
+        .fixedSize(horizontal: false, vertical: true)
         .onAppear { loadMedia() }
-        .onDisappear { inspectionTask?.cancel(); player?.pause() }
+        .onChange(of: imageAdjustment) { value in
+            if value.isIdentity { showsOriginal = false }
+            updateImagePreview()
+        }
+        .onChange(of: showsOriginal) { _ in updateImagePreview() }
+        .onChange(of: mode) { _ in showsOriginal = false }
+        .onChange(of: focusedCropField) { _ in syncFields() }
+        .onDisappear {
+            inspectionTask?.cancel()
+            player?.pause()
+            player?.currentItem?.asset.cancelLoading()
+            player?.replaceCurrentItem(with: nil)
+        }
+    }
+
+    private var mediaReady: Bool { sourceWidth > 0 && sourceHeight > 0 }
+
+    // Status messages live over the fixed preview canvas, so slow color loading
+    // and unsupported HDR do not resize a sheet opened on saved adjustments.
+    private var adjustmentNotice: String? {
+        guard mediaReady, mode == .adjustment else { return nil }
+        if sourceIsHDR { return "HDR 视频暂不支持画面调整" }
+        if colorPreviewUnavailable { return "请先转换为 MP4，再调整亮度。" }
+        return colorPreviewReady ? nil : "正在加载画面预览…"
     }
 
     private var sourceDisplayRatio: Double {
@@ -1829,29 +1893,23 @@ private struct CropEditor: View {
     }
     private func editorTab(_ title: String, detail: String, icon: TablerIconName, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 10) {
-                TablerIcon(name: icon, color: BrandColor.blue)
-                    .frame(width: 23, height: 23)
-                    .frame(width: 42, height: 42)
-                    .background(active ? BrandColor.blue.opacity(0.12) : BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 10))
-                VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    TablerIcon(name: icon, color: BrandColor.blue).frame(width: 21, height: 21)
                     Text(L10n.text(title))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(active ? BrandColor.blue : BrandColor.textPrimary)
-                        .lineLimit(1)
-                    Text(L10n.text(detail))
-                        .font(AppFont.caption)
-                        .foregroundStyle(BrandColor.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                    TablerIcon(name: .circleCheck, color: BrandColor.blue)
+                        .frame(width: 16, height: 16).opacity(active ? 1 : 0)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if active {
-                    TablerIcon(name: .circleCheck, color: BrandColor.blue).frame(width: 20, height: 20)
-                } else { Color.clear.frame(width: 20, height: 20) }
+                Text(L10n.text(detail)).font(AppFont.caption)
+                    .foregroundStyle(BrandColor.textSecondary)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
             }
             .padding(12)
-            .frame(maxWidth: .infinity, minHeight: 82, maxHeight: 82)
+            .frame(maxWidth: .infinity, minHeight: 88, maxHeight: 88, alignment: .leading)
             .background(active ? BrandColor.blue.opacity(0.06) : BrandColor.surface, in: RoundedRectangle(cornerRadius: 12))
             .overlay { RoundedRectangle(cornerRadius: 12).stroke(active ? BrandColor.blue : BrandColor.selectStroke, lineWidth: active ? 1.5 : 1) }
             .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -1860,62 +1918,131 @@ private struct CropEditor: View {
         .accessibilityLabel(L10n.text(title))
         .accessibilityHint(L10n.text(detail))
         .accessibilityAddTraits(active ? .isSelected : [])
-        .accessibilityIdentifier(icon == .crop ? "geometry.crop" : "geometry.ratio")
+        .accessibilityIdentifier(icon == .crop ? "geometry.crop" : (icon == .sun ? "geometry.adjustment" : "geometry.ratio"))
     }
-    private var cropParameters: some View {
+    private var adjustmentParameters: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.text("裁切参数")).font(AppFont.captionMedium).foregroundStyle(BrandColor.textPrimary)
+            HStack(spacing: 12) {
+                adjustmentSlider("亮度", value: Binding(
+                    get: { Double(imageAdjustment.brightness) },
+                    set: { imageAdjustment = ImageAdjustment(brightness: Int($0.rounded()), shadows: imageAdjustment.shadows, denoise: imageAdjustment.denoise) }
+                ), range: -100...100, identifier: "image.brightness")
+                adjustmentSlider("暗部提亮", value: Binding(
+                    get: { Double(imageAdjustment.shadows) },
+                    set: { imageAdjustment = ImageAdjustment(brightness: imageAdjustment.brightness, shadows: Int($0.rounded()), denoise: imageAdjustment.denoise) }
+                ), range: 0...100, identifier: "image.shadows")
+                Toggle(L10n.text("降噪"), isOn: Binding(
+                    get: { imageAdjustment.denoise },
+                    set: { imageAdjustment = ImageAdjustment(brightness: imageAdjustment.brightness, shadows: imageAdjustment.shadows, denoise: $0) }
+                ))
+                .toggleStyle(.checkbox).fixedSize()
+                .disabled(!colorPreviewReady || sourceIsHDR)
+                .accessibilityIdentifier("image.denoise")
+                .help(L10n.text("轻度抑制噪点，可能略微柔化细节。"))
+                Rectangle().fill(BrandColor.selectStroke).frame(width: 1, height: 20)
+                Button { showsOriginal.toggle() } label: {
+                    HStack(spacing: 6) {
+                        TablerIcon(name: .video, color: showsOriginal ? .white : BrandColor.blue).frame(width: 14, height: 14)
+                        Text(L10n.text("对比原片")).lineLimit(1)
+                    }
+                    .fixedSize()
+                }
+                    .buttonStyle(EditorToolButtonStyle(isActive: showsOriginal))
+                    .disabled(imageAdjustment.isIdentity || !colorPreviewReady)
+                    .accessibilityAddTraits(showsOriginal ? .isSelected : [])
+                    .accessibilityIdentifier("image.compare")
+                    .help(L10n.text("对比原始亮度，保留当前裁切与比例。"))
+                Button { imageAdjustment = ImageAdjustment(); showsOriginal = false } label: {
+                    editorToolLabel("还原调整", icon: .refresh)
+                }
+                    .buttonStyle(EditorToolButtonStyle(isActive: false))
+                    .disabled(imageAdjustment.isIdentity)
+                    .accessibilityIdentifier("image.reset")
+            }
+        }
+        .font(AppFont.caption).fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func editorToolLabel(_ title: String, icon: TablerIconName) -> some View {
+        HStack(spacing: 6) {
+            TablerIcon(name: icon, color: BrandColor.blue).frame(width: 14, height: 14)
+            Text(L10n.text(title)).lineLimit(1)
+        }
+        .fixedSize()
+    }
+
+    private func adjustmentSlider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>, identifier: String) -> some View {
+        HStack(spacing: 8) {
+            Text(L10n.text(title)).font(AppFont.captionMedium).foregroundStyle(BrandColor.textPrimary)
+                .lineLimit(1).fixedSize()
+            Slider(value: value, in: range).tint(BrandColor.blue)
+                .frame(minWidth: 64)
+                .disabled(!colorPreviewReady || sourceIsHDR)
+                .accessibilityLabel(L10n.text(title)).accessibilityIdentifier(identifier)
+            Text(String(format: "%+d", Int(value.wrappedValue)))
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(BrandColor.textSecondary).frame(width: 30, alignment: .trailing)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func updateImagePreview() {
+        guard colorPreviewReady, let item = player?.currentItem else { return }
+        // Assign a fresh composition so a paused AVPlayer re-renders its current
+        // frame too (Apple QA1966); no seeks, proxy encodes or frame caches.
+        item.videoComposition = (showsOriginal ? ImageAdjustment() : imageAdjustment).composition(for: item.asset, workingSpace: previewWorkingSpace)
+    }
+
+    private var cropParameters: some View {
+        HStack(spacing: 8) {
             HStack(spacing: 8) {
                 Text(L10n.text("宽高比")).font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary)
+                    .lineLimit(1).fixedSize()
                 ForEach(CropAspect.allCases) { aspect in
                     Button(L10n.text(aspect.rawValue)) { applyAspect(aspect) }
                         .buttonStyle(CropAspectButtonStyle(isActive: isAspectActive(aspect)))
                 }
             }
-            HStack(spacing: 10) {
+            .fixedSize()
+            Spacer(minLength: 0)
+            HStack(spacing: 6) {
                 cropField("X", text: $xText); cropField("Y", text: $yText)
                 cropField("W", text: $widthText); cropField("H", text: $heightText)
             }
         }
     }
     private var ratioParameters: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 ForEach(AspectRatioPreset.allCases) { preset in
                     Button(preset.title) { selectRatio(preset) }
                         .buttonStyle(CropAspectButtonStyle(isActive: ratioPreset == preset))
                         .accessibilityIdentifier("geometry.preset." + preset.rawValue)
                 }
+                if ratioPreset == .custom {
+                    ratioField("比例宽", shortTitle: "宽", text: $ratioWidthText, identifier: "geometry.width")
+                    Text(":").font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary)
+                    ratioField("比例高", shortTitle: "高", text: $ratioHeightText, identifier: "geometry.height")
+                }
+                Spacer(minLength: 0)
             }
-            HStack(alignment: .bottom, spacing: 10) {
-                ratioField("比例宽", text: $ratioWidthText, identifier: "geometry.width")
-                Text(":").font(AppFont.section).padding(.bottom, 8)
-                ratioField("比例高", text: $ratioHeightText, identifier: "geometry.height")
-                Spacer(minLength: 8)
-                Text(aspectRatio.map { L10n.format("比例 %@", $0.summary) } ?? L10n.text("保持原画比例"))
-                    .font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
-                    .padding(.bottom, 8)
-            }
-            Text(L10n.text(invalidRatio ? "请输入有效比例（1:10–10:1）。" : "调整比例，不新增裁切。"))
-                .font(AppFont.caption).foregroundStyle(invalidRatio ? BrandColor.warning : BrandColor.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
-    private func ratioField(_ title: String, text: Binding<String>, identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(L10n.text(title)).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
+    private func ratioField(_ title: String, shortTitle: String, text: Binding<String>, identifier: String) -> some View {
+        HStack(spacing: 6) {
+            Text(L10n.text(shortTitle)).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
+                .lineLimit(1).fixedSize()
             TextField("", text: text)
-                .textFieldStyle(.plain).font(AppFont.medium)
-                .padding(.horizontal, 10).frame(height: 32)
-                .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7))
-                .overlay { RoundedRectangle(cornerRadius: 7).stroke(BrandColor.selectStroke, lineWidth: 1) }
+                .textFieldStyle(.plain).font(.system(size: 12, weight: .medium, design: .monospaced))
+                .foregroundStyle(BrandColor.textPrimary).frame(width: 44)
                 .accessibilityLabel(L10n.text(title)).accessibilityIdentifier(identifier)
-                .disabled(ratioPreset != .custom)
                 .onChange(of: text.wrappedValue) { _ in
                     if ratioPreset == .custom, let ratio = DisplayAspectRatio(widthText: ratioWidthText, heightText: ratioHeightText) { aspectRatio = ratio }
                 }
         }
-        .frame(width: 110)
+        .padding(.horizontal, 8).frame(height: 28)
+        .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7))
+        .overlay { RoundedRectangle(cornerRadius: 7).stroke(invalidRatio ? BrandColor.warning : BrandColor.selectStroke, lineWidth: 1) }
     }
     private func selectRatio(_ preset: AspectRatioPreset) {
         if preset == .custom && aspectRatio == nil { seedOriginalRatio() }
@@ -1930,27 +2057,33 @@ private struct CropEditor: View {
     private func seedOriginalRatio() {
         let frame = crop ?? fullRect
         let displayRatio = AspectGeometry.displayRatio(width: frame.width, height: frame.height, pixelRatio: sourcePixelRatio, rotation: rotation)
-        if let ratio = DisplayAspectRatio.approximating(displayRatio) {
+        let exact = abs(sourcePixelRatio - 1) < 0.000001
+            ? DisplayAspectRatio(width: rotation?.swapsDimensions == true ? frame.height : frame.width,
+                                 height: rotation?.swapsDimensions == true ? frame.width : frame.height) : nil
+        if let ratio = exact ?? DisplayAspectRatio.approximating(displayRatio) {
             ratioWidthText = String(ratio.width)
             ratioHeightText = String(ratio.height)
         }
     }
 
     private func cropField(_ title: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(L10n.text(title)).font(AppFont.captionMedium).foregroundStyle(BrandColor.textSecondary)
+        HStack(spacing: 6) {
+            Text(L10n.text(title)).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary)
+                .lineLimit(1).fixedSize()
             TextField("0", text: text)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(BrandColor.textPrimary)
-                .padding(.horizontal, 10)
-                .frame(maxWidth: .infinity, minHeight: 34)
-                .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
+                .frame(width: 44)
+                .accessibilityLabel(L10n.text(title))
+                .accessibilityIdentifier("crop.field." + title.lowercased())
+                .focused($focusedCropField, equals: title)
                 .onChange(of: text.wrappedValue) { _ in applyFields() }
-                .onSubmit { applyFields() }
+                .onSubmit { applyFields(); syncFields() }
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8).frame(height: 28)
+        .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
     }
 
     private func loadMedia() {
@@ -1962,14 +2095,17 @@ private struct CropEditor: View {
             let media = await EditorMediaProbe.inspect(source: source)
             guard !Task.isCancelled else { return }
             guard let media else {
-                loadError = L10n.text("无法加载裁切预览")
+                loadError = L10n.text("无法加载画面预览")
                 return
             }
             sourceWidth = media.width
             sourceHeight = media.height
             sourcePixelRatio = media.pixelRatio
             aspectRatio = initialAspectRatio
-            isCorrectingRatio = initialAspectRatio != nil
+            imageAdjustment = initialImageAdjustment
+            mode = !initialImageAdjustment.isIdentity ? .adjustment : (initialAspectRatio != nil ? .ratio : .crop)
+            sourceIsHDR = media.isHDR
+            previewWorkingSpace = SDRWorkingSpace(colorTransfer: media.colorTransfer)
             ratioPreset = initialAspectRatio.flatMap { ratio in AspectRatioPreset.allCases.first { $0.ratio == ratio } } ?? (initialAspectRatio == nil ? .original : .custom)
             if let initialAspectRatio {
                 ratioWidthText = String(initialAspectRatio.width); ratioHeightText = String(initialAspectRatio.height)
@@ -1978,12 +2114,25 @@ private struct CropEditor: View {
             crop = initialCrop.map(normalized) ?? fullRect
             if initialAspectRatio == nil { seedOriginalRatio() }
             syncFields()
-            // AVPlayerView can otherwise remain black until the user presses
-            // play on some files. Seek once after the view has a valid item so
-            // the first decodable frame is presented immediately.
+            // Seek once after the player has a valid item so the first
+            // decodable frame is presented without requiring playback.
             let previewTime = CMTime(seconds: min(max(media.duration * 0.01, 0.04), 0.2), preferredTimescale: 600)
             previewPlayer.seek(to: previewTime, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
                 previewPlayer.pause()
+            }
+            guard !sourceIsHDR, let asset = previewPlayer.currentItem?.asset else { return }
+            do {
+                let playable = try await asset.load(.isPlayable)
+                let tracks = try await asset.loadTracks(withMediaType: .video)
+                _ = try await asset.load(.duration)
+                if let track = tracks.first { _ = try await track.load(.naturalSize, .preferredTransform, .nominalFrameRate) }
+                guard !Task.isCancelled else { return }
+                colorPreviewReady = playable && !tracks.isEmpty
+                colorPreviewUnavailable = !colorPreviewReady
+                updateImagePreview()
+            } catch {
+                guard !Task.isCancelled else { return }
+                colorPreviewUnavailable = true
             }
         }
     }
@@ -2017,7 +2166,7 @@ private struct CropEditor: View {
     private func isAspectActive(_ aspect: CropAspect) -> Bool {
         guard let crop else { return aspect == .original }
         guard let ratio = aspect.ratio else { return isFull(crop) }
-        return abs(Double(crop.width) / Double(crop.height) * sourcePixelRatio - ratio) < 0.01
+        return !isFull(crop) && abs(Double(crop.width) / Double(crop.height) * sourcePixelRatio - ratio) < 0.01
     }
 }
 
@@ -2173,8 +2322,30 @@ private struct CropGuide: View {
     private func even(_ value: Int) -> Int { value / 2 * 2 }
 }
 
+private struct EditorToolButtonStyle: ButtonStyle {
+    let isActive: Bool
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.captionMedium)
+            .foregroundStyle(isActive ? Color.white : BrandColor.blue)
+            .padding(.horizontal, 10)
+            .frame(height: 30)
+            .background(isActive ? BrandColor.blue : (configuration.isPressed ? BrandColor.selectHover : BrandColor.surface),
+                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(isActive ? BrandColor.blue : BrandColor.selectHoverStroke.opacity(0.65), lineWidth: 1)
+            }
+            .shadow(color: BrandColor.blue.opacity(isEnabled ? 0.06 : 0), radius: 2, y: 1)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
+    }
+}
+
 private struct CropAspectButtonStyle: ButtonStyle {
     let isActive: Bool
+    @Environment(\.isEnabled) private var isEnabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppFont.captionMedium)
@@ -2183,6 +2354,7 @@ private struct CropAspectButtonStyle: ButtonStyle {
             .frame(height: 28)
             .background(isActive ? BrandColor.blue : BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             .overlay { RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(isActive ? BrandColor.blue : BrandColor.selectStroke, lineWidth: 1) }
+            .opacity(isEnabled ? 1 : 0.4)
     }
 }
 
@@ -2192,6 +2364,8 @@ struct EditorMediaInfo: Sendable {
     let height: Int
     let frameRate: Double
     var pixelRatio: Double = 1
+    var isHDR: Bool = false
+    var colorTransfer: String? = nil
 
     var frameDuration: Double { 1 / frameRate }
 }
@@ -2211,6 +2385,7 @@ enum EditorMediaProbe {
         let height: Int?
         let frameRate: String?
         let sampleAspectRatio: String?
+        let colorTransfer: String?
         let sideDataList: [RotationData]?
         let tags: [String: String]?
         enum CodingKeys: String, CodingKey {
@@ -2218,6 +2393,7 @@ enum EditorMediaProbe {
             case codecType = "codec_type"
             case width, height
             case frameRate = "r_frame_rate"
+            case colorTransfer = "color_transfer"
             case sampleAspectRatio = "sample_aspect_ratio", sideDataList = "side_data_list", tags
         }
     }
@@ -2237,7 +2413,7 @@ enum EditorMediaProbe {
         // detached probe alive, and stderr cannot fill an undrained pipe.
         let result = await FFmpegProcessRunner(
             executable: binary,
-            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:format=duration", "-of", "json", source.path],
+            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate,sample_aspect_ratio,color_transfer:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:format=duration", "-of", "json", source.path],
             configuration: FFmpegProcessRunner.Configuration(inactivityTimeout: 5, terminationGrace: 0.5, maximumOutputBytes: 1_000_000)
         ).run()
         guard !Task.isCancelled, result.succeeded,
@@ -2250,7 +2426,7 @@ enum EditorMediaProbe {
         guard let geometry = VideoGeometry.displayed(width: width, height: height, sampleAspectRatio: video.sampleAspectRatio, rotation: angle) else { return nil }
         let sar = AspectGeometry.pixelRatio(video.sampleAspectRatio)
         let swapped = abs(((angle ?? 0) / 90).rounded().truncatingRemainder(dividingBy: 2)) == 1
-        return EditorMediaInfo(duration: duration, width: geometry.width, height: geometry.height, frameRate: parseFrameRate(video.frameRate) ?? 30, pixelRatio: swapped ? 1 / sar : sar)
+        return EditorMediaInfo(duration: duration, width: geometry.width, height: geometry.height, frameRate: parseFrameRate(video.frameRate) ?? 30, pixelRatio: swapped ? 1 / sar : sar, isHDR: ["smpte2084", "arib-std-b67"].contains(video.colorTransfer?.lowercased() ?? ""), colorTransfer: video.colorTransfer)
     }
 
     private static func parseFrameRate(_ value: String?) -> Double? {
@@ -2267,27 +2443,6 @@ enum EditorMediaProbe {
     }
 }
 
-/// A lightweight AppKit-backed player preview.  Unlike SwiftUI's `VideoPlayer`,
-/// this view has a stable lifecycle when it is presented in an editor sheet.
-private struct PlayerPreview: NSViewRepresentable {
-    let player: AVPlayer?
-
-    func makeNSView(context: Context) -> AVPlayerView {
-        let view = AVPlayerView()
-        view.controlsStyle = .none
-        view.videoGravity = .resizeAspect
-        view.player = player
-        return view
-    }
-
-    func updateNSView(_ view: AVPlayerView, context: Context) {
-        if view.player !== player {
-            view.player = player
-        }
-        view.controlsStyle = .none
-    }
-}
-
 /// Cropping keeps transport controls outside the video canvas. This gives the
 /// crop rectangle the whole preview to work in without blocking play, seeking,
 /// volume, or skip actions.
@@ -2298,6 +2453,7 @@ private struct CropPlaybackControls: View {
     @State private var isPlaying = false
     @State private var volume = Float(1)
     @State private var timeObserver: Any?
+    @State private var observerPlayer: AVPlayer?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -2333,7 +2489,20 @@ private struct CropPlaybackControls: View {
         .frame(height: 40)
         .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
-        .onAppear { installTimeObserver() }
+        .onAppear { installTimeObserver(for: player) }
+        .onChange(of: player) { newPlayer in
+            removeTimeObserver()
+            currentTime = 0
+            isPlaying = false
+            installTimeObserver(for: newPlayer)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { notification in
+            guard let endedItem = notification.object as? AVPlayerItem,
+                  endedItem === player?.currentItem else { return }
+            // The last periodic tick can arrive before AVPlayer changes status
+            // to paused; update the button even when no further ticks follow.
+            isPlaying = false
+        }
         .onDisappear { removeTimeObserver() }
     }
 
@@ -2348,20 +2517,23 @@ private struct CropPlaybackControls: View {
         .accessibilityLabel(L10n.text(title))
     }
 
-    private func installTimeObserver() {
+    private func installTimeObserver(for player: AVPlayer?) {
         guard let player, timeObserver == nil else { return }
+        observerPlayer = player
         volume = player.volume
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.15, preferredTimescale: 600), queue: .main) { time in
+        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.15, preferredTimescale: 600), queue: .main) { [weak player] time in
             let seconds = time.seconds
-            if seconds.isFinite { currentTime = min(max(0, seconds), duration) }
-            isPlaying = player.timeControlStatus == .playing
+            // This subscription can precede metadata loading. Do not capture the
+            // view's initial zero duration and clamp every later tick back to zero.
+            if seconds.isFinite { currentTime = max(0, seconds) }
+            isPlaying = player?.timeControlStatus == .playing
         }
     }
 
     private func removeTimeObserver() {
-        guard let player, let timeObserver else { return }
-        player.removeTimeObserver(timeObserver)
-        self.timeObserver = nil
+        if let timeObserver { observerPlayer?.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+        observerPlayer = nil
     }
 
     private func togglePlayback() {

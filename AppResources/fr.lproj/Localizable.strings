@@ -411,3 +411,23 @@
 "去掉画面边缘，保留选中区域。" = "Retirez les bords et gardez la zone choisie.";
 
 "修正画面拉伸，不新增裁切。" = "Corrige l’étirement sans recadrer davantage.";
+
+// Image adjustments
+"画面编辑" = "Modifier la vidéo";
+"画面调整" = "Réglage de l’image";
+"提亮暗部，改善偏暗画面。" = "Éclaircir les scènes sombres.";
+"亮度" = "Luminosité";
+"暗部提亮" = "Ombres";
+"对比原片" = "Original";
+"对比原始亮度，保留当前裁切与比例。" = "Compare la luminosité sans changer le cadrage ni le ratio.";
+"还原调整" = "Réinitialiser";
+"HDR 视频暂不支持画面调整" = "Réglages indisponibles en HDR";
+"请先导出 SDR 视频，再调整亮度。" = "Exportez en SDR avant de régler la luminosité.";
+"请先转换为 MP4，再调整亮度。" = "Convertissez en MP4 avant de régler la luminosité.";
+"正在加载画面预览…" = "Chargement de l’aperçu…";
+"亮度 %+d · 暗部 %d" = "Luminosité %+d · Ombres %d";
+"保留时长" = "Durée conservée";
+"无法加载画面预览" = "Aperçu vidéo indisponible";
+"降噪" = "Débruiter";
+"轻度降噪" = "Débruitage léger";
+"轻度抑制噪点，可能略微柔化细节。" = "Le débruitage léger peut adoucir les détails.";

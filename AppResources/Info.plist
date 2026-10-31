@@ -9,8 +9,8 @@
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleName</key><string>MP4Flow</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.3.2</string>
-    <key>CFBundleVersion</key><string>18</string>
+    <key>CFBundleShortVersionString</key><string>1.4.0</string>
+    <key>CFBundleVersion</key><string>19</string>
     <key>CFBundleLocalizations</key>
     <array><string>en</string><string>zh-Hans</string><string>fr</string><string>ru</string><string>es</string><string>ja</string><string>ko</string></array>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
