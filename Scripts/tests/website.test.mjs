@@ -12,6 +12,8 @@ test('seven static pages are complete, crawlable and use matching real screensho
   const catalogs = await readCatalogs();
   const sprite = await readFile(path.join(output, 'assets/tabler-icons.svg'), 'utf8');
   const shots = new Set();
+  const titles = new Set();
+  const descriptions = new Set();
   for (const language of languages) {
     await t.test(language.id, async () => {
       const pageDir = path.join(output, localePath(language.id));
@@ -20,6 +22,21 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.ok(html.includes(`<link rel="canonical" href="${siteURL}${localePath(language.id)}"`));
       assert.doesNotMatch(html, /\{\{|undefined|语言菜单中 English/);
       assert.equal((html.match(/<h1\b/g) ?? []).length, 1);
+      const copy = catalogs[language.id];
+      assert.ok(html.includes(`<title>${copy.pageTitle}</title>`));
+      assert.match(copy.pageTitle, /MP4Flow.*MP4.*Mac|MP4Flow.*Mac.*MP4/);
+      titles.add(copy.pageTitle);
+      descriptions.add(copy.pageDescription);
+      assert.ok(html.includes(copy.heroFormats));
+      assert.doesNotMatch(html, /<meta name="keywords"/i);
+      const faq = html.match(/<section class="faq-section"[^>]*>([\s\S]*?)<\/section>/)?.[1];
+      assert.ok(faq, 'FAQ must be available in static HTML');
+      assert.equal((faq.match(/<details>/g) ?? []).length, 4);
+      for (const topic of ['Formats', 'Privacy', 'Quality', 'Setup']) {
+        assert.ok(faq.includes(copy[`faq${topic}Q`]), `${language.id}: FAQ question ${topic}`);
+        assert.ok(faq.includes(copy[`faq${topic}A`]), `${language.id}: FAQ answer ${topic}`);
+      }
+      assert.ok(faq.includes('data-install-guide'));
       assert.equal((html.match(/data-language="/g) ?? []).length, 8);
       assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
       assert.equal((html.match(/<link rel="alternate" hreflang=/g) ?? []).length, 8);
@@ -29,6 +46,15 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.deepEqual(schema.inLanguage, languages.map(l => l.locale));
       assert.equal(schema.url, siteURL + localePath(language.id));
       assert.equal(schema.description, catalogs[language.id].pageDescription);
+      assert.equal(schema.applicationCategory, 'MultimediaApplication');
+      assert.equal(schema.mainEntityOfPage, schema.url);
+      assert.equal(schema.softwareRequirements, 'FFmpeg; ffprobe');
+      assert.equal(schema.image, `${siteURL}assets/mp4flow-app-icon.png`);
+      assert.equal(schema.screenshot.contentUrl, `${siteURL}assets/mp4flow-v130-${language.id}.jpg`);
+      assert.equal(schema.screenshot.inLanguage, language.locale);
+      assert.equal(schema.screenshot.caption, copy.stageAlt);
+      assert.ok(!('aggregateRating' in schema) && !('review' in schema), 'do not invent ratings for rich results');
+      assert.doesNotMatch(html, /"@type":"FAQPage"|"@type":"VideoObject"/);
       assert.deepEqual(schema.featureList, ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => catalogs[language.id][key]));
       assert.equal((html.match(/<article class="tool-card /g) ?? []).length, 8);
       const [conversion, editing] = html.split('<div class="tool-group" role="group" aria-labelledby="edit-group-title">');
@@ -60,6 +86,8 @@ test('seven static pages are complete, crawlable and use matching real screensho
     });
   }
   assert.equal(shots.size, 7, 'each locale needs its own screenshot');
+  assert.equal(titles.size, 7, 'localized search titles must be distinct');
+  assert.equal(descriptions.size, 7, 'localized search descriptions must be distinct');
   const sitemap = await readFile(path.join(output, 'sitemap.xml'), 'utf8');
   assert.equal((sitemap.match(/<loc>/g) ?? []).length, 7);
   assert.equal((sitemap.match(/xhtml:link/g) ?? []).length, 56);
@@ -69,6 +97,20 @@ test('seven static pages are complete, crawlable and use matching real screensho
 
 test('builder refuses output paths outside its dedicated build directories', async () => {
   await assert.rejects(buildSite('/tmp/unrelated-content'), /Output must be/);
+});
+
+test('web navigation uses lightweight, unchanged icons embedded in the App artwork', async () => {
+  const appIcon = await readFile(new URL('../../AppResources/AppIcon.icns', import.meta.url));
+  for (const size of [128, 256]) {
+    const icon = await readFile(new URL(`../../website/assets/mp4flow-icon-${size}.png`, import.meta.url));
+    assert.equal(icon.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+    assert.equal(icon.readUInt32BE(16), size);
+    assert.equal(icon.readUInt32BE(20), size);
+    assert.ok(appIcon.includes(icon), 'reuse original App artwork without regeneration');
+    assert.ok(icon.length < (size === 128 ? 32 : 96) * 1024, 'keep small UI assets lightweight');
+  }
+  const template = await readFile(new URL('../../website/index.html', import.meta.url), 'utf8');
+  assert.equal((template.match(/class="wordmark-icon" src="assets\/mp4flow-icon-128.png"/g) ?? []).length, 2);
 });
 
 test('new adjustment icon uses the exact App Tabler Outline paths', async () => {
