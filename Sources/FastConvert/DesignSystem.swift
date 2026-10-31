@@ -38,7 +38,7 @@ enum AppFont {
 enum TablerIconName: String {
     case video, database, aspectRatio = "aspect-ratio", plus, bolt
     case shieldCheck = "shield-check", healthCheck = "activity-heartbeat", refresh
-    case folder, trash, scissors, crop, rotate
+    case folder, trash, scissors, crop, rotate, sun, adjustmentsHorizontal = "adjustments-horizontal"
     case chevronDown = "chevron-down", infoCircle = "info-circle"
     case clock, loader2 = "loader-2", circleCheck = "circle-check"
     case alertCircle = "alert-circle", circleX = "circle-x", language, check
@@ -80,7 +80,7 @@ private enum TablerIconLibrary {
     }
 }
 
-enum MarkKind { case film, hardDrive, resolution, plus, bolt, shield, healthCheck, refresh, folder, trash, scissors, crop, rotate, chevron }
+enum MarkKind { case film, hardDrive, resolution, plus, bolt, shield, healthCheck, refresh, folder, trash, scissors, crop, rotate, edit, chevron }
 
 /// Compatibility wrapper for the existing UI. Every mark now resolves to the
 /// same Tabler Outline family rather than a mixture of hand-drawn marks.
@@ -101,6 +101,7 @@ struct Mark: View {
         case .folder: .folder
         case .trash: .trash
         case .scissors: .scissors
+        case .edit: .adjustmentsHorizontal
         case .crop: .crop
         case .rotate: .rotate
         case .chevron: .chevronDown

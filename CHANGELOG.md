@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.0 — 2026-10-31
+
+### English
+- Added brightness and shadow controls, optional light denoise and live preview.
+- Refined the editor; fixed first-open layout, playback progress and crop input sync.
+
+### 中文
+- 新增亮度、暗部提亮与可选轻度降噪，支持实时预览。
+- 优化编辑界面，修复首次打开布局、播放进度和裁切参数同步。
+
+### 日本語
+- 明るさ・暗部補正と軽いノイズ低減を追加。リアルタイムプレビューに対応。
+- 編集画面を改善し、初回表示、再生進捗、クロップ入力の不具合を修正。
+
+### 한국어
+- 실시간 미리보기로 밝기·어두운 영역을 조정하고 가벼운 노이즈 제거를 선택할 수 있습니다.
+- 편집 화면을 개선하고 첫 표시, 재생 진행률, 자르기 입력 동기화 문제를 수정했습니다.
+
+Image adjustments: SDR only; light denoise is off by default. macOS 13+ · FFmpeg/ffprobe required (`brew install ffmpeg`). Ad-hoc signed, not notarized. Apple Silicon tested; physical Intel/macOS 13 testing remains pending.
+
 ## 1.3.2 — 2026-10-29
 
 ### English

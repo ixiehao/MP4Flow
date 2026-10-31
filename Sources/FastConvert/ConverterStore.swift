@@ -301,12 +301,13 @@ struct ConversionItem: Identifiable, Equatable {
     var rotation: VideoRotation?
     var crop: CropRect?
     var aspectRatio: DisplayAspectRatio?
+    var imageAdjustment = ImageAdjustment()
     var phase: ConversionPhase?
     var failure: ConversionFailure?
     var mediaHandling: MediaHandlingNotice?
 
     static func == (lhs: ConversionItem, rhs: ConversionItem) -> Bool {
-        lhs.id == rhs.id && lhs.source == rhs.source && lhs.state == rhs.state && lhs.presentation == rhs.presentation && lhs.trimRange == rhs.trimRange && lhs.rotation == rhs.rotation && lhs.crop == rhs.crop && lhs.aspectRatio == rhs.aspectRatio && lhs.phase == rhs.phase && lhs.failure == rhs.failure && lhs.mediaHandling == rhs.mediaHandling
+        lhs.id == rhs.id && lhs.source == rhs.source && lhs.state == rhs.state && lhs.presentation == rhs.presentation && lhs.trimRange == rhs.trimRange && lhs.rotation == rhs.rotation && lhs.crop == rhs.crop && lhs.aspectRatio == rhs.aspectRatio && lhs.imageAdjustment == rhs.imageAdjustment && lhs.phase == rhs.phase && lhs.failure == rhs.failure && lhs.mediaHandling == rhs.mediaHandling
     }
 }
 
@@ -408,6 +409,9 @@ struct VideoInfo: Sendable {
     let subtitleTrackCount: Int
     let colorTransfer: String?
     let probeSucceeded: Bool
+    var colorSpace: String? = nil
+    var colorPrimaries: String? = nil
+    var colorRange: String? = nil
     var displayGeometry: VideoGeometry? = nil
     var timeBase: String? = nil
     var averageFrameRate: String? = nil
@@ -561,13 +565,14 @@ private struct ProbeStream: Decodable, Sendable {
     let index: Int?, id: String?, disposition: MediaStreamDisposition?
     let codecType: String?, codecName: String?, bitRate: String?, width: Int?, height: Int?
     let rFrameRate: String?, avgFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?, colorTransfer: String?
+    let colorSpace: String?, colorPrimaries: String?, colorRange: String?
     let sampleAspectRatio: String?, timeBase: String?, sideDataList: [ProbeSideData]?, tags: [String: String]?
     enum CodingKeys: String, CodingKey {
         case index, id, disposition
         case codecType = "codec_type", codecName = "codec_name", bitRate = "bit_rate"
         case rFrameRate = "r_frame_rate", pixelFormat = "pix_fmt", sampleRate = "sample_rate", channels, width, height
         case avgFrameRate = "avg_frame_rate"
-        case colorTransfer = "color_transfer"
+        case colorTransfer = "color_transfer", colorSpace = "color_space", colorPrimaries = "color_primaries", colorRange = "color_range"
         case sampleAspectRatio = "sample_aspect_ratio", timeBase = "time_base", sideDataList = "side_data_list", tags
     }
 
@@ -724,7 +729,7 @@ final class ConverterStore: ObservableObject {
     var hasWaiting: Bool { items.contains { if case .waiting = $0.state { return true }; return false } }
     var hasCompleted: Bool { items.contains { if case .complete = $0.state { return true }; return false } }
     var hasIncomplete: Bool { items.contains { if case .failed = $0.state { return true }; if case .cancelled = $0.state { return true }; return false } }
-    var mergeCandidateCount: Int { items.reduce(into: 0) { if case .waiting = $1.state, $1.trimRange == nil, $1.rotation == nil, $1.crop == nil, $1.aspectRatio == nil { $0 += 1 } } }
+    var mergeCandidateCount: Int { items.reduce(into: 0) { if case .waiting = $1.state, $1.trimRange == nil, $1.rotation == nil, $1.crop == nil, $1.aspectRatio == nil, $1.imageAdjustment.isIdentity { $0 += 1 } } }
     var mergeDisplayCount: Int { isMerging ? mergeItemIDs.count : mergeCandidateCount }
     var canMerge: Bool { !isBusy && mergeCandidateCount >= 2 }
     var isBusy: Bool { isRunning || isMerging }
@@ -859,8 +864,8 @@ final class ConverterStore: ObservableObject {
     func mergeWaitingItems() {
         guard canMerge else { return }
         guard let binary = locateFFmpeg() else { showFFmpegSetup = true; return }
-        let sources = items.compactMap { item -> URL? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil { return item.source }; return nil }
-        mergeItemIDs = items.compactMap { item -> UUID? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil { return item.id }; return nil }
+        let sources = items.compactMap { item -> URL? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil, item.imageAdjustment.isIdentity { return item.source }; return nil }
+        mergeItemIDs = items.compactMap { item -> UUID? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil, item.imageAdjustment.isIdentity { return item.id }; return nil }
         for index in items.indices where mergeItemIDs.contains(items[index].id) { items[index].state = .merging(nil) }
         cancellationRequested = false
         isVerifyingMerge = false
@@ -880,7 +885,7 @@ final class ConverterStore: ObservableObject {
             return
         }
         let candidates = items.filter { item in
-            guard compatibleMergeIDs.contains(item.id), item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil else { return false }
+            guard compatibleMergeIDs.contains(item.id), item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil, item.imageAdjustment.isIdentity else { return false }
             if case .waiting = item.state { return true }
             return false
         }
@@ -965,6 +970,10 @@ final class ConverterStore: ObservableObject {
         scheduleEdit(item) { $0.crop = crop; $0.aspectRatio = aspectRatio }
     }
 
+    func scheduleFrameEdits(_ item: ConversionItem, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment) {
+        scheduleEdit(item) { $0.crop = crop; $0.aspectRatio = aspectRatio; $0.imageAdjustment = imageAdjustment }
+    }
+
     /// Editing a finished or failed row creates new work from the original
     /// source. Keep the existing output on disk and discard only stale results.
     /// Confirming unchanged settings must not unnecessarily requeue a video.
@@ -973,7 +982,7 @@ final class ConverterStore: ObservableObject {
         let previous = items[index]
         var edited = previous
         update(&edited)
-        guard edited.trimRange != previous.trimRange || edited.rotation != previous.rotation || edited.crop != previous.crop || edited.aspectRatio != previous.aspectRatio else { return }
+        guard edited.trimRange != previous.trimRange || edited.rotation != previous.rotation || edited.crop != previous.crop || edited.aspectRatio != previous.aspectRatio || edited.imageAdjustment != previous.imageAdjustment else { return }
         edited.state = .waiting
         edited.phase = nil
         edited.failure = nil
@@ -1365,6 +1374,7 @@ final class ConverterStore: ObservableObject {
         let rotation = item.rotation
         let crop = item.crop
         let aspectRatio = item.aspectRatio
+        let imageAdjustment = item.imageAdjustment
         setPhase(.inspecting, for: id, progress: nil, count: count)
         var info = await probe(source, ffmpegURL: ffmpegURL)
         // A transient file-provider or network-volume read may make ffprobe
@@ -1408,12 +1418,12 @@ final class ConverterStore: ObservableObject {
         // perfectly compatible video through a full decode/encode cycle.
         // Restrict this route to complete, unedited source timelines.
         let copyVideoAndEncodeAudio = preset == .smartMP4
-            && trim == nil && rotation == nil && crop == nil && aspectRatio == nil && !resizeRequiresEncoding
+            && trim == nil && rotation == nil && crop == nil && aspectRatio == nil && imageAdjustment.isIdentity && !resizeRequiresEncoding
             && info.canCopyVideoToMP4 && info.audioCodec != nil && info.audioCodec?.lowercased() != "aac"
         let effectivePreset: ConversionPreset
         if preset == .smartEnhanceUpscale {
             effectivePreset = preset
-        } else if rotation != nil || crop != nil || aspectRatio != nil || resizeRequiresEncoding {
+        } else if rotation != nil || crop != nil || aspectRatio != nil || !imageAdjustment.isIdentity || resizeRequiresEncoding {
             // Edits require re-encoding, but retain an explicitly selected
             // software or HEVC encoder. Only copy/automatic presets need a
             // concrete H.264 encoding path here.
@@ -1432,14 +1442,18 @@ final class ConverterStore: ObservableObject {
             markFailed(id, failure: ConversionFailure(reasonKey: "目标比例或尺寸超出支持范围", solutionKey: "请选择较小分辨率或接近原画的比例。", diagnostic: "geometry:unsupported-size"), count: count)
             return
         }
-        let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio)
+        guard imageAdjustment.isIdentity || !info.isHDR else {
+            markFailed(id, failure: ConversionFailure(reasonKey: "HDR 视频暂不支持画面调整", solutionKey: "请先导出 SDR 视频，再调整亮度。", diagnostic: "adjustment:hdr"), count: count)
+            return
+        }
+        let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment)
         let temporary = final.deletingLastPathComponent().appendingPathComponent(".MP4Flow-\(UUID().uuidString).partial.mp4")
         // The worker owns only its partial file; a successful move leaves the
         // published output untouched, while every early return also cleans up.
         defer { try? FileManager.default.removeItem(at: temporary) }
         var result: ProcessResult
         if effectivePreset == .smartEnhanceUpscale {
-            guard rotation == nil, crop == nil, aspectRatio == nil else {
+            guard rotation == nil, crop == nil, aspectRatio == nil, imageAdjustment.isIdentity else {
                 markFailed(id, failure: ConversionFailure(
                     reasonKey: "智能增强不支持画面编辑",
                     solutionKey: "请先完成画面编辑，再添加新文件增强。",
@@ -1459,7 +1473,7 @@ final class ConverterStore: ObservableObject {
             statusText = L10n.format("智能增强放大至 %@", plan.outputSummary)
             result = await runSmartEnhance(source: source, output: temporary, info: info, plan: plan, trim: trim, quality: quality, id: id, count: count)
         } else {
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, id: id, count: count, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio)
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio)
         }
         // Keep the fast VideoToolbox path as the default. Retry only when the
         // stderr allowlist identifies a specific VideoToolbox component: a
@@ -1470,14 +1484,14 @@ final class ConverterStore: ObservableObject {
            !cancellationRequested,
            effectivePreset != .smartEnhanceUpscale {
             setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件处理失败，正在使用兼容方式重试"))
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, id: id, count: count, preferHardwarePipeline: false)
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, preferHardwarePipeline: false)
         }
         if case .retryableFailure(_, .softwareEncoder) = result,
            !cancellationRequested,
            effectivePreset != .smartEnhanceUpscale,
            usesVideoToolboxEncoder(effectivePreset) {
             setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件编码不可用，正在使用兼容编码重试"))
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false)
+            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false)
         }
         if case .success = result, !cancellationRequested {
             setPhase(.verifying, for: id, progress: 0.999, count: count)
@@ -1785,10 +1799,10 @@ final class ConverterStore: ObservableObject {
     }
 #endif
 
-    private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, id: UUID, count: Int, copyVideoAndEncodeAudio: Bool = false, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
+    private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment, id: UUID, count: Int, copyVideoAndEncodeAudio: Bool = false, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true) async -> ProcessResult {
         guard !cancellationRequested else { return .cancelled }
         let generation = UUID()
-        let usedHardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop)
+        let usedHardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop, imageAdjustment: imageAdjustment)
         let usedHardwareEncoder = preferHardwareEncoder && usesVideoToolboxEncoder(preset)
         progressGeneration[id] = generation
         progressBuffers[id] = nil
@@ -1796,7 +1810,7 @@ final class ConverterStore: ObservableObject {
         lastProgressUpdate[id] = nil
         let runner = FFmpegProcessRunner(
             executable: ffmpegURL,
-            arguments: ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder),
+            arguments: ffmpegArguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder),
             configuration: processConfiguration
         )
         activeProcesses[id] = runner
@@ -1829,11 +1843,11 @@ final class ConverterStore: ObservableObject {
         return .failure(message)
     }
 
-    private func ffmpegArguments(source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool) -> [String] {
+    private func ffmpegArguments(source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool) -> [String] {
         // Privacy-first default: never copy source metadata or chapters, which
         // may contain title, author, device, location, or editing information.
         var args = ["-hide_banner", "-nostdin", "-y", "-thread_queue_size", "1024"]
-        let hardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop)
+        let hardwarePipeline = preferHardwarePipeline && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop, imageAdjustment: imageAdjustment)
         // For H.264/HEVC without CPU-only edits, keep decoded frames inside
         // VideoToolbox all the way to the encoder. This also benefits an
         // original-size conversion: not just resizes.
@@ -1894,6 +1908,10 @@ final class ConverterStore: ObservableObject {
         } else if let resolutionFilter = resolution.filter(sourceHeight: rotatedSourceHeight, quality: quality, useVideoToolbox: hardwarePipeline, canSkipUnchangedSize: editedGeometry?.canSkipUnchangedSize == true) {
             filters.append(resolutionFilter)
         }
+        if let adjustmentFilter = imageAdjustment.ffmpegFilter {
+            filters.append(info.imageAdjustmentColorNormalization)
+            filters.append(adjustmentFilter)
+        }
         if !filters.isEmpty { args += ["-vf", filters.joined(separator: ",")] }
         if preset != .remux, let timeBase = info.encodingTimeBase {
             args += ["-enc_time_base:v", timeBase]
@@ -1929,9 +1947,9 @@ final class ConverterStore: ObservableObject {
         preset == .qualityTop || preset == .h264Cap8 || preset == .h264Hardware || preset == .hevcHardware
     }
 
-    private func canUseVideoToolboxPipeline(info: VideoInfo, preset: ConversionPreset, crop: CropRect?) -> Bool {
+    private func canUseVideoToolboxPipeline(info: VideoInfo, preset: ConversionPreset, crop: CropRect?, imageAdjustment: ImageAdjustment) -> Bool {
         usesVideoToolboxEncoder(preset)
-            && crop == nil
+            && crop == nil && imageAdjustment.isIdentity
             && (info.displayRotation == nil || info.displayGeometry != nil)
             && ["h264", "hevc"].contains(info.videoCodec?.lowercased() ?? "")
     }
@@ -2036,7 +2054,7 @@ final class ConverterStore: ObservableObject {
     }
 
     nonisolated private static func probeArguments(for source: URL) -> [String] {
-        ["-v", "error", "-show_entries", "stream=index,id,codec_type,codec_name,bit_rate,width,height,r_frame_rate,avg_frame_rate,time_base,pix_fmt,sample_rate,channels,color_transfer,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:chapter=id:format=duration,bit_rate,format_name", "-of", "json", source.path]
+        ["-v", "error", "-show_entries", "stream=index,id,codec_type,codec_name,bit_rate,width,height,r_frame_rate,avg_frame_rate,time_base,pix_fmt,sample_rate,channels,color_transfer,color_space,color_primaries,color_range,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:chapter=id:format=duration,bit_rate,format_name", "-of", "json", source.path]
     }
 
     nonisolated private static func unavailableProbeInfo() -> VideoInfo {
@@ -2055,6 +2073,9 @@ final class ConverterStore: ObservableObject {
             return max(total - (Int(audio?.bitRate ?? "") ?? 0), 1)
         }
         var info = VideoInfo(duration: Double(response.format?.duration ?? ""), videoRate: videoRate, audioRate: Int(audio?.bitRate ?? ""), width: video?.width, height: video?.height, hasVideo: video != nil, videoCodec: video?.codecName, audioCodec: audio?.codecName, frameRate: video?.rFrameRate, pixelFormat: video?.pixelFormat, audioSampleRate: audio?.sampleRate, audioChannels: audio?.channels, audioTrackCount: audioStreams.count, subtitleTrackCount: subtitleStreams.count, colorTransfer: video?.colorTransfer, probeSucceeded: true)
+        info.colorSpace = video?.colorSpace
+        info.colorPrimaries = video?.colorPrimaries
+        info.colorRange = video?.colorRange
         info.averageFrameRate = video?.avgFrameRate
         let rotationTag = video?.tags?["rotate"]
         let rotation = video?.sideDataList?.compactMap(\.rotation).first ?? rotationTag.flatMap(Double.init)
@@ -2089,12 +2110,13 @@ final class ConverterStore: ObservableObject {
     private func canonicalURL(_ url: URL) -> URL {
         url.standardizedFileURL.resolvingSymlinksInPath()
     }
-    private func uniqueOutput(for source: URL, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?) -> URL {
+    private func uniqueOutput(for source: URL, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment) -> URL {
         let directory = outputDirectory ?? source.deletingLastPathComponent(), stem = source.deletingPathExtension().lastPathComponent
         var suffix = trim.map { "-trim-\(fileNameTime($0.start))-\(fileNameTime($0.end))" } ?? "-MP4FlowConverted"
         if crop != nil { suffix += "-cropped" }
         if let aspectRatio { suffix += "-aspect-\(aspectRatio.width)x\(aspectRatio.height)" }
         if let rotation { suffix += "-\(rotation.fileSuffix)" }
+        if !imageAdjustment.isIdentity { suffix += "-adjusted" }
         var result = directory.appendingPathComponent("\(stem)\(suffix).mp4"), number = 2
         while FileManager.default.fileExists(atPath: result.path) { result = directory.appendingPathComponent("\(stem)\(suffix)-\(number).mp4"); number += 1 }
         return result
