@@ -44,7 +44,7 @@ export function renderPage(template, language, copy) {
     codeRepository: 'https://github.com/ixiehao/MP4Flow', license: 'https://github.com/ixiehao/MP4Flow/blob/main/LICENSE',
     isAccessibleForFree: true, inLanguage: languages.map(l => l.locale),
     author: { '@type': 'Person', name: 'ixiehao', url: 'https://github.com/ixiehao' },
-    featureList: ['toolOneTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle'].map(key => copy[key]),
+    featureList: ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => copy[key]),
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
   };
   const meta = (kind, name, value) => `<meta ${kind}="${name}" content="${escape(value)}" />`;
@@ -66,7 +66,7 @@ export function renderPage(template, language, copy) {
     meta('name', 'twitter:image', `${siteURL}assets/social-preview.jpg?v=2`), meta('name', 'twitter:image:alt', copy.socialImageAlt),
     '<link rel="icon" type="image/png" href="assets/mp4flow-app-icon.png" />',
     '<link rel="apple-touch-icon" href="assets/mp4flow-app-icon.png" />',
-    '<link rel="stylesheet" href="styles.css?v=20261029-cards" />',
+    '<link rel="stylesheet" href="styles.css?v=20261031-tools" />',
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');

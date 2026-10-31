@@ -12,15 +12,20 @@
 
 | Fonction | Pour… |
 | --- | --- |
-| **Conversion intelligente** | Éviter le réencodage inutile et utiliser l’accélération matérielle si disponible. |
-| **Découper** | Choisir le début et la fin pour garder le passage voulu. |
-| **Recadrer** | Enlever les bords inutiles de l’image. |
-| **Pivoter** | Corriger l’orientation sans déformer l’image. |
-| **Correction du ratio** | Corriger une image déformée avec aperçu en direct, ratios prédéfinis ou personnalisés. |
+| **Conversion intelligente** | Convertissez une vidéo ou un lot. Copie sans réencodage si possible, accélération matérielle si disponible. |
+| **Fusionner** | Assemblez les séquences non modifiées dans l’ordre de la file. Fusion directe si compatible, ou fusion avec réencodage pour uniformiser les formats. |
+| **Découper** | Définissez le début et la fin. Gardez seulement le passage voulu. |
+| **Recadrer** | Déplacez le cadre ou saisissez les dimensions pour enlever les bords inutiles. |
+| **Pivoter** | Tournez la vidéo de 90° ou 180° sans modifier ses proportions. |
+| **Correction du ratio** | Corrigez une image étirée avec aperçu en direct, ratios prédéfinis ou personnalisés. |
+| **Éclaircir l’image** | Réglez la luminosité et éclaircissez les ombres en douceur, avec aperçu en direct. |
+| **Réduire le bruit** | Atténuez le grain dans les scènes sombres. Activez une réduction légère du bruit au besoin. |
 
-Image étirée ? Dans la file, ouvrez **Recadrage et ratio → Correction du ratio**. Choisissez un ratio ou saisissez une largeur et une hauteur, vérifiez l’aperçu, puis cliquez sur **Appliquer**.
+Dans la file, ouvrez **Modifier la vidéo** pour recadrer ou corriger le ratio. La luminosité et le bruit se règlent dans **Réglage de l’image**. Cliquez sur **Appliquer**, puis **Démarrer** pour exporter.
 
-Convertissez aussi plusieurs fichiers, fusionnez des séquences et changez la résolution. Tout le traitement vidéo se fait sur votre Mac.
+Les réglages d’image nécessitent un réencodage et ne prennent pas en charge le HDR. La réduction du bruit est désactivée par défaut et peut adoucir les détails.
+
+Vous pouvez aussi changer la résolution de sortie. Tout le traitement vidéo se fait sur votre Mac.
 
 ## Télécharger et installer
 
@@ -57,7 +62,7 @@ MP4Flow ignore les pochettes et miniatures, conserve la première vraie piste vi
 <details>
 <summary>En option : agrandissement intelligent</summary>
 
-Cette fonction expérimentale nécessite Apple Silicon, macOS 27+ et un facteur d’agrandissement pris en charge par VideoToolbox d’Apple. Elle ne se combine pas avec le recadrage, la rotation ou la correction du ratio. macOS peut télécharger un modèle système au premier usage. Un redimensionnement ordinaire ne restaure pas les détails manquants.
+Cette fonction expérimentale nécessite Apple Silicon, macOS 27+ et un facteur d’agrandissement pris en charge par VideoToolbox d’Apple. Elle ne se combine pas avec le recadrage, la rotation, la correction du ratio ou les réglages d’image. macOS peut télécharger un modèle système au premier usage. Un redimensionnement ordinaire ne restaure pas les détails manquants.
 
 </details>
 

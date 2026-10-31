@@ -12,15 +12,20 @@
 
 | Función | Para qué sirve |
 | --- | --- |
-| **Conversión inteligente** | Evita recodificar cuando es posible y usa aceleración por hardware si está disponible. |
-| **Cortar** | Elige el inicio y el final para conservar el fragmento que quieras. |
-| **Recortar** | Quita los bordes que sobran en la imagen. |
-| **Girar** | Corrige la orientación sin estirar la imagen. |
+| **Conversión inteligente** | Convierte un video o varios a la vez. Copia sin recodificar cuando sea posible y usa aceleración por hardware si está disponible. |
+| **Unir clips** | Une clips sin editar en el orden de la cola. Unión directa si son compatibles, o con recodificación para igualar formatos. |
+| **Cortar** | Elige el inicio y el final. Conserva solo el fragmento que quieres. |
+| **Recortar** | Arrastra el marco o introduce las dimensiones para quitar bordes. |
+| **Girar** | Gira el video 90° o 180° manteniendo sus proporciones. |
 | **Corregir proporción** | Corrige imágenes estiradas con vista previa en tiempo real y proporciones predefinidas o personalizadas. |
+| **Aclarar imagen** | Ajusta el brillo y aclara las sombras con suavidad. Mira el resultado mientras editas. |
+| **Reducir ruido** | Reduce el grano en escenas oscuras. Activa una reducción ligera de ruido cuando la necesites. |
 
-¿Imagen estirada? En la cola, abre **Recorte y proporción → Corregir proporción**. Elige una proporción o introduce el ancho y el alto, comprueba la vista previa y pulsa **Aplicar**.
+En la cola, abre **Editar video** para recortar o corregir la proporción. El brillo y el ruido se ajustan en **Ajustes de imagen**. Pulsa **Aplicar** y luego **Iniciar** para exportar.
 
-También puedes convertir varios archivos, unir clips y cambiar la resolución. Todo el procesamiento de video se hace en tu Mac.
+Los ajustes de imagen requieren recodificar y no admiten HDR. La reducción de ruido está desactivada por defecto y puede suavizar los detalles.
+
+También puedes cambiar la resolución de salida. Todo el procesamiento de video se hace en tu Mac.
 
 ## Descargar e instalar
 
@@ -57,7 +62,7 @@ MP4Flow omite portadas y miniaturas, conserva la primera pista de video real y l
 <details>
 <summary>Opcional: ampliación inteligente</summary>
 
-Esta función experimental requiere Apple Silicon, macOS 27+ y un factor de ampliación admitido por VideoToolbox de Apple. No se puede combinar con recorte, giro ni corrección de proporción. macOS puede descargar un modelo del sistema en el primer uso. Cambiar la resolución de forma normal no recupera detalles perdidos.
+Esta función experimental requiere Apple Silicon, macOS 27+ y un factor de ampliación admitido por VideoToolbox de Apple. No se puede combinar con recorte, giro, corrección de proporción ni ajustes de imagen. macOS puede descargar un modelo del sistema en el primer uso. Cambiar la resolución de forma normal no recupera detalles perdidos.
 
 </details>
 
