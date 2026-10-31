@@ -100,9 +100,15 @@ struct ImageAdjustment: Equatable, Sendable {
     func composition(for asset: AVAsset) -> AVVideoComposition? {
         guard !isIdentity else { return nil }
         let curveData = makeCurveData()
-        return AVVideoComposition(asset: asset, applyingCIFiltersWithHandler: { request in
+        let composition = AVMutableVideoComposition(asset: asset, applyingCIFiltersWithHandler: { request in
             request.finish(with: self.previewImage(request.sourceImage, curveData: curveData), context: Self.previewContext)
         })
+        // AVFoundation otherwise inherits source tags and chooses defaults that
+        // differ between macOS versions. Match the export's explicit SDR space.
+        composition.colorPrimaries = AVVideoColorPrimaries_ITU_R_709_2
+        composition.colorTransferFunction = AVVideoTransferFunction_ITU_R_709_2
+        composition.colorYCbCrMatrix = AVVideoYCbCrMatrix_ITU_R_709_2
+        return composition
     }
 }
 

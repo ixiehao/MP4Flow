@@ -256,7 +256,11 @@ final class ImageAdjustmentTests: XCTestCase {
         _ = try await asset.load(.duration)
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
-        generator.videoComposition = setting.composition(for: asset)
+        let composition = try XCTUnwrap(setting.composition(for: asset))
+        XCTAssertEqual(composition.colorPrimaries, AVVideoColorPrimaries_ITU_R_709_2)
+        XCTAssertEqual(composition.colorTransferFunction, AVVideoTransferFunction_ITU_R_709_2)
+        XCTAssertEqual(composition.colorYCbCrMatrix, AVVideoYCbCrMatrix_ITU_R_709_2)
+        generator.videoComposition = composition
         let preview = try generator.copyCGImage(at: CMTime(seconds: 0.5, preferredTimescale: 600), actualTime: nil)
         let outputGenerator = AVAssetImageGenerator(asset: AVURLAsset(url: output))
         outputGenerator.appliesPreferredTrackTransform = true
@@ -271,6 +275,7 @@ final class ImageAdjustmentTests: XCTestCase {
         XCTAssertEqual(preview.width, exported.width, name)
         XCTAssertEqual(preview.height, exported.height, name)
         let actualPreview = sample(preview), actualExport = sample(exported)
+        print("Color regression \(name): preview \(actualPreview) \(String(describing: preview.colorSpace?.name)), export \(actualExport) \(String(describing: exported.colorSpace?.name))")
         for channel in 0..<3 { XCTAssertEqual(Double(actualPreview[channel]), Double(actualExport[channel]), accuracy: 6, "\(name): preview vs export channel \(channel)") }
         }
     }
