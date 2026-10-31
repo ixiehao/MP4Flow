@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg">
-  <!-- Tabler Icons Outline v3.49.0; exact paths reused from the app's curated icon set.
+  <!-- Tabler Icons Outline v3.49.0; unchanged App icon paths, with website-only icons from the same release.
   Copyright (c) 2020-2026 Paweł Kuna
   Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
   The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
@@ -52,5 +52,17 @@
     <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" />
     <path d="M7 12v-3h3" />
     <path d="M17 12v3h-3" />
+  </symbol>
+  <symbol id="sun" viewBox="0 0 24 24">
+    <path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0" />
+    <path d="M3 12h1m8 -9v1m8 8h1m-9 8v1m-6.4 -15.4l.7 .7m12.1 -.7l-.7 .7m0 11.4l.7 .7m-12.1 -.7l-.7 .7" />
+  </symbol>
+  <symbol id="arrows-join" viewBox="0 0 24 24">
+    <path d="M3 7h5l3.5 5h9.5" />
+    <path d="M3 17h5l3.495 -5" />
+    <path d="M18 15l3 -3l-3 -3" />
+  </symbol>
+  <symbol id="wave-sine" viewBox="0 0 24 24">
+    <path d="M21 12h-2c-.894 0 -1.662 -.857 -1.761 -2c-.296 -3.45 -.749 -6 -2.749 -6s-2.5 3.582 -2.5 8s-.5 8 -2.5 8s-2.452 -2.547 -2.749 -6c-.1 -1.147 -.867 -2 -1.763 -2h-2" />
   </symbol>
 </svg>

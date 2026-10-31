@@ -24,11 +24,17 @@ The existing GitHub Pages site stays at <https://ixiehao.github.io/MP4Flow/>.
 
 Keep copy short and product-focused. Do not put implementation notes, language ordering or test results into marketing text. Maintain the same spacing rules across languages; allow natural text wrapping instead of hiding overflow or shrinking individual translations.
 
+## Feature content and layout
+
+Present eight features in the same order in all seven locales and READMEs: Smart Convert, Merge Clips, Trim, Crop, Rotate, Aspect Correction, Brighten Video, Light Denoise. Keep the two conversion/merge cards together, followed by six editing cards (three columns on desktop, two on tablet, one on mobile). Avoid numbered feature decorations and full-width leftover cards.
+
+Brightness and denoise are separate feature descriptions but share the App's **Edit Video → Image Adjustments** panel. Explain that edits must be applied before starting conversion. Image adjustments re-encode SDR video; HDR is unsupported, and optional light denoise is off by default and may soften details. Merging uses unedited waiting clips in queue order: compatible inputs can be copied directly; Compatible Merge re-encodes mismatched formats. Do not claim that every merge is lossless.
+
 ## Images, icons and fonts
 
 - Hero images `mp4flow-v130-*.jpg` are real captures of the corresponding v1.3.0 App interface, using a synthetic sample video. Capture bytes are JPEG, despite the screenshot API not specifying an extension. Keep the actual format and filename consistent.
 - Previously hand-edited screenshots remain in `website/assets/` for existing references. Do not overwrite them when refreshing hero images.
-- UI icons use the local `website/assets/tabler-icons.svg` sprite. Paths are copied unchanged from the App's curated Tabler Icons Outline v3.49.0 set in `Sources/FastConvert/Resources/TablerOutline/`.
+- UI icons use the local `website/assets/tabler-icons.svg` sprite. Shared paths are copied unchanged from the App's curated Tabler Icons Outline v3.49.0 set in `Sources/FastConvert/Resources/TablerOutline/`. Website-only icons (`arrows-join`, `wave-sine`, `brand-github`) come unchanged from the same upstream release.
 - The product logo and favicon use the real App artwork. Font rendering uses the operating system's fonts; no webfont files are bundled or downloaded.
 - Attribution and MIT terms: [`AppResources/ASSET_NOTICES.md`](../AppResources/ASSET_NOTICES.md).
 

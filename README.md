@@ -12,15 +12,20 @@
 
 | Feature | Use it to… |
 | --- | --- |
-| **Smart Convert** | Create MP4s with less waiting: avoid re-encoding when possible; use hardware acceleration when available. |
-| **Trim** | Keep the part you want by choosing a start and end. |
-| **Crop** | Remove unwanted edges from the picture. |
-| **Rotate** | Fix orientation without stretching the image. |
+| **Smart Convert** | Convert one video or a whole batch. Copy compatible video without re-encoding; use hardware acceleration when available. |
+| **Merge Clips** | Join unedited clips in queue order. Merge directly when compatible, or use Compatible Merge to match formats. |
+| **Trim** | Set the start and end points. Keep only the part you want. |
+| **Crop** | Drag the frame or enter dimensions to remove unwanted edges. |
+| **Rotate** | Turn video by 90° or 180° while keeping its proportions. |
 | **Aspect Correction** | Fix stretched video with live preview, presets and custom ratios. |
+| **Brighten Video** | Adjust brightness and gently lift shadows. Preview the result as you edit. |
+| **Light Denoise** | Reduce visible grain in dark scenes. Enable a light touch of noise reduction when needed. |
 
-To fix stretched video, open **Crop & Aspect → Aspect Correction** in the queue. Choose a preset or enter a custom width:height ratio, preview the result, then click **Apply**.
+In the queue, open **Edit Video** to crop or fix proportions. Use **Image Adjustments** for brightness and denoise. Click **Apply**, then **Start** to export.
 
-Also convert batches, merge clips and change resolution. Video processing stays on your Mac.
+Image adjustments require re-encoding and do not support HDR. Light denoise is off by default and may slightly soften detail.
+
+You can also change output resolution. All video processing stays on your Mac.
 
 ## Download and install
 
@@ -57,7 +62,7 @@ MP4Flow skips cover art and thumbnails, keeps the first actual video and audio t
 <details>
 <summary>Optional: Smart Enhance Upscale</summary>
 
-Experimental enhancement requires Apple silicon, macOS 27+, and a scale supported by Apple’s VideoToolbox. It cannot be combined with crop, rotation or aspect correction. macOS may download a system model on first use. Ordinary resizing changes dimensions without restoring missing detail.
+Experimental enhancement requires Apple silicon, macOS 27+, and a scale supported by Apple’s VideoToolbox. It cannot be combined with crop, rotation, aspect correction or image adjustments. macOS may download a system model on first use. Ordinary resizing changes dimensions without restoring missing detail.
 
 </details>
 

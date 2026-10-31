@@ -55,41 +55,68 @@
           <h2 id="tools-title" data-i18n="toolsTitle">{{toolsTitle}}</h2>
           <p data-i18n="toolsIntro">{{toolsIntro}}</p>
         </div>
-        <div class="tool-grid">
-          <article class="tool-card tool-card-convert">
-            <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#video"></use></svg></div>
-            <h3 data-i18n="toolOneTitle">{{toolOneTitle}}</h3>
-            <p data-i18n="toolOneBody">{{toolOneBody}}</p>
-            <span class="tool-detail" data-i18n="toolOneDetail">{{toolOneDetail}}</span>
-          </article>
-          <article class="tool-card tool-card-trim">
-            <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#scissors"></use></svg></div>
-            <h3 data-i18n="toolTwoTitle">{{toolTwoTitle}}</h3>
-            <p data-i18n="toolTwoBody">{{toolTwoBody}}</p>
-            <span class="tool-detail" data-i18n="toolTwoDetail">{{toolTwoDetail}}</span>
-          </article>
-          <article class="tool-card tool-card-crop">
-            <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#crop"></use></svg></div>
-            <h3 data-i18n="toolThreeTitle">{{toolThreeTitle}}</h3>
-            <p data-i18n="toolThreeBody">{{toolThreeBody}}</p>
-            <span class="tool-detail" data-i18n="toolThreeDetail">{{toolThreeDetail}}</span>
-          </article>
-          <article class="tool-card tool-card-rotate">
-            <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#rotate"></use></svg></div>
-            <h3 data-i18n="toolFourTitle">{{toolFourTitle}}</h3>
-            <p data-i18n="toolFourBody">{{toolFourBody}}</p>
-            <span class="tool-detail" data-i18n="toolFourDetail">{{toolFourDetail}}</span>
-          </article>
-          <article class="tool-card tool-card-aspect" id="aspect-correction" aria-labelledby="aspect-title">
-            <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#aspect-ratio"></use></svg></div>
-            <h3 id="aspect-title">{{aspectTitle}}</h3>
-            <p>{{aspectBody}}</p>
-            <ul class="tool-details">
-              <li class="tool-detail">{{aspectPreview}}</li>
-              <li class="tool-detail">{{aspectCustom}}</li>
-            </ul>
-          </article>
+        <div class="tool-group" role="group" aria-labelledby="convert-group-title">
+          <p class="tool-group-label" id="convert-group-title">{{convertGroup}}</p>
+          <div class="tool-grid tool-grid-primary">
+            <article class="tool-card tool-card-convert">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#video"></use></svg></div>
+              <h3 data-i18n="toolOneTitle">{{toolOneTitle}}</h3>
+              <p data-i18n="toolOneBody">{{toolOneBody}}</p>
+              <span class="tool-detail" data-i18n="toolOneDetail">{{toolOneDetail}}</span>
+            </article>
+            <article class="tool-card tool-card-merge" id="merge-clips">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg?v=20261031-tools#arrows-join"></use></svg></div>
+              <h3>{{mergeTitle}}</h3>
+              <p>{{mergeBody}}</p>
+              <span class="tool-detail">{{mergeDetail}}</span>
+            </article>
+          </div>
         </div>
+        <div class="tool-group" role="group" aria-labelledby="edit-group-title">
+          <p class="tool-group-label" id="edit-group-title">{{editGroup}}</p>
+          <div class="tool-grid tool-grid-edit">
+            <article class="tool-card tool-card-trim">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#scissors"></use></svg></div>
+              <h3 data-i18n="toolTwoTitle">{{toolTwoTitle}}</h3>
+              <p data-i18n="toolTwoBody">{{toolTwoBody}}</p>
+              <span class="tool-detail" data-i18n="toolTwoDetail">{{toolTwoDetail}}</span>
+            </article>
+            <article class="tool-card tool-card-crop">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#crop"></use></svg></div>
+              <h3 data-i18n="toolThreeTitle">{{toolThreeTitle}}</h3>
+              <p data-i18n="toolThreeBody">{{toolThreeBody}}</p>
+              <span class="tool-detail" data-i18n="toolThreeDetail">{{toolThreeDetail}}</span>
+            </article>
+            <article class="tool-card tool-card-rotate">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#rotate"></use></svg></div>
+              <h3 data-i18n="toolFourTitle">{{toolFourTitle}}</h3>
+              <p data-i18n="toolFourBody">{{toolFourBody}}</p>
+              <span class="tool-detail" data-i18n="toolFourDetail">{{toolFourDetail}}</span>
+            </article>
+            <article class="tool-card tool-card-aspect" id="aspect-correction" aria-labelledby="aspect-title">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#aspect-ratio"></use></svg></div>
+              <h3 id="aspect-title">{{aspectTitle}}</h3>
+              <p>{{aspectBody}}</p>
+              <ul class="tool-details">
+                <li class="tool-detail">{{aspectPreview}}</li>
+                <li class="tool-detail">{{aspectCustom}}</li>
+              </ul>
+            </article>
+            <article class="tool-card tool-card-brighten" id="image-adjustments">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg?v=20261031-tools#sun"></use></svg></div>
+              <h3>{{brightenTitle}}</h3>
+              <p>{{brightenBody}}</p>
+              <span class="tool-detail">{{brightenDetail}}</span>
+            </article>
+            <article class="tool-card tool-card-denoise" id="light-denoise">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg?v=20261031-tools#wave-sine"></use></svg></div>
+              <h3>{{denoiseTitle}}</h3>
+              <p>{{denoiseBody}}</p>
+              <span class="tool-detail">{{denoiseDetail}}</span>
+            </article>
+          </div>
+        </div>
+        <p class="tool-guide">{{editorGuide}}<span class="tool-note">{{adjustNote}}</span></p>
       </section>
 
       <section class="proof-strip" aria-label="{{advantagesLabel}}">

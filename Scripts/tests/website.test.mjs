@@ -29,7 +29,15 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.deepEqual(schema.inLanguage, languages.map(l => l.locale));
       assert.equal(schema.url, siteURL + localePath(language.id));
       assert.equal(schema.description, catalogs[language.id].pageDescription);
-      assert.equal(schema.featureList.length, 5);
+      assert.deepEqual(schema.featureList, ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => catalogs[language.id][key]));
+      assert.equal((html.match(/<article class="tool-card /g) ?? []).length, 8);
+      const [conversion, editing] = html.split('<div class="tool-group" role="group" aria-labelledby="edit-group-title">');
+      assert.equal((conversion.match(/<article class="tool-card /g) ?? []).length, 2);
+      assert.equal((editing.match(/<article class="tool-card /g) ?? []).length, 6);
+      assert.ok(html.includes('id="merge-clips"'));
+      assert.ok(html.includes('id="image-adjustments"'));
+      assert.ok(html.includes('id="light-denoise"'));
+      assert.ok(html.includes(catalogs[language.id].adjustNote));
       assert.equal(schema.offers.price, '0');
       const image = html.match(/id="hero-app-screen" src="([^"]+)"/)[1];
       assert.ok(image.endsWith(`mp4flow-v130-${language.id}.jpg`));
@@ -61,4 +69,31 @@ test('seven static pages are complete, crawlable and use matching real screensho
 
 test('builder refuses output paths outside its dedicated build directories', async () => {
   await assert.rejects(buildSite('/tmp/unrelated-content'), /Output must be/);
+});
+
+test('new adjustment icon uses the exact App Tabler Outline paths', async () => {
+  const sprite = await readFile(new URL('../../website/assets/tabler-icons.svg', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../../Sources/FastConvert/Resources/TablerOutline/sun.svg', import.meta.url), 'utf8');
+  const symbol = sprite.match(/<symbol id="sun"[^>]*>([\s\S]*?)<\/symbol>/)?.[1];
+  assert.ok(symbol);
+  assert.deepEqual([...symbol.matchAll(/<path\s+d="([^"]+)"/g)].map(match => match[1]), [...source.matchAll(/<path\s+d="([^"]+)"/g)].map(match => match[1]));
+});
+
+test('seven READMEs cover all eight features and use current App action names', async () => {
+  const catalogs = await readCatalogs();
+  for (const language of languages) {
+    const suffix = language.id === 'en' ? '' : `.${language.id === 'zh' ? 'zh-CN' : language.id}`;
+    const readme = await readFile(new URL(`../../README${suffix}.md`, import.meta.url), 'utf8');
+    const resource = language.id === 'zh' ? 'zh-Hans' : language.id;
+    const app = await readFile(new URL(`../../AppResources/${resource}.lproj/Localizable.strings`, import.meta.url), 'utf8');
+    const label = key => app.match(new RegExp(`"${key}"\\s*=\\s*"([^"]+)";`))[1];
+    for (const key of ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle']) {
+      assert.ok(readme.includes(`| **${catalogs[language.id][key]}** |`), `${language.id}: ${key}`);
+    }
+    for (const key of ['画面编辑', '画面调整', '应用编辑', '开始转换']) assert.ok(readme.includes(`**${label(key)}**`), `${language.id}: ${key}`);
+    assert.ok(!readme.includes(`**${label('裁切与比例')} →`), language.id);
+    assert.match(readme, /HDR/);
+    assert.ok((readme.match(/https:\/\/github\.com\/ixiehao\/MP4Flow\/releases\/latest/g) ?? []).length >= 2, language.id);
+    assert.doesNotMatch(readme, /releases\/download\/v\d/);
+  }
 });
