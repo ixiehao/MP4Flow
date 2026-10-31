@@ -39,11 +39,16 @@ export function renderPage(template, language, copy) {
   const alternates = languages.map(l => `<link rel="alternate" hreflang="${l.locale}" href="${siteURL}${localePath(l.id)}" />`).join('\n    ');
   const schema = {
     '@context': 'https://schema.org', '@type': 'SoftwareApplication', '@id': `${siteURL}#software`,
-    name: 'MP4Flow', applicationCategory: 'UtilitiesApplication', operatingSystem: 'macOS 13 or later',
+    name: 'MP4Flow', applicationCategory: 'MultimediaApplication', operatingSystem: 'macOS 13 or later',
     description: copy.pageDescription, url, downloadUrl: 'https://github.com/ixiehao/MP4Flow/releases/latest',
     codeRepository: 'https://github.com/ixiehao/MP4Flow', license: 'https://github.com/ixiehao/MP4Flow/blob/main/LICENSE',
     isAccessibleForFree: true, inLanguage: languages.map(l => l.locale),
     author: { '@type': 'Person', name: 'ixiehao', url: 'https://github.com/ixiehao' },
+    image: `${siteURL}assets/mp4flow-app-icon.png`,
+    screenshot: { '@type': 'ImageObject', contentUrl: `${siteURL}assets/mp4flow-v130-${language.id}.jpg`,
+      caption: copy.stageAlt, inLanguage: language.locale, width: 1960, height: 1356 },
+    processorRequirements: 'Apple silicon or Intel', softwareRequirements: 'FFmpeg; ffprobe',
+    mainEntityOfPage: url,
     featureList: ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => copy[key]),
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
   };
@@ -61,12 +66,13 @@ export function renderPage(template, language, copy) {
     meta('property', 'og:title', copy.pageTitle), meta('property', 'og:description', copy.pageDescription),
     meta('property', 'og:image', `${siteURL}assets/social-preview.jpg?v=2`),
     meta('property', 'og:image:width', '1280'), meta('property', 'og:image:height', '640'),
+    meta('property', 'og:image:type', 'image/jpeg'),
     meta('property', 'og:image:alt', copy.socialImageAlt), meta('name', 'twitter:card', 'summary_large_image'),
     meta('name', 'twitter:title', copy.pageTitle), meta('name', 'twitter:description', copy.pageDescription),
     meta('name', 'twitter:image', `${siteURL}assets/social-preview.jpg?v=2`), meta('name', 'twitter:image:alt', copy.socialImageAlt),
-    '<link rel="icon" type="image/png" href="assets/mp4flow-app-icon.png" />',
-    '<link rel="apple-touch-icon" href="assets/mp4flow-app-icon.png" />',
-    '<link rel="stylesheet" href="styles.css?v=20261031-tools" />',
+    '<link rel="icon" type="image/png" sizes="128x128" href="assets/mp4flow-icon-128.png" />',
+    '<link rel="apple-touch-icon" sizes="256x256" href="assets/mp4flow-icon-256.png" />',
+    '<link rel="stylesheet" href="styles.css?v=20261031-seo" />',
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');

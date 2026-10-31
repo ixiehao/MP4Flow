@@ -7,7 +7,7 @@
     <a class="skip-link" href="#main">{{skipToContent}}</a>
     <header class="site-header">
       <a class="wordmark" href="#top" aria-label="{{homeLabel}}">
-        <img class="wordmark-icon" src="assets/mp4flow-app-icon.png" width="1024" height="1024" alt="" />
+        <img class="wordmark-icon" src="assets/mp4flow-icon-128.png" width="128" height="128" alt="" />
         <span class="wordmark-name">MP4<span>Flow</span></span>
       </a>
       <nav class="primary-nav" aria-label="{{navLabel}}">
@@ -31,6 +31,7 @@
           <p class="eyebrow" data-i18n="eyebrow">{{eyebrow}}</p>
           <h1 id="hero-title" data-i18n="heroTitle">{{heroTitle}}</h1>
           <p class="hero-intro" data-i18n="heroIntro">{{heroIntro}}</p>
+          <p class="hero-formats">{{heroFormats}}</p>
           <div class="hero-actions">
             <a class="button button-primary" href="https://github.com/ixiehao/MP4Flow/releases/latest"><span data-i18n="download">{{download}}</span><svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#download"></use></svg></a>
             <a class="button button-quiet" href="#tools" data-i18n="exploreTools">{{exploreTools}}</a>
@@ -154,6 +155,29 @@
         </ol>
       </section>
 
+      <section class="faq-section" id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">{{faqTitle}}</h2>
+        <div class="faq-list">
+          <details>
+            <summary><h3>{{faqFormatsQ}}</h3><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#chevron-down"></use></svg></summary>
+            <p>{{faqFormatsA}}</p>
+          </details>
+          <details>
+            <summary><h3>{{faqPrivacyQ}}</h3><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#chevron-down"></use></svg></summary>
+            <p>{{faqPrivacyA}}</p>
+          </details>
+          <details>
+            <summary><h3>{{faqQualityQ}}</h3><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#chevron-down"></use></svg></summary>
+            <p>{{faqQualityA}}</p>
+          </details>
+          <details>
+            <summary><h3>{{faqSetupQ}}</h3><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#chevron-down"></use></svg></summary>
+            <p>{{faqSetupA}}</p>
+            <p class="faq-action"><button class="install-guide-trigger" data-install-guide type="button" aria-haspopup="dialog">{{installGuide}}</button></p>
+          </details>
+        </div>
+      </section>
+
       <section class="download-panel" id="download" aria-labelledby="download-title">
         <h2 id="download-title" data-i18n="downloadTitle">{{downloadTitle}}</h2>
         <p data-i18n="downloadBody">{{downloadBody}}</p>
@@ -167,12 +191,13 @@
 
     <footer>
       <a class="wordmark" href="#top" aria-label="{{homeLabel}}">
-        <img class="wordmark-icon" src="assets/mp4flow-app-icon.png" width="1024" height="1024" alt="" />
+        <img class="wordmark-icon" src="assets/mp4flow-icon-128.png" width="128" height="128" alt="" />
         <span class="wordmark-name">MP4<span>Flow</span></span>
       </a>
       <p data-i18n="footerTagline">{{footerTagline}}</p>
       <div class="footer-links">
         <a href="https://github.com/ixiehao/MP4Flow" >GitHub</a>
+        <a href="#faq">{{faqLink}}</a>
         <a id="privacy-link" href="{{privacyURL}}" data-i18n="footerPrivacy">{{footerPrivacy}}</a>
         <a href="https://github.com/ixiehao/MP4Flow/blob/main/LICENSE" data-i18n="footerLicense">{{footerLicense}}</a>
       </div>
