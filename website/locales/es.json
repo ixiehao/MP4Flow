@@ -19,7 +19,7 @@
   "proofThreeTitle": "Local y privado",
   "proofThreeBody": "Tus videos permanecen en tu Mac, desde la importación hasta la exportación.",
   "toolsTitle": "Convierte a MP4.\nRetoca lo que necesites.",
-  "toolsIntro": "Convierte, une y retoca tus videos. Ocho herramientas útiles, todas en tu Mac.",
+  "toolsIntro": "Convierte, une y edita. Ajusta la exportación cuando lo necesites.",
   "toolOneTitle": "Conversión inteligente",
   "toolOneBody": "Convierte un video o varios a la vez. Copia sin recodificar cuando sea posible y usa aceleración por hardware si está disponible.",
   "toolOneDetail": "Uno o varios archivos",
@@ -71,7 +71,7 @@
   "aspectCustom": "Proporción personalizada",
   "editorGuide": "Abre «Editar video» en la cola. Brillo y ruido están en «Ajustes de imagen». Aplica los cambios e inicia la conversión.",
   "adjustNote": "Los ajustes de imagen requieren recodificar y no admiten HDR. La reducción de ruido está desactivada por defecto y puede suavizar los detalles.",
-  "convertGroup": "Convertir y unir",
+  "convertGroup": "Conversión y exportación",
   "editGroup": "Edición sencilla",
   "mergeTitle": "Unir clips",
   "mergeBody": "Une clips sin editar en el orden de la cola. Unión directa si son compatibles, o con recodificación para igualar formatos.",
@@ -92,5 +92,14 @@
   "faqQualityQ": "¿El archivo será más pequeño después de convertirlo?",
   "faqQualityA": "No siempre. La conversión inteligente copia el video compatible cuando puede, sin recodificar. Para reducir el tamaño, elige menor calidad o resolución. Recodificar puede reducir la calidad.",
   "faqSetupQ": "¿Qué necesito para empezar?",
-  "faqSetupA": "Un Mac con Apple Silicon o Intel y macOS 13+. Arrastra MP4Flow del DMG a Aplicaciones e instala FFmpeg y ffprobe por separado. La guía incluye los pasos con Homebrew."
+  "faqSetupA": "Un Mac con Apple Silicon o Intel y macOS 13+. Arrastra MP4Flow del DMG a Aplicaciones e instala FFmpeg y ffprobe por separado. La guía incluye los pasos con Homebrew.",
+  "exportBody": "Fija un tamaño objetivo, elige pistas de audio y conserva o incrusta subtítulos de texto.",
+  "exportDetail": "Tamaño, audio y subtítulos",
+  "recoveryTitle": "Recuperar la cola",
+  "recoveryBody": "Guarda la cola y los ajustes. Al volver a abrir, reinicia las tareas pendientes.",
+  "recoveryDetail": "Guardada en tu Mac",
+  "exportNote": "El tamaño es aproximado; comprimir puede reducir la calidad. Incrustar subtítulos de texto requiere FFmpeg con libass.",
+  "installOptional": "Opcional: incrustar subtítulos",
+  "installOptionalBody": "Para esta función, instala FFmpeg con libass:",
+  "exportTitle": "Ajustes de exportación"
 }

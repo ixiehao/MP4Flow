@@ -6,7 +6,7 @@ import SwiftUI
 @main
 struct MP4FlowApp: App {
     @NSApplicationDelegateAdaptor(MP4FlowAppDelegate.self) private var appDelegate
-    @StateObject private var store = ConverterStore()
+    @StateObject private var store = ConverterStore(journal: .live)
     @StateObject private var updateChecker = UpdateChecker()
     @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
 
@@ -109,6 +109,18 @@ final class MP4FlowAppDelegate: NSObject, NSApplicationDelegate {
     var openMainWindow: (() -> Void)?
     var requestManualUpdateCheck: (() -> Void)?
     private var helpWindow: NSWindow?
+    var prepareForTermination: (() async -> Void)?
+    private var terminating = false
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard !terminating else { return .terminateLater }
+        terminating = true
+        Task { @MainActor in
+            await prepareForTermination?()
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
@@ -371,6 +383,7 @@ struct ContentView: View {
     @State private var updateDownloadURL: URL?
     @State private var clipItem: ConversionItem?
     @State private var cropItem: ConversionItem?
+    @State private var exportItem: ConversionItem?
     @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
     private let configurationControlHeight: CGFloat = 40
     private let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -381,6 +394,22 @@ struct ContentView: View {
             UpdateAvailableBanner(updateChecker: updateChecker)
                 .padding(.bottom, updateChecker.shouldShowUpdateBanner ? 12 : 0)
             configuration
+            if let notice = store.recoveryNotice {
+                HStack(spacing: 10) {
+                    TablerIcon(name: .alertCircle, color: notice.isError ? BrandColor.warning : BrandColor.blue)
+                        .frame(width: 16, height: 16)
+                    Text(notice.message).font(AppFont.caption)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    if !store.isRestoringQueue {
+                        Button(L10n.text("完成")) { store.recoveryNotice = nil }
+                            .buttonStyle(.plain).foregroundStyle(BrandColor.blue)
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .background(notice.isError ? BrandColor.warningBackground : BrandColor.selectHover, in: RoundedRectangle(cornerRadius: 10))
+                .padding(.bottom, 12)
+            }
             queue
             footer
         }
@@ -397,6 +426,7 @@ struct ContentView: View {
             MenuBarLocalization.shared.install(language: AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault)
             appDelegate.openMainWindow = { openWindow(id: "main") }
             appDelegate.requestManualUpdateCheck = checkForUpdates
+            appDelegate.prepareForTermination = { await store.prepareForTermination() }
             Task { _ = await updateChecker.checkAfterStartupDelay() }
             refreshDependencyHealth()
         }
@@ -448,6 +478,9 @@ struct ContentView: View {
             Button(L10n.text("开始兼容合并")) { store.startCompatibleMerge() }
         } message: {
             Text(L10n.text("这些片段暂不适合直接拼接。建议先做统一规格的转码，再合并。\n\n也可选择「开始兼容合并」，自动统一规格后合并。以最大分辨率为目标，等比例缩放并居中补边，输出 H.264 + AAC MP4。"))
+        }
+        .sheet(item: $exportItem) { item in
+            ExportSettingsView(store: store, item: item)
         }
         .sheet(item: $clipItem) { item in
             TrimEditor(source: item.source, initialRange: item.trimRange) { start, end in
@@ -546,7 +579,7 @@ struct ContentView: View {
                 }
                 configurationDivider
                 configurationColumn(title: "画质大小", mark: .hardDrive, width: usableWidth * 0.26) {
-                    QualitySegmentedControl(selection: $store.quality, isEnabled: !store.isBusy && !store.preset.usesFixedQuality)
+                    QualitySegmentedControl(selection: $store.quality, isEnabled: !store.isBusy && !store.usesFixedQuality)
                         .frame(height: configurationControlHeight)
                     configurationHint(store.qualityDescription)
                 }
@@ -666,7 +699,7 @@ struct ContentView: View {
                             .popover(isPresented: $showProcessingPolicy, arrowEdge: .bottom) {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(L10n.text("处理策略")).font(AppFont.section)
-                                    Text(L10n.text("默认仅输出第一路视频和音频，并移除容器元数据和章节。开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。"))
+                                    Text(L10n.text("智能转换优先直封装。默认保留全部音轨；音轨和字幕可在导出设置中选择。仅输出第一路实际视频，不保留容器元数据和章节，HDR 转码会提示。"))
                                         .font(AppFont.body)
                                         .fixedSize(horizontal: false, vertical: true)
                                     HStack {
@@ -694,6 +727,7 @@ struct ContentView: View {
                                     edit: { clipItem = item },
                                     canEdit: !store.isBusy,
                                     crop: { cropItem = item },
+                                    exportSettings: { exportItem = item },
                                     rotate: { store.scheduleRotation(item, rotation: $0) },
                                     mergeModeTitle: store.mergeModeTitle,
                                     isCancelling: store.isCancelling,
@@ -807,7 +841,7 @@ struct ContentView: View {
                 Button(L10n.text(store.isCancelling ? "正在取消…" : "取消任务")) { store.cancel() }
                     .buttonStyle(AppActionButtonStyle(primary: false, minWidth: 96, height: 36, horizontalPadding: 10))
                     .fixedSize(horizontal: true, vertical: false)
-                    .disabled(store.isCancelling)
+                    .disabled(store.isCancelling || store.isRestoringQueue)
             } else {
                 Button(L10n.text(store.isMerging ? "正在合并" : "开始转换")) { store.start() }
                     .buttonStyle(AppActionButtonStyle(primary: true, minWidth: 112, height: 36, horizontalPadding: 10))
@@ -868,7 +902,7 @@ private struct PrimaryActionButtonStyle: ButtonStyle {
 
 /// Shared action style for the footer and empty state. It removes AppKit's
 /// inconsistent button chrome while keeping clear primary/secondary hierarchy.
-private struct AppActionButtonStyle: ButtonStyle {
+struct AppActionButtonStyle: ButtonStyle {
     let primary: Bool
     let minWidth: CGFloat
     let height: CGFloat
@@ -1102,6 +1136,7 @@ private struct MP4FlowMenuTrigger: View {
 }
 
 private struct QueueRow: View {
+    @State private var showMediaDetails = false
     let item: ConversionItem
     let reveal: () -> Void
     let remove: () -> Void
@@ -1109,6 +1144,7 @@ private struct QueueRow: View {
     let edit: () -> Void
     let canEdit: Bool
     let crop: () -> Void
+    let exportSettings: () -> Void
     let rotate: (VideoRotation?) -> Void
     let mergeModeTitle: String
     let isCancelling: Bool
@@ -1118,11 +1154,15 @@ private struct QueueRow: View {
         HStack(spacing: 10) {
             SourceThumbnail(extensionName: item.source.pathExtension, thumbnail: item.presentation?.thumbnail)
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.source.lastPathComponent).font(AppFont.rowTitle).lineLimit(1)
-                Text(item.presentation == nil ? L10n.text("正在读取视频信息") : (item.presentation?.summary ?? L10n.text("准备输出 MP4")))
-                    .font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
+                Text(item.source.lastPathComponent).font(AppFont.rowTitle)
+                    .fixedSize(horizontal: false, vertical: true)
+                QueueMediaFacts(presentation: item.presentation)
+                if !item.exportOptions.isDefault {
+                    Text(item.exportOptions.summary).font(AppFont.caption).foregroundStyle(BrandColor.blue)
+                        .fixedSize(horizontal: false, vertical: true).help(item.exportOptions.summary)
+                }
             }
-            .frame(minWidth: 180, maxWidth: 360, alignment: .leading)
+            .frame(minWidth: 190, maxWidth: 360, alignment: .leading)
             Text(item.source.pathExtension.uppercased()).font(AppFont.tag).foregroundStyle(BrandColor.textSecondary)
                 .padding(.horizontal, 9).padding(.vertical, 4).background(BrandColor.tag, in: Capsule())
                 .frame(width: 58, alignment: .leading)
@@ -1134,6 +1174,7 @@ private struct QueueRow: View {
                 QueueActionButton(mark: .scissors, title: "剪辑", isDisabled: !canEdit, action: edit)
                 QueueActionButton(mark: .edit, title: "画面编辑", isDisabled: !canEdit, action: crop)
                 QueueRotationMenu(current: item.rotation, isDisabled: !canEdit, select: rotate)
+                QueueActionButton(mark: .exportSettings, title: "导出设置", isDisabled: !canEdit, action: exportSettings)
                 QueueActionButton(mark: .folder, title: "打开文件夹", action: reveal)
                 QueueActionButton(mark: .trash, title: "从队列移除", isDisabled: !canRemove, action: remove)
             }
@@ -1145,13 +1186,13 @@ private struct QueueRow: View {
 
     @ViewBuilder private var stateView: some View {
         switch item.state {
-        case .complete(let output):
-            HStack(spacing: 9) {
+        case .complete:
+            HStack(alignment: .top, spacing: 9) {
                 StatusMark(state: item.state)
+                    .frame(height: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(L10n.text("已完成")).font(AppFont.rowTitle).foregroundStyle(BrandColor.success)
-                    Text(output.lastPathComponent).font(AppFont.caption).foregroundStyle(BrandColor.textSecondary).lineLimit(1)
-                    mediaNotice
+                    QueueResultHeader(outputFileSize: item.outputFileSize, notice: item.mediaHandling, showsDetails: $showMediaDetails)
+                    mediaNotice(includesDetails: false)
                 }
             }
         case .running(let progress):
@@ -1164,7 +1205,7 @@ private struct QueueRow: View {
                     if isCancelling || item.phase == .verifying { ProgressView().frame(width: 150, alignment: .leading) }
                     else if let progress { ProgressView(value: progress).tint(BrandColor.blue).frame(width: 150) }
                     else { ProgressView().frame(width: 150, alignment: .leading) }
-                    if !isCancelling { mediaNotice }
+                    if !isCancelling { mediaNotice() }
                 }
             }
         case .merging(let progress):
@@ -1198,7 +1239,7 @@ private struct QueueRow: View {
                     Text(failure.reason)
                         .font(AppFont.captionMedium)
                         .foregroundStyle(.red)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                         .help(failure.reason)
                     Text(failure.solution)
                         .font(AppFont.caption)
@@ -1215,7 +1256,7 @@ private struct QueueRow: View {
         }
     }
 
-    @ViewBuilder private var mediaNotice: some View {
+    @ViewBuilder private func mediaNotice(includesDetails: Bool = true) -> some View {
         if let notice = item.mediaHandling {
             if !notice.summary.isEmpty {
                 Text(notice.summary)
@@ -1228,6 +1269,9 @@ private struct QueueRow: View {
                     .font(AppFont.caption)
                     .foregroundStyle(BrandColor.warning)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            if includesDetails && !notice.information.isEmpty {
+                QueueMediaDetailsButton(notice: notice, isPresented: $showMediaDetails)
             }
         }
     }

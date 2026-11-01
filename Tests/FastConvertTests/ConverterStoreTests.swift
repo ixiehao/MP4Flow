@@ -363,10 +363,13 @@ final class ConverterStoreTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let source = directory.appendingPathComponent("late source.mov")
 
+        try Data("unreadable media".utf8).write(to: source)
+
         let store = ConverterStore()
         store.preset = .h264Software
         store.outputDirectory = directory
         store.items = [ConversionItem(source: source)]
+        store.items[0].presentation = VideoPresentation(duration: 0, fileSize: 16, thumbnail: nil, width: nil, height: nil)
         store.start()
         try await waitForQueue(store)
         guard case .failed = store.items[0].state else {
@@ -382,6 +385,11 @@ final class ConverterStoreTests: XCTestCase {
             return XCTFail("Expected retry to complete; got \(store.items[0].state)")
         }
         XCTAssertTrue(FileManager.default.fileExists(atPath: output.path))
+        let facts = try XCTUnwrap(store.items[0].presentation)
+        XCTAssertEqual(facts.width, 64)
+        XCTAssertEqual(facts.height, 48)
+        XCTAssertEqual(facts.duration, 0.5, accuracy: 0.05)
+        XCTAssertEqual(facts.fileSize, (try source.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init))
     }
 
     func testProbeDrainsStreamRichJSONBeforeProcessExit() async throws {
@@ -402,7 +410,7 @@ final class ConverterStoreTests: XCTestCase {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: fakeProbe.path)
 
         let start = Date()
-        let info = await ConverterStore.inspectMedia(at: source, using: fakeProbe)
+        let info = await MediaInspector.inspect(at: source, using: fakeProbe)
         XCTAssertTrue(info.probeSucceeded)
         XCTAssertTrue(info.hasVideo)
         XCTAssertEqual(info.width, 64)

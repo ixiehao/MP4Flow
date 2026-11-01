@@ -14,6 +14,8 @@
 | --- | --- |
 | **Conversion intelligente** | Convertissez une vidéo ou un lot. Copie sans réencodage si possible, accélération matérielle si disponible. |
 | **Fusionner** | Assemblez les séquences non modifiées dans l’ordre de la file. Fusion directe si compatible, ou fusion avec réencodage pour uniformiser les formats. |
+| **Réglages d’export** | Définissez une taille cible, choisissez les pistes audio et conservez ou incrustez les sous-titres texte. |
+| **Reprendre la file** | Retrouvez la file et ses réglages à la réouverture. Relancez les tâches inachevées. |
 | **Découper** | Définissez le début et la fin. Gardez seulement le passage voulu. |
 | **Recadrer** | Déplacez le cadre ou saisissez les dimensions pour enlever les bords inutiles. |
 | **Pivoter** | Tournez la vidéo de 90° ou 180° sans modifier ses proportions. |
@@ -57,7 +59,9 @@ Par défaut, le résultat est enregistré dans le dossier d’origine, sans écr
 
 ## Avant de convertir
 
-MP4Flow ignore les pochettes et miniatures, conserve la première vraie piste vidéo et la première piste audio, et retire les métadonnées du conteneur et les chapitres. Consultez les notices de l’app pour les pistes supplémentaires, les sous-titres et le HDR.
+MP4Flow ignore les pochettes et conserve la première vraie piste vidéo et toutes les pistes audio par défaut. Dans **Réglages d’export**, choisissez l’audio, une piste de sous-titres texte ou une taille cible. La taille est estimée ; la compression peut réduire la qualité. Les métadonnées du conteneur et les chapitres sont retirés.
+
+L’incrustation de sous-titres texte nécessite FFmpeg avec libass, par exemple `brew install ffmpeg-full`. Les sous-titres sont ignorés par défaut. La file et ses réglages restent sur votre Mac ; cliquez sur **Démarrer** pour relancer les tâches inachevées.
 
 <details>
 <summary>En option : agrandissement intelligent</summary>

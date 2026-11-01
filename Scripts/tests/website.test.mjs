@@ -55,10 +55,10 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.equal(schema.screenshot.caption, copy.stageAlt);
       assert.ok(!('aggregateRating' in schema) && !('review' in schema), 'do not invent ratings for rich results');
       assert.doesNotMatch(html, /"@type":"FAQPage"|"@type":"VideoObject"/);
-      assert.deepEqual(schema.featureList, ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => catalogs[language.id][key]));
-      assert.equal((html.match(/<article class="tool-card /g) ?? []).length, 8);
+      assert.deepEqual(schema.featureList, ['toolOneTitle', 'mergeTitle', 'exportTitle', 'recoveryTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => catalogs[language.id][key]));
+      assert.equal((html.match(/<article class="tool-card /g) ?? []).length, 10);
       const [conversion, editing] = html.split('<div class="tool-group" role="group" aria-labelledby="edit-group-title">');
-      assert.equal((conversion.match(/<article class="tool-card /g) ?? []).length, 2);
+      assert.equal((conversion.match(/<article class="tool-card /g) ?? []).length, 4);
       assert.equal((editing.match(/<article class="tool-card /g) ?? []).length, 6);
       assert.ok(html.includes('id="merge-clips"'));
       assert.ok(html.includes('id="image-adjustments"'));
@@ -121,7 +121,7 @@ test('new adjustment icon uses the exact App Tabler Outline paths', async () => 
   assert.deepEqual([...symbol.matchAll(/<path\s+d="([^"]+)"/g)].map(match => match[1]), [...source.matchAll(/<path\s+d="([^"]+)"/g)].map(match => match[1]));
 });
 
-test('seven READMEs cover all eight features and use current App action names', async () => {
+test('seven READMEs cover all ten features and use current App action names', async () => {
   const catalogs = await readCatalogs();
   for (const language of languages) {
     const suffix = language.id === 'en' ? '' : `.${language.id === 'zh' ? 'zh-CN' : language.id}`;
@@ -129,7 +129,7 @@ test('seven READMEs cover all eight features and use current App action names', 
     const resource = language.id === 'zh' ? 'zh-Hans' : language.id;
     const app = await readFile(new URL(`../../AppResources/${resource}.lproj/Localizable.strings`, import.meta.url), 'utf8');
     const label = key => app.match(new RegExp(`"${key}"\\s*=\\s*"([^"]+)";`))[1];
-    for (const key of ['toolOneTitle', 'mergeTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle']) {
+    for (const key of ['toolOneTitle', 'mergeTitle', 'exportTitle', 'recoveryTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle']) {
       assert.ok(readme.includes(`| **${catalogs[language.id][key]}** |`), `${language.id}: ${key}`);
     }
     for (const key of ['画面编辑', '画面调整', '应用编辑', '开始转换']) assert.ok(readme.includes(`**${label(key)}**`), `${language.id}: ${key}`);

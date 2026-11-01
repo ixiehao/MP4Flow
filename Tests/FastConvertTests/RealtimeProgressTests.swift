@@ -115,7 +115,7 @@ final class RealtimeProgressTests: XCTestCase {
         guard case .complete(let output) = store.items[0].state else {
             return XCTFail("Expected a complete 720p output; got \(store.items[0].state)")
         }
-        let info = await ConverterStore.inspectMedia(at: output, using: ffprobe)
+        let info = await MediaInspector.inspect(at: output, using: ffprobe)
         XCTAssertTrue(info.probeSucceeded)
         XCTAssertEqual(info.width, 1280)
         XCTAssertEqual(info.height, 720)

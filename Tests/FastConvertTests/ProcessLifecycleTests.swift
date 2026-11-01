@@ -100,7 +100,7 @@ final class ProcessLifecycleTests: XCTestCase {
     func testCancellingInspectionTaskStopsItsOwnedProcess() async throws {
         let runner = shell("trap '' TERM; while :; do :; done")
         let task = Task {
-            await ConverterStore.inspectMedia(
+            await MediaInspector.inspect(
                 at: URL(fileURLWithPath: "/unused-media"),
                 using: URL(fileURLWithPath: "/bin/sh"),
                 runner: runner
@@ -193,7 +193,7 @@ final class ProcessLifecycleTests: XCTestCase {
         store.mergeWaitingItems()
         try await waitForMerge(store)
         let output = try XCTUnwrap(store.mergeOutput, store.mergeNotice)
-        let info = await ConverterStore.inspectMedia(at: output, using: ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe"))
+        let info = await MediaInspector.inspect(at: output, using: ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe"))
         XCTAssertTrue(info.probeSucceeded)
         XCTAssertTrue(info.hasVideo)
         XCTAssertEqual(info.duration ?? 0, 4, accuracy: 0.15)

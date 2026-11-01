@@ -14,6 +14,8 @@
 | --- | --- |
 | **Conversión inteligente** | Convierte un video o varios a la vez. Copia sin recodificar cuando sea posible y usa aceleración por hardware si está disponible. |
 | **Unir clips** | Une clips sin editar en el orden de la cola. Unión directa si son compatibles, o con recodificación para igualar formatos. |
+| **Ajustes de exportación** | Fija un tamaño objetivo, elige pistas de audio y conserva o incrusta subtítulos de texto. |
+| **Recuperar la cola** | Guarda la cola y los ajustes. Al volver a abrir, reinicia las tareas pendientes. |
 | **Cortar** | Elige el inicio y el final. Conserva solo el fragmento que quieres. |
 | **Recortar** | Arrastra el marco o introduce las dimensiones para quitar bordes. |
 | **Girar** | Gira el video 90° o 180° manteniendo sus proporciones. |
@@ -57,7 +59,9 @@ Por defecto, el resultado se guarda junto al original sin sobrescribir archivos 
 
 ## Antes de convertir
 
-MP4Flow omite portadas y miniaturas, conserva la primera pista de video real y la primera de audio, y elimina los metadatos del contenedor y los capítulos. Consulta los avisos de la app sobre pistas adicionales, subtítulos y HDR.
+MP4Flow omite las portadas y conserva el primer video real y todas las pistas de audio por defecto. En **Ajustes de exportación**, elige el audio, una pista de subtítulos de texto o un tamaño objetivo. El tamaño es aproximado; comprimir puede reducir la calidad. Se eliminan los metadatos del contenedor y los capítulos.
+
+Incrustar subtítulos de texto requiere FFmpeg con libass, como `brew install ffmpeg-full`. Los subtítulos se omiten por defecto. La cola y los ajustes se guardan en tu Mac; pulsa **Iniciar** para reiniciar las tareas pendientes.
 
 <details>
 <summary>Opcional: ampliación inteligente</summary>

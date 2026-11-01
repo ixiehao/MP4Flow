@@ -3,6 +3,13 @@ import XCTest
 @testable import FastConvert
 
 final class AppLanguageTests: XCTestCase {
+    func testQueueFactsKeepSizeDurationAndDimensionsAsCompleteFields() {
+        let item = VideoPresentation(duration: 302, fileSize: 700_000_000, thumbnail: nil, width: 1920, height: 1080)
+        XCTAssertEqual(item.factFields, ["1920 × 1080", "05:02", L10n.byteCount(700_000_000)])
+        XCTAssertEqual(item.summary, item.factFields.joined(separator: " · "))
+        let unknown = VideoPresentation(duration: .nan, fileSize: 70_000_000, thumbnail: nil, width: nil, height: nil)
+        XCTAssertEqual(unknown.factFields, [L10n.byteCount(70_000_000)])
+    }
     private var resourceURL: URL {
         URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appendingPathComponent("AppResources")

@@ -71,7 +71,20 @@
               <p>{{mergeBody}}</p>
               <span class="tool-detail">{{mergeDetail}}</span>
             </article>
+            <article class="tool-card tool-card-export" id="export-settings">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#settings"></use></svg></div>
+              <h3>{{exportTitle}}</h3>
+              <p>{{exportBody}}</p>
+              <span class="tool-detail">{{exportDetail}}</span>
+            </article>
+            <article class="tool-card tool-card-recovery" id="queue-recovery">
+              <div class="tool-card-top" aria-hidden="true"><svg class="tabler-icon" viewBox="0 0 24 24"><use href="assets/tabler-icons.svg#clock"></use></svg></div>
+              <h3>{{recoveryTitle}}</h3>
+              <p>{{recoveryBody}}</p>
+              <span class="tool-detail">{{recoveryDetail}}</span>
+            </article>
           </div>
+          <p class="tool-guidance">{{exportNote}}</p>
         </div>
         <div class="tool-group" role="group" aria-labelledby="edit-group-title">
           <p class="tool-group-label" id="edit-group-title">{{editGroup}}</p>
@@ -219,10 +232,14 @@
         </li>
         <li data-i18n="installStepThree">{{installStepThree}}</li>
       </ol>
+      <details class="install-optional">
+        <summary>{{installOptional}}</summary>
+        <p>{{installOptionalBody}} <code>brew install ffmpeg-full</code></p>
+      </details>
       <p class="install-help"><a href="https://docs.brew.sh/Installation#macos-requirements" target="_blank" rel="noreferrer">{{installRequirements}}</a></p>
     </dialog>
 
-    <noscript><div class="noscript-install"><p>{{installIntro}}</p><p>{{installHelp}} <a href="https://brew.sh/">brew.sh</a></p><p>{{installStepOne}} {{installStepTwo}} <code>brew install ffmpeg</code></p><p>{{installStepThree}}</p><a href="https://docs.brew.sh/Installation#macos-requirements">{{installRequirements}}</a></div></noscript>
+    <noscript><div class="noscript-install"><p>{{installIntro}}</p><p>{{installHelp}} <a href="https://brew.sh/">brew.sh</a></p><p>{{installStepOne}} {{installStepTwo}} <code>brew install ffmpeg</code></p><p>{{installStepThree}}</p><p>{{installOptionalBody}} <code>brew install ffmpeg-full</code></p><a href="https://docs.brew.sh/Installation#macos-requirements">{{installRequirements}}</a></div></noscript>
     <script src="app.js?v=20261026-i18n" defer></script>
   </body>
 </html>

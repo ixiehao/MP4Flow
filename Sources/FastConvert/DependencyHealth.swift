@@ -8,7 +8,14 @@ import VideoToolbox
 /// the selected FFmpeg installation, not an unrelated later search directory.
 /// Existing, unusable candidates are retained only for failure diagnostics.
 enum DependencyToolResolver {
-    static func resolve(in directories: [URL]) -> (ffmpeg: URL?, ffprobe: URL?) {
+    // An optional Homebrew full installation is keg-only. No force-linking
+    // or replacement of the user's normal installation is necessary.
+    static let defaultDirectories = [
+        "/opt/homebrew/opt/ffmpeg-full/bin", "/usr/local/opt/ffmpeg-full/bin",
+        "/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/usr/bin"
+    ].map { URL(fileURLWithPath: $0, isDirectory: true) }
+
+    static func resolve(in directories: [URL] = defaultDirectories) -> (ffmpeg: URL?, ffprobe: URL?) {
         let candidates = directories.map { $0.appendingPathComponent("ffmpeg") }
         let ffmpeg = candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
             ?? candidates.first { FileManager.default.fileExists(atPath: $0.path) }
@@ -140,14 +147,6 @@ struct DependencyHealthReport: Sendable {
 }
 
 private enum DependencyHealthProbe {
-    /// Keep this list in lockstep with the conversion store. A diagnostic must
-    /// never report a binary available when the actual converter cannot use it.
-    private static let executableDirectories = [
-        "/opt/homebrew/bin",
-        "/usr/local/bin",
-        "/opt/local/bin",
-        "/usr/bin"
-    ]
 
     static func inspect(_ request: DependencyHealthRequest, previous: DependencyHealthReport?) async -> DependencyHealthReport {
         let inspection = Task.detached(priority: .utility) {
@@ -160,7 +159,7 @@ private enum DependencyHealthProbe {
                 ffprobe = previous.ffprobe
                 hardware = previous.videoToolbox
             } else {
-                let tools = DependencyToolResolver.resolve(in: executableDirectories.map { URL(fileURLWithPath: $0) })
+                let tools = DependencyToolResolver.resolve()
                 ffmpeg = await inspectExecutable(named: "ffmpeg", at: tools.ffmpeg)
                 guard !Task.isCancelled else { return DependencyHealthReport.checking }
                 ffprobe = await inspectExecutable(named: "ffprobe", at: tools.ffprobe)
@@ -525,7 +524,7 @@ private struct DependencyHealthSheet: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.text("处理策略"))
                     .font(AppFont.captionMedium)
-                Text(L10n.text("默认仅输出第一路视频和音频，并移除容器元数据和章节。开始转换时会检测多音轨、字幕和 HDR，并在队列中提示。"))
+                Text(L10n.text("智能转换优先直封装。默认保留全部音轨；音轨和字幕可在导出设置中选择。仅输出第一路实际视频，不保留容器元数据和章节，HDR 转码会提示。"))
                     .font(AppFont.caption)
                     .foregroundStyle(BrandColor.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

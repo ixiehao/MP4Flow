@@ -3,7 +3,15 @@
 MP4Flow is a small native SwiftUI application without a server.
 
 - `FastConvertApp.swift` contains the SwiftUI screens, editors, and interaction components.
-- `ConverterStore.swift` owns the serial queue, conversion strategy, progress parsing, media probing, output naming, and merge logic.
+- `ConverterStore.swift` owns the serial queue, process registration, progress, cancellation and atomic output publication. Pure planning and media parsing live outside its observable state.
+- `ConversionModels.swift` defines immutable item identities and media facts. `ConversionItem.prepareForExport()` is the single reset transition for changed edits, options and retries, including stale output sizes and notices.
+- `MediaInspector.swift` owns the bounded ffprobe request and typed decoding shared by editors, workers and verification, including audio languages, channel layouts and default-track flags.
+- `ExportPlan.swift` validates one immutable export contract for the sheet, worker and retries. Audio encoders are chosen per output stream, retaining compatible AAC packets even when another track needs encoding.
+- `FFmpegCommandBuilder.swift` builds commands without reading mutable UI state or starting processes. Numeric command values use POSIX formatting regardless of the selected interface language.
+- `QueueResultHeader.swift` groups completion status, output size and optional details with fixed adjacent spacing on one baseline; extra column space follows the entire group and the success icon aligns with the header. The source column identifies the file; completed rows do not repeat an output filename. The existing folder action reveals the actual output in Finder. The optional detail button adapts its label to the available width while keeping one action, one popover presenter and its complete accessibility label. Rendered layout regressions check that widening the column does not push details away and that icon-only actions do not shift the status baseline. `QueueMediaFacts.swift` keeps the source dimensions, duration and size complete at narrow widths.
+- `MergePlanning.swift` and `MergeAudioPlan.swift` validate track order, languages, channel layouts, displayed geometry and HDR policy before compatible encoding. Both merge paths retain all audio tracks; missing audio can be filled with silence without inventing audio for video-only batches. `ConcatManifest.swift` quotes filenames according to FFmpeg's token rules.
+- `QueueJournal.swift` stores versioned local queue facts. Durable business mutations request a coalesced save; progress and general view updates do not construct snapshots. `PrivateAtomicFile.swift` creates private temporary inodes, synchronizes and renames them without truncating the previous generation. Stable IDs, edits and completed outputs survive relaunch; unfinished items wait for manual Start. QA bundle IDs use separate folders. Typed recovery/save notices are rendered in the main window and translated when read.
+- `ExportOptions.swift` validates per-file target-size, audio and subtitle choices. `ExportSettingsView.swift` exposes them in a compact, seven-language sheet using the app's shared styles.
 - `FFmpegProcessRunner.swift` owns each FFmpeg/ffprobe process, pipe drains, cancellation and progress-stall watchdog.
 - `SmartEnhanceExporter.swift` owns the optional macOS 27 VideoToolbox enhancement pipeline and its reader/writer lifecycle.
 - `DependencyHealth.swift` checks local tools, hardware encoding, and output locations. Tool results are reused during ordinary queue edits; manual refresh performs a fresh tool check.
@@ -25,6 +33,8 @@ Conversion and merge write to uniquely named partial MP4s, verify them, and publ
 
 Queue presentation loading has bounded concurrency. Clearing the queue cancels pending presentation operations; running loads check item membership before loading and before publishing their result. An already-started AVFoundation read may still finish. The native enhancement reader returns pixels in encoded orientation, so the writer preserves the source display transform and rebases its translation for the enlarged frame bounds.
 
+Each presentation request has an identity. Successful conversion preflight replaces cached source dimensions, duration and byte size using the existing ffprobe result, so a repaired source does not keep stale failure-time facts after retry. This adds no extra probe or synchronous file read on the main actor. Earlier thumbnail requests cannot overwrite these facts; optional thumbnail-only refreshes resume after conversion and preserve the inspected metadata even when AVFoundation cannot read that format. Removing rows releases their request identities.
+
 For ordinary transcoding, accurate input seeking avoids decoding a discarded prefix, and a validated numeric source time base preserves VFR timing. Resize planning uses displayed orientation and post-crop dimensions. Smart Convert can copy unchanged compatible video, including an audio-only AAC conversion when no pixel edit or trim is requested; explicit encoding presets retain their selected behavior.
 
 When re-encoding a nonzero trim, a first-frame gap of at most one nominal frame
@@ -36,7 +46,7 @@ cadence. Longer leading gaps and stream-copy cuts retain their original timing.
 
 Lossless merge compatibility includes the video time base, pixel aspect ratio and display rotation. Compatible merge normalizes pixel aspect ratio before proportional fitting and padding, and chooses its canvas from displayed geometry so orientation metadata cannot squash the content.
 
-User notices describe actual affected media, not routine mapping policy. Ordinary single-track and video-only inputs have no per-row notice. Extra video/audio, subtitles, chapters and at-risk HDR handling remain visible after completion; full default policy is accessible from the queue and environment details. Cancellation and output verification have distinct UI states. Controlled native-enhancement errors are classified by type rather than their translated message.
+User notices describe actual affected media, not routine mapping policy. Ordinary single-track and video-only inputs have no per-row notice. Extra video/audio, subtitles and at-risk HDR handling remain visible after completion. Chapter bookmarks are optional navigation data: their omission is explained in a quiet per-row Conversion Details popover rather than an orange playback warning. Full default policy remains accessible from the queue and environment details. `QueueMediaFacts.swift` groups resolution, duration and file size into atomic fields, adapting to multiple lines instead of truncating numbers or units; filenames, option summaries and errors can wrap. All languages use the same layout. Cancellation and output verification have distinct UI states. Controlled native-enhancement errors are classified by type rather than their translated message.
 
 ## Update checks
 
@@ -57,6 +67,48 @@ The checker neither downloads nor installs updates and uses no account token.
 
 References: [official latest-release links](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases)
 and [REST API rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+
+## Per-file export and recovery
+
+Audio and text-subtitle selection preserve compatible encoded video under Smart
+Convert. All audio tracks are retained by default. Users can instead choose the
+first track, a selected absolute stream index, or no audio. Text subtitles can be omitted, converted to an MP4 mov_text
+track, or burned into the frame. Keeping subtitles may simplify styling; bitmap
+subtitles are rejected with guidance. Burning requires a detected `subtitles`
+filter in the user's FFmpeg (libass); missing support is explained before export.
+No fonts or additional media runtime are bundled. Burn filters handle two-stage
+FFmpeg escaping and restore source timestamps around subtitle rendering after
+input seeking.
+
+Target size uses the selected clip duration, a 3% container reserve and a separate
+128 kb/s AAC budget for every retained audio track. H.264 size-budget exports use
+offline x264 average-bitrate encoding; the quality levels select fast, medium,
+and slow compression effort. They do not increase the fixed byte budget. The
+real-time hardware encoder and tight VBV ceiling are unsuitable for this path:
+a low-bitrate source can lose substantial detail even at the highest quality
+selection. Explicit HEVC remains HEVC. Ordinary exports retain their existing
+fast paths, including packet copy for compatible, unedited Smart Convert input.
+The optional size limit starts disabled and suggests the rounded-up source size,
+not an automatic percentage reduction or an arbitrary 100 MB cap. UI labels
+explain that size takes priority and smaller targets can reduce quality.
+Generous targets do not inflate the source bitrate; results are approximate,
+particularly for simple scenes. Target
+compression and subtitle burning require SDR and re-encoding. Native enhancement
+supports a single audio track; preserving multiple tracks requires ordinary
+conversion, or explicit selection of the first audio track for enhancement.
+Edited/custom-export sources must be exported before merging.
+
+Every retry preserves export choices. Verification checks the actual audio and
+subtitle counts before the partial output is published. After any asynchronous
+capability check, resolve a queue row by ID again: Clear Done can shift array
+indices while conversion continues. Capability checks are cancellable processes.
+
+Journal writes are coalesced after durable queue/configuration changes and flushed after completed
+outputs or explicit edits, and on termination. Corrupt/future journals are
+preserved as recovery files; failure to preserve the original blocks replacement.
+Both the temporary and final records use user-only permissions in Application Support, with no
+network upload. It contains local file paths; diagnostic sharing must not include
+the journal. Recovery reloads thumbnails separately from persisted queue facts.
 
 ## Frame geometry and aspect correction
 

@@ -11,15 +11,15 @@ final class MediaNoticeTests: XCTestCase {
     }
 
     func testNoticesDescribeOnlyRealContentLoss() throws {
-        let notice = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: fixture(videoTracks: 2, audioTracks: 3, subtitles: 2, chapters: 4), preset: .remux))
+        let notice = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: fixture(videoTracks: 2, audioTracks: 3, subtitles: 2, chapters: 4), preset: .remux, options: ExportOptions(audio: .first)))
         XCTAssertEqual(notice.issues, [.extraVideo(2), .extraAudio(3), .subtitles(2), .chapters(4)])
         XCTAssertTrue(notice.summary.isEmpty)
         XCTAssertEqual(notice.warnings, [
             L10n.format("检测到 %d 路视频；仅保留第一路。", 2),
             L10n.format("检测到 %d 路音频；仅保留第一路。", 3),
-            L10n.format("检测到 %d 条字幕；输出不保留字幕。", 2),
-            L10n.format("检测到 %d 个章节；输出不保留章节。", 4)
+            L10n.format("检测到 %d 条字幕；输出不保留字幕。", 2)
         ])
+        XCTAssertEqual(notice.information, [L10n.format("未保留 %d 个分段书签（章节），不影响视频播放。", 4)])
         XCTAssertFalse(notice.detail.hasPrefix("\n"))
         XCTAssertFalse(notice.detail.contains(L10n.text("容器元数据和章节将被移除。")), "Routine metadata cleanup belongs in the policy detail, not every queue row")
     }
@@ -57,7 +57,7 @@ final class MediaNoticeTests: XCTestCase {
 
     func testRetainedFailuresAndNoticesResolveLanguageWhenRead() throws {
         let failure = ConverterStore.failure(from: "MP4Flow:missing-source")
-        let notice = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: fixture(audioTracks: 2, colorTransfer: "smpte2084"), preset: .h264Hardware))
+        let notice = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: fixture(audioTracks: 2, colorTransfer: "smpte2084"), preset: .h264Hardware, options: ExportOptions(audio: .first)))
         let unknown = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: fixture(probeSucceeded: false), preset: .remux))
         XCTAssertEqual(failure.reasonKey, "源文件已移动、删除或无法访问")
         XCTAssertEqual(failure.solutionKey, "请在访达中确认源文件仍存在，重新添加后再试。")
@@ -102,12 +102,21 @@ final class MediaNoticeTests: XCTestCase {
         let probe = directory.appendingPathComponent("ffprobe")
         try "#!/bin/sh\nfor argument in \"$@\"; do :; done\nexec /bin/cat \"$argument\"\n".write(to: probe, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: probe.path)
-        let info = await ConverterStore.inspectMedia(at: source, using: probe)
+        let info = await MediaInspector.inspect(at: source, using: probe)
         XCTAssertTrue(info.probeSucceeded)
         XCTAssertEqual(info.videoTrackCount, 2)
         XCTAssertEqual(info.chapterCount, 2)
         let notice = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: info, preset: .remux))
-        XCTAssertEqual(notice.warnings.count, 2)
+        XCTAssertEqual(notice.warnings.count, 1)
+        XCTAssertEqual(notice.information.count, 1)
+    }
+
+    func testChapterBookmarksAreQuietDetailsRatherThanOrangePlaybackWarnings() throws {
+        let notice = try XCTUnwrap(ConverterStore.mediaHandlingNotice(for: fixture(chapters: 10), preset: .remux))
+        XCTAssertTrue(notice.warnings.isEmpty)
+        XCTAssertTrue(notice.summary.isEmpty)
+        XCTAssertEqual(notice.information, [L10n.format("未保留 %d 个分段书签（章节），不影响视频播放。", 10)])
+        XCTAssertTrue(notice.detail.contains(notice.information[0]), "Optional information remains accessible instead of disappearing silently")
     }
 
 #if compiler(>=6.4)

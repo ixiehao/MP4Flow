@@ -22,7 +22,12 @@ jobs:
           ./Scripts/validate-localizations.sh
           python3 -m unittest discover -s Scripts/tests -v
       - name: Install synthetic-media test dependency
-        run: brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+        run: |
+          brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
+          brew list ffmpeg-full >/dev/null 2>&1 || brew install ffmpeg-full
+          mp4flow_media_bin="$(brew --prefix ffmpeg-full)/bin"
+          echo "$mp4flow_media_bin" >> "$GITHUB_PATH"
+          echo "MP4FLOW_TEST_FFMPEG=$mp4flow_media_bin/ffmpeg" >> "$GITHUB_ENV"
       - name: Run Swift tests
         run: swift test
       - name: Run synthetic media regression matrix

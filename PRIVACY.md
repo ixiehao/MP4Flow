@@ -5,7 +5,7 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 ## Data MP4Flow handles
 
 - The app reads the video files and folders that you add or choose. It may create an in-memory thumbnail and read media properties needed to show the queue and perform conversion.
-- It stores the interface language, update preferences (including the version whose notice was dismissed), and GitHub API retry time in macOS user defaults. It does not persist a queue, video paths, conversion settings, diagnostics, account data, or a media library.
+- It stores the interface language, update preferences (including dismissed versions), and GitHub API retry time in macOS user defaults. A local queue record stores source/output paths, edit and export settings, completion results and media properties. It contains no video content or thumbnails and is not uploaded. The app does not keep account data or analytics.
 - Standard conversion, probing, trimming, cropping, aspect correction, rotation, and merging use the local `ffmpeg` and `ffprobe` executables. Experimental Smart Enhance uses Apple's AVFoundation and VideoToolbox frameworks on this Mac. This app release contains no telemetry, analytics, advertising SDK, or media-upload code.
 
 ## Update checks
@@ -16,6 +16,8 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 
 ## Files created locally
 
+- The queue is stored privately in `~/Library/Application Support/MP4Flow/queue-v1.json`. Completed results remain in the list; unfinished tasks wait for you to press **Start** and then restart from the beginning. **Clear List** removes the current list’s records without deleting media. Damaged-record recovery copies may remain in the same folder. To remove all recovery data, quit the app and delete that folder; this also removes the saved queue and settings.
+
 - Outputs are written next to the source file by default, or in the folder you choose. Source files are never deleted or overwritten by MP4Flow.
 - Work-in-progress outputs use a hidden, UUID-named `.partial.mp4` file beside the intended result and are moved into place only after processing and output verification succeed. The app tries to remove those files after an ordinary failure or cancellation. A crash, forced quit, power loss, or storage error can leave a partial file behind; it is safe to delete after confirming that no conversion is active.
 - Lossless merge briefly creates a UUID-named manifest in the system temporary directory. It contains the selected source paths and is removed after the merge returns. A forced termination can leave that temporary manifest until macOS cleans its temporary directory.
@@ -24,7 +26,7 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 
 MP4Flow asks FFmpeg not to copy container-level metadata or chapters to generated outputs. Codec-required stream information and data added by the separately installed FFmpeg build may still exist, so inspect an output before relying on it for sensitive redaction. Cropping, trimming, and conversion do not guarantee removal of visual, audio, subtitle, or other content that may identify a person or place.
 
-MP4Flow looks for a user-supplied FFmpeg installation only in `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, and `/usr/bin`. It does not download, bundle, verify, or update that executable. Install FFmpeg from a source you trust and review that build's own privacy, security, and licence information.
+MP4Flow looks for a user-supplied FFmpeg installation in `/opt/homebrew/bin`, `/usr/local/bin`, `/opt/local/bin`, `/usr/bin`, and the Homebrew `ffmpeg-full` keg-only directories under `/opt/homebrew/opt/ffmpeg-full/bin` or `/usr/local/opt/ffmpeg-full/bin`. It does not download, bundle, verify, or update that executable. Install FFmpeg from a source you trust and review that build's own privacy, security, and licence information.
 
 Selecting **Open Homebrew** opens `https://brew.sh/zh-cn/` in the default browser. That is an explicit browser action; its request and any data handled by the browser are outside MP4Flow's local-processing behaviour.
 
