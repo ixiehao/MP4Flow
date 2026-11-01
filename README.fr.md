@@ -47,9 +47,13 @@ Par défaut, le résultat est enregistré dans le dossier d’origine, sans écr
 <details>
 <summary>Voir l’app</summary>
 
-![MP4Flow en français avec une vidéo d’exemple prête à convertir](website/assets/mp4flow-v130-fr.jpg)
+![MP4Flow en français avec des extraits de Tears of Steel dans la file de conversion](website/assets/mp4flow-v150-queue-fr.jpg)
+
+![Recadrer — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-fr.jpg)
 
 </details>
+
+Film de démonstration : [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Extraits montés ; captures recadrées et redimensionnées. [Crédits](docs/MEDIA-CREDITS.md).
 
 ## Besoin d’aide ?
 

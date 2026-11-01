@@ -47,9 +47,13 @@ Por defecto, el resultado se guarda junto al original sin sobrescribir archivos 
 <details>
 <summary>Ver la app</summary>
 
-![MP4Flow en español con un video de ejemplo listo para convertir](website/assets/mp4flow-v130-es.jpg)
+![MP4Flow en español con fragmentos de Tears of Steel en la cola de conversión](website/assets/mp4flow-v150-queue-es.jpg)
+
+![Recortar — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-es.jpg)
 
 </details>
+
+Video de ejemplo: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Fragmentos editados; capturas recortadas y redimensionadas. [Créditos](docs/MEDIA-CREDITS.md).
 
 ## ¿Necesitas ayuda?
 

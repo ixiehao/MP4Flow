@@ -45,9 +45,9 @@
             <span aria-hidden="true">MP4Flow</span>
           </div>
           <div class="stage-media">
-            <img id="hero-app-screen" src="assets/mp4flow-v130-{{language}}.jpg" width="1960" height="1356" alt="{{stageAlt}}" decoding="async" fetchpriority="high" />
+            <img id="hero-app-screen" src="{{queueSource}}" width="{{queueWidth}}" height="{{queueHeight}}" alt="{{stageAlt}}" decoding="async" fetchpriority="high" />
           </div>
-          <figcaption class="stage-caption" data-i18n="stageCaption">{{stageCaption}}</figcaption>
+          <figcaption class="stage-caption"><span>{{stageCaption}}</span><small>Tears of Steel · (CC) Blender Foundation · <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a></small></figcaption>
         </figure>
       </section>
 
@@ -55,6 +55,48 @@
         <div class="section-heading">
           <h2 id="tools-title" data-i18n="toolsTitle">{{toolsTitle}}</h2>
           <p data-i18n="toolsIntro">{{toolsIntro}}</p>
+        </div>
+        <div class="product-tour" data-product-tour>
+          <nav class="tour-tabs" aria-label="{{tourLabel}}">
+            <a class="tour-tab" href="#demo-crop" data-tour-tab="crop"><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#crop"></use></svg><span>{{toolThreeTitle}}</span></a>
+            <a class="tour-tab" href="#demo-aspect" data-tour-tab="aspect"><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#aspect-ratio"></use></svg><span>{{aspectTitle}}</span></a>
+            <a class="tour-tab" href="#demo-adjust" data-tour-tab="adjust"><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#sun"></use></svg><span>{{tourAdjustTitle}}</span></a>
+            <a class="tour-tab" href="#demo-trim" data-tour-tab="trim"><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#scissors"></use></svg><span>{{toolTwoTitle}}</span></a>
+            <a class="tour-tab" href="#demo-export" data-tour-tab="export"><svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#settings"></use></svg><span>{{exportTitle}}</span></a>
+          </nav>
+          <div class="tour-panels">
+            <figure class="tour-panel" id="demo-crop" data-tour-panel="crop">
+              <a class="tour-image-link" href="{{cropSource}}" target="_blank" rel="noopener" aria-label="{{tourOpen}}: {{toolThreeTitle}}">
+                <img src="{{cropSource}}" width="{{cropWidth}}" height="{{cropHeight}}" alt="{{toolThreeTitle}} — MP4Flow · Tears of Steel ({{languageName}})" loading="lazy" decoding="async" />
+              </a>
+              <figcaption><div><h3>{{toolThreeTitle}}</h3><p>{{tourCropBody}}</p></div><a class="tour-original" href="{{cropSource}}" target="_blank" rel="noopener">{{tourOpen}}<svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#external-link"></use></svg></a></figcaption>
+            </figure>
+            <figure class="tour-panel" id="demo-aspect" data-tour-panel="aspect">
+              <a class="tour-image-link" href="{{aspectSource}}" target="_blank" rel="noopener" aria-label="{{tourOpen}}: {{aspectTitle}}">
+                <img src="{{aspectSource}}" width="{{aspectWidth}}" height="{{aspectHeight}}" alt="{{aspectTitle}} — MP4Flow · Tears of Steel ({{languageName}})" loading="lazy" decoding="async" />
+              </a>
+              <figcaption><div><h3>{{aspectTitle}}</h3><p>{{tourAspectBody}}</p></div><a class="tour-original" href="{{aspectSource}}" target="_blank" rel="noopener">{{tourOpen}}<svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#external-link"></use></svg></a></figcaption>
+            </figure>
+            <figure class="tour-panel" id="demo-adjust" data-tour-panel="adjust">
+              <a class="tour-image-link" href="{{adjustSource}}" target="_blank" rel="noopener" aria-label="{{tourOpen}}: {{tourAdjustTitle}}">
+                <img src="{{adjustSource}}" width="{{adjustWidth}}" height="{{adjustHeight}}" alt="{{tourAdjustTitle}} — MP4Flow · Tears of Steel ({{languageName}})" loading="lazy" decoding="async" />
+              </a>
+              <figcaption><div><h3>{{tourAdjustTitle}}</h3><p>{{tourAdjustBody}}</p></div><a class="tour-original" href="{{adjustSource}}" target="_blank" rel="noopener">{{tourOpen}}<svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#external-link"></use></svg></a></figcaption>
+            </figure>
+            <figure class="tour-panel" id="demo-trim" data-tour-panel="trim">
+              <a class="tour-image-link" href="{{trimSource}}" target="_blank" rel="noopener" aria-label="{{tourOpen}}: {{toolTwoTitle}}">
+                <img src="{{trimSource}}" width="{{trimWidth}}" height="{{trimHeight}}" alt="{{toolTwoTitle}} — MP4Flow · Tears of Steel ({{languageName}})" loading="lazy" decoding="async" />
+              </a>
+              <figcaption><div><h3>{{toolTwoTitle}}</h3><p>{{tourTrimBody}}</p></div><a class="tour-original" href="{{trimSource}}" target="_blank" rel="noopener">{{tourOpen}}<svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#external-link"></use></svg></a></figcaption>
+            </figure>
+            <figure class="tour-panel" id="demo-export" data-tour-panel="export">
+              <a class="tour-image-link" href="{{exportSource}}" target="_blank" rel="noopener" aria-label="{{tourOpen}}: {{exportTitle}}">
+                <img src="{{exportSource}}" width="{{exportWidth}}" height="{{exportHeight}}" alt="{{exportTitle}} — MP4Flow · Tears of Steel ({{languageName}})" loading="lazy" decoding="async" />
+              </a>
+              <figcaption><div><h3>{{exportTitle}}</h3><p>{{tourExportBody}}</p></div><a class="tour-original" href="{{exportSource}}" target="_blank" rel="noopener">{{tourOpen}}<svg class="tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#external-link"></use></svg></a></figcaption>
+            </figure>
+          </div>
+          <p class="media-credit">{{mediaCreditLabel}}: <a href="https://mango.blender.org/">Tears of Steel</a> · (CC) Blender Foundation | mango.blender.org · <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>. <span>{{mediaChanges}}</span> <a href="https://github.com/ixiehao/MP4Flow/blob/main/docs/MEDIA-CREDITS.md">{{mediaCreditsLink}}</a></p>
         </div>
         <div class="tool-group" role="group" aria-labelledby="convert-group-title">
           <p class="tool-group-label" id="convert-group-title">{{convertGroup}}</p>
@@ -240,6 +282,6 @@
     </dialog>
 
     <noscript><div class="noscript-install"><p>{{installIntro}}</p><p>{{installHelp}} <a href="https://brew.sh/">brew.sh</a></p><p>{{installStepOne}} {{installStepTwo}} <code>brew install ffmpeg</code></p><p>{{installStepThree}}</p><p>{{installOptionalBody}} <code>brew install ffmpeg-full</code></p><a href="https://docs.brew.sh/Installation#macos-requirements">{{installRequirements}}</a></div></noscript>
-    <script src="app.js?v=20261026-i18n" defer></script>
+    <script src="app.js?v=20261101-showcase" defer></script>
   </body>
 </html>

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, mkdtemp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { createHash } from 'node:crypto';
 import { buildSite, languages, localePath, readCatalogs, siteURL } from '../build-website.mjs';
 
 test('seven static pages are complete, crawlable and use matching real screenshots', async t => {
@@ -50,7 +51,8 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.equal(schema.mainEntityOfPage, schema.url);
       assert.equal(schema.softwareRequirements, 'FFmpeg; ffprobe');
       assert.equal(schema.image, `${siteURL}assets/mp4flow-app-icon.png`);
-      assert.equal(schema.screenshot.contentUrl, `${siteURL}assets/mp4flow-v130-${language.id}.jpg`);
+      assert.equal(schema.screenshot.contentUrl, `${siteURL}assets/mp4flow-v150-queue-${language.id}.jpg`);
+      assert.equal(schema.screenshot.isBasedOn.license, 'https://creativecommons.org/licenses/by/3.0/');
       assert.equal(schema.screenshot.inLanguage, language.locale);
       assert.equal(schema.screenshot.caption, copy.stageAlt);
       assert.ok(!('aggregateRating' in schema) && !('review' in schema), 'do not invent ratings for rich results');
@@ -66,10 +68,20 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.ok(html.includes(catalogs[language.id].adjustNote));
       assert.equal(schema.offers.price, '0');
       const image = html.match(/id="hero-app-screen" src="([^"]+)"/)[1];
-      assert.ok(image.endsWith(`mp4flow-v130-${language.id}.jpg`));
+      assert.ok(image.endsWith(`mp4flow-v150-queue-${language.id}.jpg`));
       const bytes = await readFile(path.resolve(pageDir, image));
       assert.equal(bytes.subarray(0, 3).toString('hex'), 'ffd8ff', 'valid JPEG capture');
       shots.add(bytes.toString('base64'));
+      const tour = html.match(/<div class="product-tour"[\s\S]*?<div class="tool-group"/)[0];
+      for (const state of ['crop', 'aspect', 'adjust', 'trim', 'export']) {
+        assert.ok(tour.includes(`data-tour-tab="${state}"`));
+        assert.ok(tour.includes(`id="demo-${state}"`));
+        assert.ok(tour.includes(`mp4flow-v150-${state}-${language.id}.jpg`));
+      }
+      assert.equal((tour.match(/<figure /g) ?? []).length, 5);
+      assert.equal((tour.match(/loading="lazy"/g) ?? []).length, 5);
+      assert.ok(tour.includes('https://mango.blender.org/'));
+      assert.ok(tour.includes('https://creativecommons.org/licenses/by/3.0/'));
       // Every local navigation target, file and SVG fragment must resolve.
       for (const [, ref] of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
         if (/^https?:/.test(ref)) continue;
@@ -93,6 +105,37 @@ test('seven static pages are complete, crawlable and use matching real screensho
   assert.equal((sitemap.match(/xhtml:link/g) ?? []).length, 56);
   await assert.rejects(stat(path.join(output, 'locales')));
   await assert.rejects(stat(path.join(output, 'Scripts')));
+});
+
+test('42 localized captures match their provenance and actual JPEG dimensions', async () => {
+  const { screenshots, film, appVersion } = JSON.parse(await readFile(new URL('../../website/screenshots.json', import.meta.url)));
+  assert.equal(appVersion, '1.5.0');
+  assert.equal(film.license, 'CC BY 3.0');
+  assert.deepEqual(Object.keys(screenshots).sort(), ['adjust', 'aspect', 'crop', 'export', 'queue', 'trim']);
+  const dimensions = bytes => {
+    for (let offset = 2; offset + 8 < bytes.length;) {
+      assert.equal(bytes[offset++], 0xff);
+      const marker = bytes[offset++];
+      const length = bytes.readUInt16BE(offset);
+      if ([0xc0, 0xc1, 0xc2].includes(marker)) return { width: bytes.readUInt16BE(offset + 5), height: bytes.readUInt16BE(offset + 3) };
+      offset += length;
+    }
+    throw new Error('Missing JPEG frame header');
+  };
+  for (const [kind, localized] of Object.entries(screenshots)) {
+    const hashes = new Set();
+    for (const { id } of languages) {
+      const shot = localized[id];
+      assert.equal(shot.src, `assets/mp4flow-v150-${kind}-${id}.jpg`);
+      const bytes = await readFile(new URL('../../website/' + shot.src, import.meta.url));
+      const hash = createHash('sha256').update(bytes).digest('hex');
+      assert.equal(hash, shot.sha256);
+      assert.deepEqual(dimensions(bytes), { width: shot.width, height: shot.height });
+      assert.ok(bytes.length < 550 * 1024, 'keep each capture lightweight');
+      hashes.add(hash);
+    }
+    assert.equal(hashes.size, 7, kind + ': do not substitute another language’s capture');
+  }
 });
 
 test('builder refuses output paths outside its dedicated build directories', async () => {
@@ -137,5 +180,9 @@ test('seven READMEs cover all ten features and use current App action names', as
     assert.match(readme, /HDR/);
     assert.ok((readme.match(/https:\/\/github\.com\/ixiehao\/MP4Flow\/releases\/latest/g) ?? []).length >= 2, language.id);
     assert.doesNotMatch(readme, /releases\/download\/v\d/);
+    for (const kind of ['queue', 'crop']) assert.ok(readme.includes(`website/assets/mp4flow-v150-${kind}-${language.id}.jpg`));
+    assert.match(readme, /https:\/\/mango\.blender\.org\//);
+    assert.match(readme, /https:\/\/creativecommons\.org\/licenses\/by\/3\.0\//);
+    assert.doesNotMatch(readme, /mp4flow-v130/);
   }
 });

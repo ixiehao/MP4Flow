@@ -40,15 +40,17 @@ of the product's public download path, not optional decoration.
 
 Use [`website/assets/social-preview.jpg`](../website/assets/social-preview.jpg) for
 the repository social preview. It is a 1280 × 640 px JPEG (under GitHub's 1 MB
-recommendation), uses the real English MP4Flow workspace, and contains only
-original project artwork around that screenshot.
+recommendation), uses the real English MP4Flow crop window with *Tears of
+Steel*, and contains original project artwork around that screenshot.
+The film credit and CC BY 3.0 URL are included on the card; see
+[media credits](MEDIA-CREDITS.md).
 
 Regenerate it on macOS after changing the real workspace capture or app icon:
 
 ```sh
 swift Scripts/create-social-preview.swift \
   website/assets/mp4flow-app-icon.png \
-  website/assets/mp4flow-working-screen-en.png \
+  website/assets/mp4flow-v150-crop-en.jpg \
   website/assets/social-preview.jpg
 ```
 
