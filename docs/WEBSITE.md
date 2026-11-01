@@ -34,6 +34,8 @@ Brightness and denoise share the App's Edit Video panel. Mention live preview, o
 
 Phone layouts show one visual article per row; wider screens use two columns. Keep image dimensions automatic with maximum bounds and a rounded mask on the actual image box, rather than clipping an object-fit letterbox. Use one film credit for the page in the footer. Do not repeat feature descriptions as tags, screenshot captions and another list.
 
+The FAQ uses the same full-width, pale rounded panel as the surrounding sections. Place its heading beside the disclosure cards on desktop and above them on phones. Keep the native `details` controls, visible keyboard focus and a generous question hit area; long translations and expanded answers must remain inside their cards.
+
 ## Images, icons and fonts
 
 - Current hero images are `mp4flow-v150-queue-*.jpg`; the feature articles use `mp4flow-v150-{crop,aspect,adjust,trim,export}-*.jpg`. These are real v1.5.0 native window captures using *Tears of Steel*, with a matching interface language for each page. Exact sizes and hashes are in `website/screenshots.json`; the builder uses those dimensions in HTML and schema.
