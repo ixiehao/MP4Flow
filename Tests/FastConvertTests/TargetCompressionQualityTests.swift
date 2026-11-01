@@ -48,10 +48,19 @@ import XCTest
     }
 
     func testCompressedPicturesImproveAgainstThePreviousSpeedFirstEncoder() async throws {
+        // A historical hardware reference requires a real compression session,
+        // not merely an encoder listed by FFmpeg on a virtual CI machine.
+        let capability = await FFmpegProcessRunner(executable: ffmpeg, arguments: ["-v", "error", "-f", "lavfi", "-i", "color=s=64x64:r=1:d=1", "-frames:v", "1", "-c:v", "h264_videotoolbox", "-allow_sw", "0", "-f", "null", "-"], configuration: .init(inactivityTimeout: 10)).run()
+        if !capability.succeeded {
+            if FFmpegHardwareRetryClassifier.hint(stderr: capability.standardError, usedHardwarePipeline: false, usedHardwareEncoder: true) == .softwareEncoder {
+                throw XCTSkip("A working VideoToolbox encoder is required for the historical hardware quality reference")
+            }
+            XCTFail("Hardware reference preflight failed unexpectedly: \(capability.standardError)")
+            throw TestError.failed
+        }
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let source = directory.appendingPathComponent("motion.mp4")
-        _ = try await run(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=25:duration=16", "-f", "lavfi", "-i", "sine=frequency=660:duration=16", "-c:v", "libx264", "-preset", "medium", "-crf", "24", "-c:a", "aac", "-b:a", "128k", source.path])
+        let source = try await motionFixture(in: directory)
         let info = await MediaInspector.inspect(at: source, using: ffprobe)
         let plan = try TargetSizePlan(megabytes: 1, duration: info.duration, audioTracks: 1, sourceVideoRate: info.videoRate)
         let old = directory.appendingPathComponent("speed-first.mp4")
@@ -64,6 +73,30 @@ import XCTest
         XCTAssertGreaterThan(bytes, 700_000)
         XCTAssertLessThan(bytes, 1_150_000)
         print("Synthetic size-budget SSIM: \(before) -> \(after); bytes: \(bytes)")
+    }
+
+    func testBudgetedPictureQualityAndCompleteDecodeWithoutHardwareReference() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = try await motionFixture(in: directory)
+        let output = try await converted(source, directory: directory, megabytes: 1)
+        let info = await MediaInspector.inspect(at: output, using: ffprobe)
+        XCTAssertEqual(info.width, 1280)
+        XCTAssertEqual(info.height, 720)
+        XCTAssertEqual(try XCTUnwrap(info.duration), 16, accuracy: 0.15)
+        XCTAssertEqual(info.audioTrackCount, 1)
+        let bytes = try XCTUnwrap(info.fileSize)
+        XCTAssertGreaterThan(bytes, 700_000)
+        XCTAssertLessThan(bytes, 1_150_000)
+        let score = try await similarity(source, output)
+        XCTAssertGreaterThan(score, 0.95, "A size budget must retain decoded detail even without a hardware reference")
+        _ = try await run(ffmpeg, ["-v", "error", "-xerror", "-i", output.path, "-f", "null", "-"])
+    }
+
+    private func motionFixture(in directory: URL) async throws -> URL {
+        let source = directory.appendingPathComponent("motion.mp4")
+        _ = try await run(ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=25:duration=16", "-f", "lavfi", "-i", "sine=frequency=660:duration=16", "-c:v", "libx264", "-preset", "medium", "-crf", "24", "-c:a", "aac", "-b:a", "128k", source.path])
+        return source
     }
 
     func testAuthorizedLowBitrateSourceAtEightMegabytesAndUnlimitedPacketCopy() async throws {
