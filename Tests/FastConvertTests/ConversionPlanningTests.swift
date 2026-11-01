@@ -185,7 +185,7 @@ final class ConversionPlanningTests: XCTestCase {
             store.scheduleTrim(item, start: 1.123, end: 2.456)
             if crop { store.scheduleCrop(item, crop: CropRect(x: 0, y: 0, width: 160, height: 120)) }
             store.scheduleRotation(item, rotation: .clockwise)
-            let info = await ConverterStore.inspectMedia(at: input, using: tools.ffprobe)
+            let info = await MediaInspector.inspect(at: input, using: tools.ffprobe)
             let originalTimes = try frameTimes(input, ffprobe: tools.ffprobe).filter { $0 >= 1.123 && $0 < 2.456 }
             store.start()
             let output = try await completedOutput(store)
@@ -231,7 +231,7 @@ final class ConversionPlanningTests: XCTestCase {
         let source = directory.appendingPathComponent("variable cut.mp4")
         try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x96:rate=30:duration=2", "-vf", "settb=1/90000,setpts=PTS+270*sin(N)", "-enc_time_base:v", "1/90000", "-c:v", "libx264", "-preset", "ultrafast", source.path])
         let sourceTimes = try frameTimes(source, ffprobe: tools.ffprobe).filter { $0 >= 0.123 && $0 < 1.456 }
-        let info = await ConverterStore.inspectMedia(at: source, using: tools.ffprobe)
+        let info = await MediaInspector.inspect(at: source, using: tools.ffprobe)
         XCTAssertNotNil(info.averageFrameRate, "The actual probe must include the measured frame rate used for the preview gap bound")
         let store = ConverterStore()
         store.preset = .h264Software

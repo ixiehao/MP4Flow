@@ -66,7 +66,7 @@ final class SmartEnhanceTests: XCTestCase {
             "-c", "copy", "-disposition:v:1", "attached_pic", source.path
         ]).run()
         XCTAssertTrue(picture.succeeded && attach.succeeded)
-        let inspected = await ConverterStore.inspectMedia(at: source, using: tool.deletingLastPathComponent().appendingPathComponent("ffprobe"))
+        let inspected = await MediaInspector.inspect(at: source, using: tool.deletingLastPathComponent().appendingPathComponent("ffprobe"))
         XCTAssertEqual(inspected.videoTrackCount, 1)
         let trackID = try XCTUnwrap(inspected.selectedVideoTrackID)
 
@@ -162,7 +162,7 @@ final class SmartEnhanceTests: XCTestCase {
             let sourceTracks = try await rotatedAsset.loadTracks(withMediaType: .video)
             let sourceTrack = try XCTUnwrap(sourceTracks.first)
             let expected = try await sourceTrack.load(.preferredTransform)
-            let inspected = await ConverterStore.inspectMedia(at: rotated, using: tool.deletingLastPathComponent().appendingPathComponent("ffprobe"))
+            let inspected = await MediaInspector.inspect(at: rotated, using: tool.deletingLastPathComponent().appendingPathComponent("ffprobe"))
             try await SmartEnhanceExporter().export(
                 source: rotated, output: enhanced, plan: plan, trim: nil,
                 videoBitRate: 1_000_000, videoTrackID: inspected.selectedVideoTrackID,

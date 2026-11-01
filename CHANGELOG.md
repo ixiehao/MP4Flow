@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.0 — 2026-11-01
+
+### English
+- Added target-size, audio and subtitle options, plus local queue recovery. All audio tracks are kept by default.
+- Improved compression quality, queue layout, retry details and merge reliability.
+
+### 中文
+- 新增目标体积、音轨和字幕设置，支持本地队列恢复，默认保留全部音轨。
+- 改善压缩画质、队列布局与重试信息，提升转换和合并稳定性。
+
+### 日本語
+- 目標サイズ・音声・字幕の設定とキュー復元を追加。すべての音声を既定で保持。
+- 圧縮画質、キュー表示、再試行時の情報更新、変換・結合の安定性を改善。
+
+### 한국어
+- 목표 용량·오디오·자막 설정과 대기열 복원을 추가했습니다. 모든 오디오를 기본으로 유지합니다.
+- 압축 화질, 대기열 표시, 재시도 정보 갱신과 변환·병합 안정성을 개선했습니다.
+
+macOS 13+ · FFmpeg/ffprobe required (`brew install ffmpeg`). Text-subtitle burning needs libass (`brew install ffmpeg-full`). Ad-hoc signed, not notarized. Apple silicon tested; physical Intel/macOS 13 testing pending.
+
 ## 1.4.0 — 2026-10-31
 
 ### English

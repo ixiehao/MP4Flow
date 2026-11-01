@@ -21,7 +21,7 @@ final class VideoStreamSelectionTests: XCTestCase {
         """
         try Data(response.utf8).write(to: source)
         let probe = try script("#!/bin/sh\nfor argument in \"$@\"; do :; done\nexec /bin/cat \"$argument\"\n", at: directory.appendingPathComponent("ffprobe"))
-        let info = await ConverterStore.inspectMedia(at: source, using: probe)
+        let info = await MediaInspector.inspect(at: source, using: probe)
         XCTAssertTrue(info.hasVideo)
         XCTAssertEqual(info.videoTrackCount, 1)
         XCTAssertEqual(info.selectedVideoStreamIndex, 7)
@@ -37,13 +37,13 @@ final class VideoStreamSelectionTests: XCTestCase {
         XCTAssertEqual(editor?.frameRate, 12)
 
         try Data(response.replacingOccurrences(of: "mov,mp4,m4a,3gp,3g2,mj2", with: "mpegts").utf8).write(to: source)
-        let transportStream = await ConverterStore.inspectMedia(at: source, using: probe)
+        let transportStream = await MediaInspector.inspect(at: source, using: probe)
         XCTAssertNil(transportStream.selectedVideoTrackID, "A transport-stream PID must not be used as a native track ID")
         XCTAssertEqual(transportStream.selectedVideoStreamIndex, 7)
 
         let coverOnly = #"{"streams":[{"index":0,"codec_type":"video","width":1600,"height":1600,"disposition":{"attached_pic":1}}],"format":{"duration":"2"}}"#
         try Data(coverOnly.utf8).write(to: source)
-        let onlyImage = await ConverterStore.inspectMedia(at: source, using: probe)
+        let onlyImage = await MediaInspector.inspect(at: source, using: probe)
         XCTAssertFalse(onlyImage.hasVideo)
         XCTAssertEqual(onlyImage.videoTrackCount, 0)
         let noEditor = await EditorMediaProbe.inspect(source: source, using: probe)
@@ -69,7 +69,7 @@ final class VideoStreamSelectionTests: XCTestCase {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let media = try await makeMedia(in: directory, tools: tools)
-        let info = await ConverterStore.inspectMedia(at: media.covered, using: tools.probe)
+        let info = await MediaInspector.inspect(at: media.covered, using: tools.probe)
         XCTAssertEqual(info.videoTrackCount, 1)
         XCTAssertEqual(info.selectedVideoStreamIndex, 1, "The fixture deliberately stores audio before the movie")
         XCTAssertEqual(info.width, 320)
@@ -90,7 +90,7 @@ final class VideoStreamSelectionTests: XCTestCase {
                 return XCTFail("Covered input must convert: \(store.items[0].state)")
             }
             try await assertMovie(output, frames: 24, duration: 2, tools: tools)
-            let outputInfo = await ConverterStore.inspectMedia(at: output, using: tools.probe)
+            let outputInfo = await MediaInspector.inspect(at: output, using: tools.probe)
             XCTAssertEqual(outputInfo.width, preset == .remux ? 320 : 240)
             XCTAssertEqual(outputInfo.height, preset == .remux ? 240 : 320)
             if preset == .remux {
@@ -183,7 +183,7 @@ final class VideoStreamSelectionTests: XCTestCase {
     }
 
     private func assertMovie(_ source: URL, frames: Int, duration: Double, tools: Tools) async throws {
-        let info = await ConverterStore.inspectMedia(at: source, using: tools.probe)
+        let info = await MediaInspector.inspect(at: source, using: tools.probe)
         XCTAssertTrue(info.hasVideo)
         XCTAssertEqual(info.videoTrackCount, 1)
         XCTAssertEqual(info.duration ?? 0, duration, accuracy: 0.15)

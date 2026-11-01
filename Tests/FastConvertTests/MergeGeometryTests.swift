@@ -45,7 +45,7 @@ final class MergeGeometryTests: XCTestCase {
         store.startCompatibleMerge()
         try await waitForMerge(store)
         let output = try XCTUnwrap(store.mergeOutput, store.mergeNotice)
-        let info = await ConverterStore.inspectMedia(at: output, using: tools.ffprobe)
+        let info = await MediaInspector.inspect(at: output, using: tools.ffprobe)
         XCTAssertTrue(info.hasVideo)
         XCTAssertEqual(info.duration ?? 0, 2, accuracy: 0.15)
         XCTAssertEqual(info.displayGeometry?.hasSquarePixels, true)

@@ -26,7 +26,7 @@ Keep copy short and product-focused. Do not put implementation notes, language o
 
 ## Feature content and layout
 
-Present eight features in the same order in all seven locales and READMEs: Smart Convert, Merge Clips, Trim, Crop, Rotate, Aspect Correction, Brighten Video, Light Denoise. Keep the two conversion/merge cards together, followed by six editing cards (three columns on desktop, two on tablet, one on mobile). Avoid numbered feature decorations and full-width leftover cards.
+Present ten features in the same order in all seven locales and READMEs: Smart Convert, Merge Clips, Export Settings, Queue Recovery, Trim, Crop, Rotate, Aspect Correction, Brighten Video, Light Denoise. Keep the four conversion/export cards together, followed by six editing cards (three columns on desktop, two on tablet, one on mobile). Avoid numbered feature decorations and full-width leftover cards.
 
 Brightness and denoise are separate feature descriptions but share the App's **Edit Video → Image Adjustments** panel. Explain that edits must be applied before starting conversion. Image adjustments re-encode SDR video; HDR is unsupported, and optional light denoise is off by default and may soften details. Merging uses unedited waiting clips in queue order: compatible inputs can be copied directly; Compatible Merge re-encodes mismatched formats. Do not claim that every merge is lossless.
 

@@ -6,10 +6,12 @@ import AVFoundation
 struct MediaStreamDisposition: Decodable, Hashable, Sendable {
     let attachedPicture: Int?
     let timedThumbnails: Int?
+    var defaultTrack: Int? = nil
 
     enum CodingKeys: String, CodingKey {
         case attachedPicture = "attached_pic"
         case timedThumbnails = "timed_thumbnails"
+        case defaultTrack = "default"
     }
 
     var isAuxiliaryImage: Bool {

@@ -14,6 +14,8 @@
 | --- | --- |
 | **Smart Convert** | Convert one video or a whole batch. Copy compatible video without re-encoding; use hardware acceleration when available. |
 | **Merge Clips** | Join unedited clips in queue order. Merge directly when compatible, or use Compatible Merge to match formats. |
+| **Export Settings** | Set a target size, choose audio tracks, and keep or burn text subtitles. |
+| **Queue Recovery** | Keep your queue and settings between launches. Restart unfinished tasks when you’re ready. |
 | **Trim** | Set the start and end points. Keep only the part you want. |
 | **Crop** | Drag the frame or enter dimensions to remove unwanted edges. |
 | **Rotate** | Turn video by 90° or 180° while keeping its proportions. |
@@ -57,7 +59,9 @@ By default, results go beside the original file, without overwriting existing fi
 
 ## Before you convert
 
-MP4Flow skips cover art and thumbnails, keeps the first actual video and audio track, and removes container metadata and chapters. Check the app’s notices for extra tracks, subtitles and HDR handling.
+MP4Flow skips cover art and keeps the first actual video with all audio tracks by default. In **Export Settings**, choose audio and a text-subtitle track, or set a target size. Size is an estimate; compression may reduce quality. Container metadata and chapter bookmarks are removed.
+
+Burning text subtitles needs FFmpeg with libass, such as `brew install ffmpeg-full`. Subtitles are omitted unless selected. Queue records and settings stay on your Mac; unfinished tasks restart only when you click **Start**.
 
 <details>
 <summary>Optional: Smart Enhance Upscale</summary>

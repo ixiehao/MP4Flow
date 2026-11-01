@@ -251,7 +251,7 @@ final class ImageAdjustmentTests: XCTestCase {
         }
         // Encoder bitstream tags alone may leave inherited container tags in
         // place. Verify the media actually exercises each intended color space.
-        let inspected = await ConverterStore.inspectMedia(at: candidate, using: tools.ffprobe)
+        let inspected = await MediaInspector.inspect(at: candidate, using: tools.ffprobe)
         XCTAssertEqual(inspected.colorSpace, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : "bt709"), name)
         XCTAssertEqual(inspected.colorTransfer, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : (name == "srgb" ? "iec61966-2-1" : "bt709")), name)
         XCTAssertEqual(inspected.colorPrimaries, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : "bt709"), name)
@@ -261,7 +261,7 @@ final class ImageAdjustmentTests: XCTestCase {
         store.scheduleFrameEdits(store.items[0], crop: nil, aspectRatio: nil, imageAdjustment: setting)
         store.start(); try await wait(store)
         guard case .complete(let output) = store.items[0].state else { return XCTFail("Export failed") }
-        let outputInfo = await ConverterStore.inspectMedia(at: output, using: tools.ffprobe)
+        let outputInfo = await MediaInspector.inspect(at: output, using: tools.ffprobe)
         XCTAssertEqual(outputInfo.colorSpace, "bt709", name)
         XCTAssertEqual(outputInfo.colorTransfer, inspected.imageAdjustmentWorkingSpace.rawValue, name)
         XCTAssertEqual(outputInfo.colorPrimaries, "bt709", name)
