@@ -58,10 +58,14 @@ test('seven static pages are complete, crawlable and use matching real screensho
       assert.ok(!('aggregateRating' in schema) && !('review' in schema), 'do not invent ratings for rich results');
       assert.doesNotMatch(html, /"@type":"FAQPage"|"@type":"VideoObject"/);
       assert.deepEqual(schema.featureList, ['toolOneTitle', 'mergeTitle', 'exportTitle', 'recoveryTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => catalogs[language.id][key]));
-      assert.equal((html.match(/<article class="tool-card /g) ?? []).length, 10);
-      const [conversion, editing] = html.split('<div class="tool-group" role="group" aria-labelledby="edit-group-title">');
-      assert.equal((conversion.match(/<article class="tool-card /g) ?? []).length, 4);
-      assert.equal((editing.match(/<article class="tool-card /g) ?? []).length, 6);
+      const features = html.match(/<section class="tools-section"[\s\S]*?<section class="workflow"/)[0];
+      const headings = [...features.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/g)].map(match => match[1].replace(/<[^>]+>/g, '').replace(/&amp;|&lt;|&gt;|&quot;|&#39;/g, entity => ({ '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" })[entity]));
+      for (const key of ['toolOneTitle', 'mergeTitle', 'recoveryTitle', 'toolTwoTitle', 'cropRotateTitle', 'aspectTitle', 'adjustTitle', 'exportTitle']) {
+        assert.equal(headings.filter(title => title === copy[key]).length, 1, `${language.id}: ${key} has one introduction`);
+      }
+      assert.equal((features.match(/<h3[ >]/g) ?? []).length, 8, 'each feature group is introduced once');
+      assert.doesNotMatch(html, /data-tour-tab|data-tour-panel|class="tour-|href="[^"]+\.jpg"/);
+      assert.ok(!('tourLabel' in copy) && !('tourOpen' in copy) && !('tourHint' in copy), 'remove obsolete screenshot UI copy');
       assert.ok(html.includes('id="merge-clips"'));
       assert.ok(html.includes('id="image-adjustments"'));
       assert.ok(html.includes('id="light-denoise"'));
@@ -72,16 +76,13 @@ test('seven static pages are complete, crawlable and use matching real screensho
       const bytes = await readFile(path.resolve(pageDir, image));
       assert.equal(bytes.subarray(0, 3).toString('hex'), 'ffd8ff', 'valid JPEG capture');
       shots.add(bytes.toString('base64'));
-      const tour = html.match(/<div class="product-tour"[\s\S]*?<div class="tool-group"/)[0];
       for (const state of ['crop', 'aspect', 'adjust', 'trim', 'export']) {
-        assert.ok(tour.includes(`data-tour-tab="${state}"`));
-        assert.ok(tour.includes(`id="demo-${state}"`));
-        assert.ok(tour.includes(`mp4flow-v150-${state}-${language.id}.jpg`));
+        assert.ok(features.includes(`id="demo-${state}"`), 'preserve existing shared feature links');
+        assert.ok(features.includes(`mp4flow-v150-${state}-${language.id}.jpg`));
       }
-      assert.equal((tour.match(/<figure /g) ?? []).length, 5);
-      assert.equal((tour.match(/loading="lazy"/g) ?? []).length, 5);
-      assert.ok(tour.includes('https://mango.blender.org/'));
-      assert.ok(tour.includes('https://creativecommons.org/licenses/by/3.0/'));
+      assert.equal((features.match(/loading="lazy"/g) ?? []).length, 5);
+      assert.equal((html.match(/https:\/\/mango.blender.org\/">Tears of Steel/g) ?? []).length, 1);
+      assert.ok(html.includes('https://creativecommons.org/licenses/by/3.0/'));
       // Every local navigation target, file and SVG fragment must resolve.
       for (const [, ref] of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
         if (/^https?:/.test(ref)) continue;
