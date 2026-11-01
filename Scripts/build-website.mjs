@@ -2,6 +2,7 @@ import { readFile, writeFile, mkdir, cp, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import os from 'node:os';
+import { createHash } from 'node:crypto';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const siteURL = 'https://ixiehao.github.io/MP4Flow/';
@@ -33,7 +34,7 @@ export async function readCatalogs() {
   return catalogs;
 }
 
-export function renderPage(template, language, copy, screenshots) {
+export function renderPage(template, language, copy, screenshots, assetVersions) {
   const url = siteURL + localePath(language.id);
   const prefix = language.id === 'zh' ? './' : '../';
   const queue = screenshots.queue[language.id];
@@ -75,11 +76,11 @@ export function renderPage(template, language, copy, screenshots) {
     meta('name', 'twitter:image', `${siteURL}assets/social-preview.jpg?v=20261101-tos`), meta('name', 'twitter:image:alt', copy.socialImageAlt),
     '<link rel="icon" type="image/png" sizes="128x128" href="assets/mp4flow-icon-128.png" />',
     '<link rel="apple-touch-icon" sizes="256x256" href="assets/mp4flow-icon-256.png" />',
-    '<link rel="stylesheet" href="styles.css?v=20261101-tour-layout" />',
+    `<link rel="stylesheet" href="styles.css?v=${assetVersions.styles}" />`,
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');
-  const values = { ...copy, head, languageLinks, locale: language.locale, language: language.id, languageName: language.name,
+  const values = { ...copy, head, languageLinks, scriptVersion: assetVersions.script, locale: language.locale, language: language.id, languageName: language.name,
     privacyURL: `https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY${language.id === 'ja' ? '.ja' : ''}.md` };
   for (const [kind, localized] of Object.entries(screenshots)) {
     const shot = localized[language.id];
@@ -102,6 +103,9 @@ export async function buildSite(output = path.join(root, '_site')) {
   if (output !== path.join(root, '_site') && !isTestOutput) throw new Error('Output must be _site or an isolated test directory');
   const catalogs = await readCatalogs();
   const template = await readFile(path.join(root, 'website/index.html'), 'utf8');
+  const version = async file => createHash('sha256').update(await readFile(path.join(root, 'website', file))).digest('hex').slice(0, 12);
+  const [styles, script] = await Promise.all([version('styles.css'), version('app.js')]);
+  const assetVersions = { styles, script };
   const { screenshots } = JSON.parse(await readFile(path.join(root, 'website/screenshots.json'), 'utf8'));
   // Validate every localized screenshot before replacing an existing build.
   for (const localized of Object.values(screenshots)) {
@@ -118,7 +122,7 @@ export async function buildSite(output = path.join(root, '_site')) {
   for (const language of languages) {
     const dir = path.join(output, localePath(language.id));
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, 'index.html'), renderPage(template, language, catalogs[language.id], screenshots));
+    await writeFile(path.join(dir, 'index.html'), renderPage(template, language, catalogs[language.id], screenshots, assetVersions));
   }
   const alternates = [...languages.map(l => ({ locale: l.locale, url: siteURL + localePath(l.id) })), { locale: 'x-default', url: siteURL }];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${languages.map(l => `  <url><loc>${siteURL}${localePath(l.id)}</loc>\n${alternates.map(a => `    <xhtml:link rel="alternate" hreflang="${a.locale}" href="${a.url}" />`).join('\n')}\n  </url>`).join('\n')}\n</urlset>\n`;
