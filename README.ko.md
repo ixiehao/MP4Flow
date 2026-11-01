@@ -47,9 +47,13 @@
 <details>
 <summary>앱 화면 보기</summary>
 
-![한국어 MP4Flow에 예제 영상을 추가한 화면](website/assets/mp4flow-v130-ko.jpg)
+![한국어 MP4Flow에서 Tears of Steel 클립을 변환 대기열에 추가한 화면](website/assets/mp4flow-v150-queue-ko.jpg)
+
+![화면 자르기 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ko.jpg)
 
 </details>
+
+시연 영상: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). 영화 일부를 편집했으며 화면 사진은 가장자리를 자르고 축소했습니다. [미디어 출처](docs/MEDIA-CREDITS.md).
 
 ## 도움이 필요하세요?
 

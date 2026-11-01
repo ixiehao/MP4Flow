@@ -47,9 +47,13 @@
 <details>
 <summary>Посмотреть интерфейс</summary>
 
-![Русский интерфейс MP4Flow с примером видео в очереди](website/assets/mp4flow-v130-ru.jpg)
+![MP4Flow на русском: фрагменты Tears of Steel в очереди конвертации](website/assets/mp4flow-v150-queue-ru.jpg)
+
+![Кадрирование — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ru.jpg)
 
 </details>
+
+Демонстрационный материал: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Фрагменты изменены; скриншоты обрезаны и уменьшены. [Об источниках](docs/MEDIA-CREDITS.md).
 
 ## Нужна помощь?
 

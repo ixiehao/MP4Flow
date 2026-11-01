@@ -14,6 +14,12 @@ attribution are in [AppResources/ASSET_NOTICES.md](AppResources/ASSET_NOTICES.md
 
 ## Media rights and brands
 
+The current public screenshots and social card include *Tears of Steel*
+(2012): **(CC) Blender Foundation | [mango.blender.org](https://mango.blender.org/)**,
+under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Film excerpts
+were edited for demonstration; screenshots were cropped and resized.
+See [media credits and capture provenance](docs/MEDIA-CREDITS.md).
+
 You are responsible for having the rights and permissions needed to convert, edit, merge, store, or share media with MP4Flow. MP4Flow does not grant rights in third-party video, audio, subtitles, trademarks, or other content.
 
 Names such as Apple, macOS, Homebrew, FFmpeg, and GitHub may be trademarks of their respective owners. Their use here is descriptive only and does not imply affiliation, sponsorship, or endorsement.

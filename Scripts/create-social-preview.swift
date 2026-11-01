@@ -72,26 +72,6 @@ private func drawImageAspectFit(_ image: NSImage, in rect: NSRect) {
     )
 }
 
-private func drawImageAspectFill(_ image: NSImage, in rect: NSRect) {
-    let size = image.size
-    guard size.width > 0, size.height > 0 else { return }
-    let scale = max(rect.width / size.width, rect.height / size.height)
-    let rendered = NSSize(width: size.width * scale, height: size.height * scale)
-    image.draw(
-        in: NSRect(
-            x: rect.midX - rendered.width / 2,
-            y: rect.midY - rendered.height / 2,
-            width: rendered.width,
-            height: rendered.height
-        ),
-        from: .zero,
-        operation: .sourceOver,
-        fraction: 1,
-        respectFlipped: false,
-        hints: [.interpolation: NSImageInterpolation.high]
-    )
-}
-
 private func render(icon: NSImage, workspace: NSImage) throws -> Data {
     guard let bitmap = NSBitmapImageRep(
         bitmapDataPlanes: nil,
@@ -157,7 +137,8 @@ private func render(icon: NSImage, workspace: NSImage) throws -> Data {
     fill(NSRect(x: 91, y: 219, width: 7, height: 7), with: color(0.36, 0.85, 0.72), radius: 3.5)
     drawText("No uploads. No accounts.", in: NSRect(x: 112, y: 211, width: 340, height: 22), size: 15, weight: .medium, color: color(0.83, 0.90, 1))
     fill(NSRect(x: 91, y: 181, width: 7, height: 7), with: color(0.36, 0.85, 0.72), radius: 3.5)
-    drawText("Convert · Trim · Crop · Rotate", in: NSRect(x: 112, y: 173, width: 340, height: 22), size: 15, weight: .medium, color: color(0.83, 0.90, 1))
+    drawText("Convert · Merge · Trim · Crop", in: NSRect(x: 112, y: 173, width: 340, height: 22), size: 15, weight: .medium, color: color(0.83, 0.90, 1))
+    drawText("Aspect · Brightness · Light denoise", in: NSRect(x: 112, y: 139, width: 360, height: 22), size: 15, weight: .medium, color: color(0.83, 0.90, 1))
 
     let previewRect = NSRect(x: 518, y: 99, width: 659, height: 439)
     context.saveGraphicsState()
@@ -171,11 +152,12 @@ private func render(icon: NSImage, workspace: NSImage) throws -> Data {
 
     context.saveGraphicsState()
     roundedRect(previewRect.insetBy(dx: 5, dy: 5), radius: 16).addClip()
-    drawImageAspectFill(workspace, in: previewRect.insetBy(dx: 5, dy: 5))
+    drawImageAspectFit(workspace, in: previewRect.insetBy(dx: 5, dy: 5))
     context.restoreGraphicsState()
     stroke(previewRect, with: color(0.66, 0.80, 1, 0.56), width: 1.5, radius: 20)
 
     drawText("MP4Flow · ixiehao.github.io/MP4Flow", in: NSRect(x: 91, y: 93, width: 374, height: 18), size: 13, weight: .medium, color: color(0.53, 0.68, 0.91))
+    drawText("Film excerpt: Tears of Steel · (CC) Blender Foundation | mango.blender.org · CC BY 3.0 · creativecommons.org/licenses/by/3.0/", in: NSRect(x: 68, y: 25, width: 1144, height: 14), size: 10, weight: .regular, color: color(0.70, 0.79, 0.94))
 
     NSGraphicsContext.restoreGraphicsState()
     guard let jpeg = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.9]) else {

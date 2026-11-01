@@ -13,3 +13,9 @@ MP4Flow は、MIT License の下で提供される [`tabler/tabler-icons` v3.49.
 MP4Flow を使ってメディアを変換、編集、結合、保存、共有するために必要な権利および許諾は、あなたの責任で確認してください。MP4Flow は、第三者の動画、音声、字幕、商標、その他のコンテンツに関する権利を付与しません。
 
 Apple、macOS、Homebrew、FFmpeg、GitHub などの名称は、各所有者の商標である場合があります。ここでの使用は説明目的のみであり、提携、後援、承認を意味するものではありません。
+
+## デモ映像
+
+公開スクリーンショットとソーシャル画像には *Tears of Steel* (2012) を使用しています。
+(CC) Blender Foundation | [mango.blender.org](https://mango.blender.org/) · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)。
+映画の一部を編集し、画面写真は端の切り取り・縮小をしています。[素材と撮影記録](docs/MEDIA-CREDITS.md)。

@@ -47,9 +47,13 @@
 <details>
 <summary>查看软件截图</summary>
 
-![MP4Flow 中文界面，示例视频已加入转换队列](website/assets/mp4flow-v130-zh.jpg)
+![MP4Flow 中文界面，转换队列中使用 Tears of Steel 电影片段](website/assets/mp4flow-v150-queue-zh.jpg)
+
+![裁切 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-zh.jpg)
 
 </details>
+
+演示素材：[Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)。片段经编辑，截图经裁边与缩放。[素材说明](docs/MEDIA-CREDITS.md)。
 
 ## 遇到问题？
 

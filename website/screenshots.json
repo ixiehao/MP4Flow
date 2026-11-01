@@ -1,0 +1,278 @@
+{
+  "appCommit" : "3ba503f071fed188a19a17121c44618c9a5054a4",
+  "appVersion" : "1.5.0",
+  "captureDate" : "2026-11-01",
+  "film" : {
+    "attribution" : "(CC) Blender Foundation | mango.blender.org",
+    "license" : "CC BY 3.0",
+    "licenseURL" : "https://creativecommons.org/licenses/by/3.0/",
+    "source" : "https://mango.blender.org/",
+    "title" : "Tears of Steel (2012)"
+  },
+  "screenshots" : {
+    "adjust" : {
+      "en" : {
+        "height" : 1071,
+        "sha256" : "b607a2a8ae2eababf3003b6ee29758dce07d27cb031e1f999c595c5fc4e79e55",
+        "src" : "assets/mp4flow-v150-adjust-en.jpg",
+        "width" : 1600
+      },
+      "es" : {
+        "height" : 1071,
+        "sha256" : "5dd6f05804f6d21c667a85138f22e9845faf8d76b6a5b4453ecf376a1f42fd4d",
+        "src" : "assets/mp4flow-v150-adjust-es.jpg",
+        "width" : 1600
+      },
+      "fr" : {
+        "height" : 1071,
+        "sha256" : "fe900b1cf6b73eb2e9381be47276a70bf71222d9c3a6f321f7c5034dc3150e6e",
+        "src" : "assets/mp4flow-v150-adjust-fr.jpg",
+        "width" : 1600
+      },
+      "ja" : {
+        "height" : 1071,
+        "sha256" : "aacc7959b65d28ff14d83b31c2c62e28aa59a61b1f874c7f664841e6df4c7c54",
+        "src" : "assets/mp4flow-v150-adjust-ja.jpg",
+        "width" : 1600
+      },
+      "ko" : {
+        "height" : 1071,
+        "sha256" : "798e95822a2dc254566d55bb26fd2f0553fea0bbd264e808fa96f04a954c3a39",
+        "src" : "assets/mp4flow-v150-adjust-ko.jpg",
+        "width" : 1600
+      },
+      "ru" : {
+        "height" : 1071,
+        "sha256" : "3c9bdc3d01843b099a43a484f3c24540dc6d8b1aa711674d3a9f954cf192084f",
+        "src" : "assets/mp4flow-v150-adjust-ru.jpg",
+        "width" : 1600
+      },
+      "zh" : {
+        "height" : 1071,
+        "sha256" : "59be54115cfbb3a7de176c868b0a02ab2172706d9bd950364850a61bd11b30a5",
+        "src" : "assets/mp4flow-v150-adjust-zh.jpg",
+        "width" : 1600
+      }
+    },
+    "aspect" : {
+      "en" : {
+        "height" : 1071,
+        "sha256" : "b1253c9cb5e8c14f1090205dbcc8ec6e341c9b86b4e2b207b733411eade5dd84",
+        "src" : "assets/mp4flow-v150-aspect-en.jpg",
+        "width" : 1600
+      },
+      "es" : {
+        "height" : 1071,
+        "sha256" : "35309ef00e717f878ea08a22093618c66d897cbea5cbc086b4d87ba28e183a3e",
+        "src" : "assets/mp4flow-v150-aspect-es.jpg",
+        "width" : 1600
+      },
+      "fr" : {
+        "height" : 1071,
+        "sha256" : "6c082771890a84051279001ffec563c02c2cfd31fc17f2efc7de0753f1afcf9a",
+        "src" : "assets/mp4flow-v150-aspect-fr.jpg",
+        "width" : 1600
+      },
+      "ja" : {
+        "height" : 1071,
+        "sha256" : "e150104f52b29b16ea36ec75466692afe361e9d945bcbd83ec1a041aae020725",
+        "src" : "assets/mp4flow-v150-aspect-ja.jpg",
+        "width" : 1600
+      },
+      "ko" : {
+        "height" : 1071,
+        "sha256" : "5ac7dcc67aca8f85441474e69733bbfcb1d652cc34cd047bd9242eec30457d88",
+        "src" : "assets/mp4flow-v150-aspect-ko.jpg",
+        "width" : 1600
+      },
+      "ru" : {
+        "height" : 1071,
+        "sha256" : "cc47968573c39bf4e2ae48b5107cf73ff5e9b21b0f8bacc54738851b8da8e63e",
+        "src" : "assets/mp4flow-v150-aspect-ru.jpg",
+        "width" : 1600
+      },
+      "zh" : {
+        "height" : 1071,
+        "sha256" : "e767123e9db49a6cc0cd159377d3617d79ac7ef729e0225e5cf641ac66cb4fc6",
+        "src" : "assets/mp4flow-v150-aspect-zh.jpg",
+        "width" : 1600
+      }
+    },
+    "crop" : {
+      "en" : {
+        "height" : 1071,
+        "sha256" : "a3eeeec547e8534cb49c688376b7bdf29eebf4cb1c6e2a3774569a062dd5eedc",
+        "src" : "assets/mp4flow-v150-crop-en.jpg",
+        "width" : 1600
+      },
+      "es" : {
+        "height" : 1071,
+        "sha256" : "2850b152a3e1cfaf4884b49bcb1d6db7129999cca161bca1484b66dc94199612",
+        "src" : "assets/mp4flow-v150-crop-es.jpg",
+        "width" : 1600
+      },
+      "fr" : {
+        "height" : 1071,
+        "sha256" : "bfb8afadfbe767dee31d5cd5e412d661e0e050e840a99eacd9654ae4d996a2fc",
+        "src" : "assets/mp4flow-v150-crop-fr.jpg",
+        "width" : 1600
+      },
+      "ja" : {
+        "height" : 1071,
+        "sha256" : "b91e7b98cf4bfd9269a872644a2a27ef833365de714176da47776f080e6e79cc",
+        "src" : "assets/mp4flow-v150-crop-ja.jpg",
+        "width" : 1600
+      },
+      "ko" : {
+        "height" : 1071,
+        "sha256" : "527b316dd1cf19716c7a12bb280e246164d1a73f5a78478fbe156302c08774bd",
+        "src" : "assets/mp4flow-v150-crop-ko.jpg",
+        "width" : 1600
+      },
+      "ru" : {
+        "height" : 1071,
+        "sha256" : "02e8ebe167e98fd2af5b83e5586d08745042f339a9d9987530d41961d23d39a2",
+        "src" : "assets/mp4flow-v150-crop-ru.jpg",
+        "width" : 1600
+      },
+      "zh" : {
+        "height" : 1071,
+        "sha256" : "f8febb4b9d1c1f31c09038ace4b07fbdd90043a30d7d866c52f8d1a2b9ff2899",
+        "src" : "assets/mp4flow-v150-crop-zh.jpg",
+        "width" : 1600
+      }
+    },
+    "export" : {
+      "en" : {
+        "height" : 1072,
+        "sha256" : "fae8565533d1f84324f3ea24c5d31ce78c59a87eccc26536506d492a5e16aefc",
+        "src" : "assets/mp4flow-v150-export-en.jpg",
+        "width" : 1280
+      },
+      "es" : {
+        "height" : 1072,
+        "sha256" : "894f420136e4afbf380eb52d2319ee1f9676b58dc7954925cdafda6f55ea393b",
+        "src" : "assets/mp4flow-v150-export-es.jpg",
+        "width" : 1280
+      },
+      "fr" : {
+        "height" : 1072,
+        "sha256" : "0050e14b02362b831794c00c7bdb0b6b7fc959f0b1a0d7241d218dec5643e4e1",
+        "src" : "assets/mp4flow-v150-export-fr.jpg",
+        "width" : 1280
+      },
+      "ja" : {
+        "height" : 1072,
+        "sha256" : "c481b9a06960baaf16f789ea3de5d992f81ae156f157fb8a7ec6a61664410fea",
+        "src" : "assets/mp4flow-v150-export-ja.jpg",
+        "width" : 1280
+      },
+      "ko" : {
+        "height" : 1072,
+        "sha256" : "a4a17ad7e7423546dc00a0d7001585d4637c7da2a5eb6290fb4bc56500224af9",
+        "src" : "assets/mp4flow-v150-export-ko.jpg",
+        "width" : 1280
+      },
+      "ru" : {
+        "height" : 1072,
+        "sha256" : "3ad440bdf7c94d44b50b1abcb2fcb763385fe46e43cc175fc21d82b9b6684f0a",
+        "src" : "assets/mp4flow-v150-export-ru.jpg",
+        "width" : 1280
+      },
+      "zh" : {
+        "height" : 1072,
+        "sha256" : "a59fd8c75f9ff01ac3f3864739942e432420c2525d86bf2bd1aa497ed0c81e3b",
+        "src" : "assets/mp4flow-v150-export-zh.jpg",
+        "width" : 1280
+      }
+    },
+    "queue" : {
+      "en" : {
+        "height" : 1058,
+        "sha256" : "886043924d78b0ff0dadb0e6b7276446c0fcf5df79ec6583d5381208eb4daa29",
+        "src" : "assets/mp4flow-v150-queue-en.jpg",
+        "width" : 1600
+      },
+      "es" : {
+        "height" : 1058,
+        "sha256" : "3c33b963c59c25ac79d1e16d42857260cffe7432917b61fa8a7bc25022aac478",
+        "src" : "assets/mp4flow-v150-queue-es.jpg",
+        "width" : 1600
+      },
+      "fr" : {
+        "height" : 1058,
+        "sha256" : "34811bef3603630ec4a7e4b459a9de6ee4b7b51e79181ae7b9b89ee82eefe2d7",
+        "src" : "assets/mp4flow-v150-queue-fr.jpg",
+        "width" : 1600
+      },
+      "ja" : {
+        "height" : 1058,
+        "sha256" : "1af1803275dd9d0557fd8a426b0c35149160c24ee45b6b5c2545a7de340ddbce",
+        "src" : "assets/mp4flow-v150-queue-ja.jpg",
+        "width" : 1600
+      },
+      "ko" : {
+        "height" : 1058,
+        "sha256" : "8eeb0788ef8fa2468b96d02cb1c26f5af9d5be6ee5c4cba16691b99aa53bdcae",
+        "src" : "assets/mp4flow-v150-queue-ko.jpg",
+        "width" : 1600
+      },
+      "ru" : {
+        "height" : 1058,
+        "sha256" : "bfd397edff546f1ead8c92069bc7bb09659f0465f1d18ec29356e16f5f83c75d",
+        "src" : "assets/mp4flow-v150-queue-ru.jpg",
+        "width" : 1600
+      },
+      "zh" : {
+        "height" : 1058,
+        "sha256" : "1b7e66bd096254056cd357f9328477d76c46a112c832e3bfcc68fca33f96f9a9",
+        "src" : "assets/mp4flow-v150-queue-zh.jpg",
+        "width" : 1600
+      }
+    },
+    "trim" : {
+      "en" : {
+        "height" : 1080,
+        "sha256" : "b1c7ab52cc199a9414362c9acd755a9ceafa96f44a832517f0d1b18415e241c9",
+        "src" : "assets/mp4flow-v150-trim-en.jpg",
+        "width" : 1520
+      },
+      "es" : {
+        "height" : 1080,
+        "sha256" : "55cfee99f6b1df0ff78709d5692f11b5deb0ed6026671539bb3cc0af9920178c",
+        "src" : "assets/mp4flow-v150-trim-es.jpg",
+        "width" : 1520
+      },
+      "fr" : {
+        "height" : 1080,
+        "sha256" : "7ef8f5bead8640350bb316ec10cad68efe295106f9ff3c3ec4ccca8a3f8b9c71",
+        "src" : "assets/mp4flow-v150-trim-fr.jpg",
+        "width" : 1520
+      },
+      "ja" : {
+        "height" : 1080,
+        "sha256" : "02e77c394c1ea3c5961fce72fc3c973e60cf90af43301fbd869234f0034f647e",
+        "src" : "assets/mp4flow-v150-trim-ja.jpg",
+        "width" : 1520
+      },
+      "ko" : {
+        "height" : 1080,
+        "sha256" : "49c6a6355f685b6964badc31dfe0915ad0b4445c119bca4be9960f7de4de72b2",
+        "src" : "assets/mp4flow-v150-trim-ko.jpg",
+        "width" : 1520
+      },
+      "ru" : {
+        "height" : 1080,
+        "sha256" : "05b9298fd2a65ce0d3897e6e44f78f121965daec6aec24a1076263422c6f44d8",
+        "src" : "assets/mp4flow-v150-trim-ru.jpg",
+        "width" : 1520
+      },
+      "zh" : {
+        "height" : 1080,
+        "sha256" : "e4a24ce88fa3780dd0846e7a44a756be125fe5685fe12a443e10b121f3d8bbcc",
+        "src" : "assets/mp4flow-v150-trim-zh.jpg",
+        "width" : 1520
+      }
+    }
+  }
+}

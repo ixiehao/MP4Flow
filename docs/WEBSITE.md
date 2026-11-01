@@ -26,13 +26,15 @@ Keep copy short and product-focused. Do not put implementation notes, language o
 
 ## Feature content and layout
 
-Present ten features in the same order in all seven locales and READMEs: Smart Convert, Merge Clips, Export Settings, Queue Recovery, Trim, Crop, Rotate, Aspect Correction, Brighten Video, Light Denoise. Keep the four conversion/export cards together, followed by six editing cards (three columns on desktop, two on tablet, one on mobile). Avoid numbered feature decorations and full-width leftover cards.
+Present ten features in the same order in all seven locales and READMEs: Smart Convert, Merge Clips, Export Settings, Queue Recovery, Trim, Crop, Rotate, Aspect Correction, Brighten Video, Light Denoise. Above the feature summary, a keyboard-accessible screenshot tour shows crop, aspect correction, image adjustments, trim and export settings. Every state has its own real capture in all seven languages; open images at full size for small screens. Native links expose all figures without JavaScript. Keep the four conversion/export cards together, followed by six editing cards (three columns on desktop, two on tablet, one on mobile). Avoid numbered feature decorations and full-width leftover cards.
 
 Brightness and denoise are separate feature descriptions but share the App's **Edit Video → Image Adjustments** panel. Explain that edits must be applied before starting conversion. Image adjustments re-encode SDR video; HDR is unsupported, and optional light denoise is off by default and may soften details. Merging uses unedited waiting clips in queue order: compatible inputs can be copied directly; Compatible Merge re-encodes mismatched formats. Do not claim that every merge is lossless.
 
 ## Images, icons and fonts
 
-- Hero images `mp4flow-v130-*.jpg` are real captures of the corresponding v1.3.0 App interface, using a synthetic sample video. Capture bytes are JPEG, despite the screenshot API not specifying an extension. Keep the actual format and filename consistent.
+- Current hero images are `mp4flow-v150-queue-*.jpg`; the feature tour uses `mp4flow-v150-{crop,aspect,adjust,trim,export}-*.jpg`. These are real v1.5.0 native window captures using *Tears of Steel*, with a matching interface language for each page. Exact sizes and hashes are in `website/screenshots.json`; the builder uses those dimensions in HTML and schema.
+- Film attribution, CC BY 3.0 links and modification notes accompany the screenshots in every locale and README, and are embedded in the social card. Source, scope and capture provenance: [MEDIA-CREDITS.md](MEDIA-CREDITS.md). No film/audio/subtitle files are published.
+- `Scripts/prepare-website-screenshots.swift` only crops empty main-window chrome, resizes and JPEG-encodes real captures. Do not paint UI or invent progress. `Scripts/create-social-preview.swift` preserves the complete English crop-window proportions. Use system fonts.
 - Previously hand-edited screenshots remain in `website/assets/` for existing references. Do not overwrite them when refreshing hero images.
 - UI icons use the local `website/assets/tabler-icons.svg` sprite. Shared paths are copied unchanged from the App's curated Tabler Icons Outline v3.49.0 set in `Sources/FastConvert/Resources/TablerOutline/`. Website-only icons (`arrows-join`, `wave-sine`, `brand-github`) come unchanged from the same upstream release.
 - The product logo and favicon use the real App artwork. Font rendering uses the operating system's fonts; no webfont files are bundled or downloaded.
@@ -64,7 +66,7 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory _site
 
 Open <http://127.0.0.1:8000/>. Rebuild and reload after editing the template, translations or assets. Do not serve the template directory directly.
 
-The automated checks validate translation parity, seven static routes, search metadata, initial-HTML FAQ answers, schema facts, sitemap alternates, local links, anchors, icon IDs and distinct localized screenshots. They also prevent publishing source catalogs and scripts. Test layout and interactions in an actual browser: all seven languages at 320, 390, 768, 1024 and 1440 px, closed/expanded FAQ, keyboard Enter/Space, language switching with section links, focus/Escape, installation dialogs, and official download links. Store screenshots and QA logs under ignored `dist/`, not in the published site.
+The automated checks validate translation parity, seven static routes, search metadata, initial-HTML FAQ answers, schema facts, sitemap alternates, local links, anchors, icon IDs and distinct localized screenshots. They also prevent publishing source catalogs and scripts. Test layout and interactions in an actual browser: all seven languages at 320, 390, 768, 1024 and 1440 px, each screenshot state and full-size image, tour ArrowLeft/ArrowRight/Home/End/Space controls, direct `#demo-*` links, closed/expanded FAQ, keyboard Enter/Space, language switching with section links, focus/Escape, installation dialogs, and official download links. Store screenshots and QA logs under ignored `dist/`, not in the published site.
 
 ## Deployment
 

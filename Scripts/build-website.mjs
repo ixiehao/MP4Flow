@@ -33,9 +33,10 @@ export async function readCatalogs() {
   return catalogs;
 }
 
-export function renderPage(template, language, copy) {
+export function renderPage(template, language, copy, screenshots) {
   const url = siteURL + localePath(language.id);
   const prefix = language.id === 'zh' ? './' : '../';
+  const queue = screenshots.queue[language.id];
   const alternates = languages.map(l => `<link rel="alternate" hreflang="${l.locale}" href="${siteURL}${localePath(l.id)}" />`).join('\n    ');
   const schema = {
     '@context': 'https://schema.org', '@type': 'SoftwareApplication', '@id': `${siteURL}#software`,
@@ -45,8 +46,10 @@ export function renderPage(template, language, copy) {
     isAccessibleForFree: true, inLanguage: languages.map(l => l.locale),
     author: { '@type': 'Person', name: 'ixiehao', url: 'https://github.com/ixiehao' },
     image: `${siteURL}assets/mp4flow-app-icon.png`,
-    screenshot: { '@type': 'ImageObject', contentUrl: `${siteURL}assets/mp4flow-v130-${language.id}.jpg`,
-      caption: copy.stageAlt, inLanguage: language.locale, width: 1960, height: 1356 },
+    screenshot: { '@type': 'ImageObject', contentUrl: siteURL + queue.src,
+      caption: copy.stageAlt, inLanguage: language.locale, width: queue.width, height: queue.height,
+      creditText: 'MP4Flow screenshot; Tears of Steel — (CC) Blender Foundation | mango.blender.org',
+      isBasedOn: { '@type': 'CreativeWork', name: 'Tears of Steel (2012)', url: 'https://mango.blender.org/', license: 'https://creativecommons.org/licenses/by/3.0/' } },
     processorRequirements: 'Apple silicon or Intel', softwareRequirements: 'FFmpeg; ffprobe',
     mainEntityOfPage: url,
     featureList: ['toolOneTitle', 'mergeTitle', 'exportTitle', 'recoveryTitle', 'toolTwoTitle', 'toolThreeTitle', 'toolFourTitle', 'aspectTitle', 'brightenTitle', 'denoiseTitle'].map(key => copy[key]),
@@ -64,20 +67,26 @@ export function renderPage(template, language, copy) {
     meta('property', 'og:url', url), meta('property', 'og:locale', language.og),
     ...languages.filter(l => l.id !== language.id).map(l => meta('property', 'og:locale:alternate', l.og)),
     meta('property', 'og:title', copy.pageTitle), meta('property', 'og:description', copy.pageDescription),
-    meta('property', 'og:image', `${siteURL}assets/social-preview.jpg?v=2`),
+    meta('property', 'og:image', `${siteURL}assets/social-preview.jpg?v=20261101-tos`),
     meta('property', 'og:image:width', '1280'), meta('property', 'og:image:height', '640'),
     meta('property', 'og:image:type', 'image/jpeg'),
     meta('property', 'og:image:alt', copy.socialImageAlt), meta('name', 'twitter:card', 'summary_large_image'),
     meta('name', 'twitter:title', copy.pageTitle), meta('name', 'twitter:description', copy.pageDescription),
-    meta('name', 'twitter:image', `${siteURL}assets/social-preview.jpg?v=2`), meta('name', 'twitter:image:alt', copy.socialImageAlt),
+    meta('name', 'twitter:image', `${siteURL}assets/social-preview.jpg?v=20261101-tos`), meta('name', 'twitter:image:alt', copy.socialImageAlt),
     '<link rel="icon" type="image/png" sizes="128x128" href="assets/mp4flow-icon-128.png" />',
     '<link rel="apple-touch-icon" sizes="256x256" href="assets/mp4flow-icon-256.png" />',
-    '<link rel="stylesheet" href="styles.css?v=20261101-export" />',
+    '<link rel="stylesheet" href="styles.css?v=20261101-showcase" />',
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');
   const values = { ...copy, head, languageLinks, locale: language.locale, language: language.id, languageName: language.name,
     privacyURL: `https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY${language.id === 'ja' ? '.ja' : ''}.md` };
+  for (const [kind, localized] of Object.entries(screenshots)) {
+    const shot = localized[language.id];
+    values[kind + 'Source'] = shot.src;
+    values[kind + 'Width'] = shot.width;
+    values[kind + 'Height'] = shot.height;
+  }
   let result = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!(key in values)) throw new Error(`Missing template value: ${key}`);
     return ['head', 'languageLinks'].includes(key) ? values[key] : escape(values[key]).replace(/\n/g, '<br />');
@@ -93,8 +102,15 @@ export async function buildSite(output = path.join(root, '_site')) {
   if (output !== path.join(root, '_site') && !isTestOutput) throw new Error('Output must be _site or an isolated test directory');
   const catalogs = await readCatalogs();
   const template = await readFile(path.join(root, 'website/index.html'), 'utf8');
+  const { screenshots } = JSON.parse(await readFile(path.join(root, 'website/screenshots.json'), 'utf8'));
   // Validate every localized screenshot before replacing an existing build.
-  for (const { id } of languages) await readFile(path.join(root, `website/assets/mp4flow-v130-${id}.jpg`));
+  for (const localized of Object.values(screenshots)) {
+    for (const { id } of languages) {
+      const shot = localized[id];
+      if (!shot?.src.startsWith('assets/mp4flow-v150-') || !Number.isInteger(shot.width) || !Number.isInteger(shot.height)) throw new Error(`Invalid screenshot: ${id}`);
+      await readFile(path.join(root, 'website', shot.src));
+    }
+  }
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   await cp(path.join(root, 'website/assets'), path.join(output, 'assets'), { recursive: true });
@@ -102,7 +118,7 @@ export async function buildSite(output = path.join(root, '_site')) {
   for (const language of languages) {
     const dir = path.join(output, localePath(language.id));
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, 'index.html'), renderPage(template, language, catalogs[language.id]));
+    await writeFile(path.join(dir, 'index.html'), renderPage(template, language, catalogs[language.id], screenshots));
   }
   const alternates = [...languages.map(l => ({ locale: l.locale, url: siteURL + localePath(l.id) })), { locale: 'x-default', url: siteURL }];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${languages.map(l => `  <url><loc>${siteURL}${localePath(l.id)}</loc>\n${alternates.map(a => `    <xhtml:link rel="alternate" hreflang="${a.locale}" href="${a.url}" />`).join('\n')}\n  </url>`).join('\n')}\n</urlset>\n`;

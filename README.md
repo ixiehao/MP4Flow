@@ -47,9 +47,13 @@ By default, results go beside the original file, without overwriting existing fi
 <details>
 <summary>See the app</summary>
 
-![MP4Flow in English with a sample video ready to convert](website/assets/mp4flow-v130-en.jpg)
+![MP4Flow in English with Tears of Steel excerpts in the conversion queue](website/assets/mp4flow-v150-queue-en.jpg)
+
+![Crop — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-en.jpg)
 
 </details>
+
+Demo footage: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Edited excerpts; cropped and resized screenshots. [Media credits](docs/MEDIA-CREDITS.md).
 
 ## Need help?
 
