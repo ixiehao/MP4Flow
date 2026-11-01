@@ -112,5 +112,6 @@
   "tourOpen": "Voir en grand",
   "mediaCreditLabel": "Film de démonstration",
   "mediaChanges": "Extraits montés pour la démonstration ; captures recadrées et redimensionnées.",
-  "mediaCreditsLink": "Crédits des médias"
+  "mediaCreditsLink": "Crédits des médias",
+  "tourHint": "Choisissez une fonction pour voir son interface."
 }

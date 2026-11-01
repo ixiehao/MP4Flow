@@ -112,5 +112,6 @@
   "tourOpen": "원본 크기로 보기",
   "mediaCreditLabel": "시연 영상",
   "mediaChanges": "영화 일부를 편집해 시연에 사용했습니다. 화면 사진은 가장자리를 자르고 축소했습니다.",
-  "mediaCreditsLink": "미디어 출처"
+  "mediaCreditsLink": "미디어 출처",
+  "tourHint": "기능을 선택해 실제 화면을 확인하세요."
 }

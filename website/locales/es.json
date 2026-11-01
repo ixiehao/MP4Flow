@@ -112,5 +112,6 @@
   "tourOpen": "Ver a tamaño completo",
   "mediaCreditLabel": "Video de ejemplo",
   "mediaChanges": "Fragmentos editados para la demostración; capturas recortadas y redimensionadas.",
-  "mediaCreditsLink": "Créditos multimedia"
+  "mediaCreditsLink": "Créditos multimedia",
+  "tourHint": "Elige una función para ver su interfaz."
 }

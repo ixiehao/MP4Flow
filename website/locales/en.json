@@ -112,5 +112,6 @@
   "tourOpen": "View full size",
   "mediaCreditLabel": "Demo footage",
   "mediaChanges": "Film excerpts edited for demonstration; screenshots cropped and resized.",
-  "mediaCreditsLink": "Media credits"
+  "mediaCreditsLink": "Media credits",
+  "tourHint": "Choose a feature to explore its real interface."
 }

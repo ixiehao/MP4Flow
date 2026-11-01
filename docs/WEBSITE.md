@@ -30,6 +30,8 @@ Present ten features in the same order in all seven locales and READMEs: Smart C
 
 Brightness and denoise are separate feature descriptions but share the App's **Edit Video → Image Adjustments** panel. Explain that edits must be applied before starting conversion. Image adjustments re-encode SDR video; HDR is unsupported, and optional light denoise is off by default and may soften details. Merging uses unedited waiting clips in queue order: compatible inputs can be copied directly; Compatible Merge re-encodes mismatched formats. Do not claim that every merge is lossless.
 
+The screenshot tour uses a high-contrast navigation rail beside a bounded preview on desktop. At 860 px and below, navigation moves above the preview; phone buttons put icons above labels so long translations retain their word boundaries. Keep the page controls visibly separate from controls inside screenshots. Image dimensions must remain automatic with maximum width/height constraints: rounding a full-size `object-fit` letterbox leaves the actual window corners exposed. Apply the rounded mask to the actual image box and preserve its natural aspect ratio. The original full-size image stays linked. Selected feature links update `#demo-*` without scrolling so language switches retain the current example.
+
 ## Images, icons and fonts
 
 - Current hero images are `mp4flow-v150-queue-*.jpg`; the feature tour uses `mp4flow-v150-{crop,aspect,adjust,trim,export}-*.jpg`. These are real v1.5.0 native window captures using *Tears of Steel*, with a matching interface language for each page. Exact sizes and hashes are in `website/screenshots.json`; the builder uses those dimensions in HTML and schema.
@@ -66,7 +68,7 @@ python3 -m http.server 8000 --bind 127.0.0.1 --directory _site
 
 Open <http://127.0.0.1:8000/>. Rebuild and reload after editing the template, translations or assets. Do not serve the template directory directly.
 
-The automated checks validate translation parity, seven static routes, search metadata, initial-HTML FAQ answers, schema facts, sitemap alternates, local links, anchors, icon IDs and distinct localized screenshots. They also prevent publishing source catalogs and scripts. Test layout and interactions in an actual browser: all seven languages at 320, 390, 768, 1024 and 1440 px, each screenshot state and full-size image, tour ArrowLeft/ArrowRight/Home/End/Space controls, direct `#demo-*` links, closed/expanded FAQ, keyboard Enter/Space, language switching with section links, focus/Escape, installation dialogs, and official download links. Store screenshots and QA logs under ignored `dist/`, not in the published site.
+The automated checks validate translation parity, seven static routes, search metadata, initial-HTML FAQ answers, schema facts, sitemap alternates, local links, anchors, icon IDs and distinct localized screenshots. They also prevent publishing source catalogs and scripts. Test layout and interactions in an actual browser: all seven languages at 320, 390, 768, 860, 861, 1024 and 1440 px, each screenshot state and full-size image, vertical tour ArrowUp/ArrowDown and mobile ArrowLeft/ArrowRight, Home/End/Space/Enter, direct `#demo-*` links, closed/expanded FAQ, language switching with section links, focus/Escape, installation dialogs, and official download links. Store screenshots and QA logs under ignored `dist/`, not in the published site.
 
 ## Deployment
 

@@ -112,5 +112,6 @@
   "tourOpen": "原寸で見る",
   "mediaCreditLabel": "デモ映像",
   "mediaChanges": "映画の一部を編集して使用。画面写真は端を切り取り、縮小しています。",
-  "mediaCreditsLink": "素材のクレジット"
+  "mediaCreditsLink": "素材のクレジット",
+  "tourHint": "機能を選ぶと、実際の画面を確認できます。"
 }

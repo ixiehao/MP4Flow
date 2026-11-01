@@ -38,9 +38,15 @@ document.addEventListener('keydown', event => {
 // The HTML remains a linked screenshot gallery without JavaScript. Enhance it
 // into one stable-height, keyboard-accessible view of real application windows.
 document.querySelectorAll('[data-product-tour]').forEach(tour => {
+  tour.classList.add('is-enhanced');
   const tabs = [...tour.querySelectorAll('[data-tour-tab]')];
   const panels = [...tour.querySelectorAll('[data-tour-panel]')];
-  tour.querySelector('.tour-tabs').setAttribute('role', 'tablist');
+  const tablist = tour.querySelector('.tour-tabs');
+  tablist.setAttribute('role', 'tablist');
+  const verticalLayout = window.matchMedia('(min-width: 861px)');
+  const updateOrientation = () => tablist.setAttribute('aria-orientation', verticalLayout.matches ? 'vertical' : 'horizontal');
+  updateOrientation();
+  verticalLayout.addEventListener('change', updateOrientation);
   tabs.forEach(tab => {
     tab.id = `tour-tab-${tab.dataset.tourTab}`;
     tab.setAttribute('role', 'tab');
@@ -51,7 +57,7 @@ document.querySelectorAll('[data-product-tour]').forEach(tour => {
     panel.setAttribute('aria-labelledby', `tour-tab-${panel.dataset.tourPanel}`);
     panel.tabIndex = 0;
   });
-  function select(id) {
+  function select(id, updateURL = false) {
     if (!tabs.some(tab => tab.dataset.tourTab === id)) return;
     tabs.forEach(tab => {
       const selected = tab.dataset.tourTab === id;
@@ -59,21 +65,24 @@ document.querySelectorAll('[data-product-tour]').forEach(tour => {
       tab.tabIndex = selected ? 0 : -1;
     });
     panels.forEach(panel => { panel.hidden = panel.dataset.tourPanel !== id; });
+    if (updateURL) history.replaceState(null, '', `#demo-${id}`);
   }
   tabs.forEach((tab, index) => {
     tab.addEventListener('click', event => {
       event.preventDefault();
-      select(tab.dataset.tourTab);
+      select(tab.dataset.tourTab, true);
     });
     tab.addEventListener('keydown', event => {
-      const next = { ArrowRight: (index + 1) % tabs.length, ArrowLeft: (index + tabs.length - 1) % tabs.length, Home: 0, End: tabs.length - 1 }[event.key];
+      const nextKey = verticalLayout.matches ? 'ArrowDown' : 'ArrowRight';
+      const previousKey = verticalLayout.matches ? 'ArrowUp' : 'ArrowLeft';
+      const next = { [nextKey]: (index + 1) % tabs.length, [previousKey]: (index + tabs.length - 1) % tabs.length, Home: 0, End: tabs.length - 1 }[event.key];
       if (next !== undefined) {
         event.preventDefault();
-        select(tabs[next].dataset.tourTab);
+        select(tabs[next].dataset.tourTab, true);
         tabs[next].focus();
       } else if (event.key === ' ') {
         event.preventDefault();
-        select(tab.dataset.tourTab);
+        select(tab.dataset.tourTab, true);
       }
     });
   });

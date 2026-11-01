@@ -112,5 +112,6 @@
   "tourOpen": "查看原图",
   "mediaCreditLabel": "演示素材",
   "mediaChanges": "电影片段经编辑用于演示；截图经裁边与缩放。",
-  "mediaCreditsLink": "素材说明"
+  "mediaCreditsLink": "素材说明",
+  "tourHint": "选择功能，查看实际操作界面。"
 }
