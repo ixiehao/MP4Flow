@@ -198,7 +198,7 @@ final class QueueJournal: @unchecked Sendable {
             let generation = UUID()
             self.saveGeneration = generation
             self.journal.save(QueueSnapshot(store: store)) { [weak self] success in
-                Task { @MainActor in
+                Task { @MainActor [weak self] in
                     guard let self, self.saveGeneration == generation else { return }
                     if !success { self.store?.recoveryNotice = .saveFailed }
                     else if self.store?.recoveryNotice == .saveFailed { self.store?.recoveryNotice = nil }
