@@ -8,6 +8,8 @@
 
 **运行要求：** macOS 13+ · Apple 芯片或 Intel · FFmpeg 和 ffprobe（安装方法见下方）。
 
+![MP4Flow 中文界面，转换队列中使用 Tears of Steel 电影片段](website/assets/mp4flow-v150-queue-zh.jpg)
+
 ## 主要功能
 
 | 功能 | 能帮你做什么 |
@@ -44,14 +46,17 @@
 
 默认保存到原视频所在文件夹，不覆盖已有文件。点击「**打开文件夹**」即可找到结果。App 语言可在 Mac 菜单栏的「**语言**」中切换。
 
-<details>
-<summary>查看软件截图</summary>
+## 功能预览
 
-![MP4Flow 中文界面，转换队列中使用 Tears of Steel 电影片段](website/assets/mp4flow-v150-queue-zh.jpg)
+| **剪切** | **裁切** |
+| :---: | :---: |
+| ![剪切 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-zh.jpg) | ![裁切 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-zh.jpg) |
+| **比例矫正** | **提亮与降噪** |
+| ![比例矫正 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-zh.jpg) | ![提亮与降噪 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-zh.jpg) |
 
-![裁切 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-zh.jpg)
+**导出设置**
 
-</details>
+![导出设置 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-zh.jpg)
 
 演示素材：[Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)。片段经编辑，截图经裁边与缩放。[素材说明](docs/MEDIA-CREDITS.md)。
 

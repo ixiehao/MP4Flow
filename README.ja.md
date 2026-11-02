@@ -8,6 +8,8 @@
 
 **動作環境：** macOS 13+ · Appleシリコンまたは Intel · FFmpeg と ffprobe（導入方法は下記）。
 
+![MP4Flow 日本語版。Tears of Steel のクリップを変換キューに追加した画面](website/assets/mp4flow-v150-queue-ja.jpg)
+
 ## 主な機能
 
 | 機能 | できること |
@@ -44,14 +46,17 @@
 
 初期設定では元動画と同じフォルダに保存し、既存ファイルは上書きしません。**フォルダを開く** から結果を確認できます。表示言語は Mac のメニューバーの **言語** で切り替えられます。
 
-<details>
-<summary>アプリの画面を見る</summary>
+## 機能プレビュー
 
-![MP4Flow 日本語版。Tears of Steel のクリップを変換キューに追加した画面](website/assets/mp4flow-v150-queue-ja.jpg)
+| **トリミング** | **クロップ** |
+| :---: | :---: |
+| ![トリミング — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-ja.jpg) | ![クロップ — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ja.jpg) |
+| **縦横比を補正** | **明るさとノイズ低減** |
+| ![縦横比を補正 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-ja.jpg) | ![明るさとノイズ低減 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-ja.jpg) |
 
-![クロップ — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ja.jpg)
+**書き出し設定**
 
-</details>
+![書き出し設定 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-ja.jpg)
 
 デモ映像：[Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)。映画の一部を編集して使用。画面写真は端の切り取り・縮小あり。[素材のクレジット](docs/MEDIA-CREDITS.md)。
 
