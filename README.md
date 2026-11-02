@@ -8,7 +8,7 @@
 
 **Requires:** macOS 13+ · Apple silicon or Intel · FFmpeg and ffprobe (installation below).
 
-![MP4Flow in English with Tears of Steel excerpts in the conversion queue](website/assets/mp4flow-v150-queue-en.jpg)
+![MP4Flow in English with Tears of Steel excerpts in the conversion queue](docs/assets/readme/mp4flow-v150-queue-en.webp)
 
 ## What you can do
 
@@ -50,13 +50,13 @@ By default, results go beside the original file, without overwriting existing fi
 
 | **Trim** | **Crop** |
 | :---: | :---: |
-| ![Trim — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-en.jpg) | ![Crop — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-en.jpg) |
+| ![Trim — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-trim-en.webp) | ![Crop — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-crop-en.webp) |
 | **Aspect Correction** | **Brightness & denoise** |
-| ![Aspect Correction — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-en.jpg) | ![Brightness & denoise — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-en.jpg) |
+| ![Aspect Correction — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-aspect-en.webp) | ![Brightness & denoise — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-adjust-en.webp) |
 
 **Export Settings**
 
-![Export Settings — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-en.jpg)
+![Export Settings — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-export-en.webp)
 
 Demo footage: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Edited excerpts; cropped and resized screenshots. [Media credits](docs/MEDIA-CREDITS.md).
 

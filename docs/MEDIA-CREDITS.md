@@ -46,6 +46,12 @@ licence.
 - [`website/screenshots.json`](../website/screenshots.json) records exact image
   dimensions and SHA-256 hashes. Originals and local capture records remain
   outside the published site.
+- README images in `docs/assets/readme/` are lossless WebP derivatives of those
+  captures, at the same dimensions. Only the outer corners are masked to
+  transparency; no UI or film content is replaced. The rounded edge works on
+  light and dark GitHub backgrounds without custom CSS. Their source hashes,
+  dimensions and corner radii are recorded in
+  [`docs/assets/readme/screenshots.json`](assets/readme/screenshots.json).
 
 Prepare a fresh set of captured windows on macOS with:
 
@@ -56,6 +62,16 @@ swift Scripts/create-social-preview.swift \
   website/assets/mp4flow-app-icon.png \
   website/assets/mp4flow-v150-crop-en.jpg website/assets/social-preview.jpg
 ```
+
+Generate the README derivatives with `cwebp` from `brew install webp`:
+
+```sh
+swift Scripts/prepare-readme-screenshots.swift website docs/assets/readme
+```
+
+WebP is encoded losslessly so labels and controls do not acquire another layer
+of compression artifacts. The JPEG sources remain available for the website
+and existing links. Transparent PNG intermediates are temporary, not published.
 
 The social card uses the **actual English crop window**, an original MP4Flow
 layout and system fonts. It retains the full window proportions and includes

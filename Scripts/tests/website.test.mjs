@@ -143,6 +143,43 @@ test('builder refuses output paths outside its dedicated build directories', asy
   await assert.rejects(buildSite('/tmp/unrelated-content'), /Output must be/);
 });
 
+test('README derivatives are lossless transparent WebP files tied to the original captures', async () => {
+  const { screenshots, format } = JSON.parse(await readFile(new URL('../../docs/assets/readme/screenshots.json', import.meta.url)));
+  const originals = JSON.parse(await readFile(new URL('../../website/screenshots.json', import.meta.url))).screenshots;
+  assert.equal(format, 'lossless WebP');
+  assert.deepEqual(Object.keys(screenshots).sort(), Object.keys(originals).sort());
+  for (const [kind, localized] of Object.entries(screenshots)) {
+    assert.deepEqual(Object.keys(localized).sort(), languages.map(x => x.id).sort());
+    for (const { id } of languages) {
+      const shot = localized[id];
+      assert.equal(shot.src, `mp4flow-v150-${kind}-${id}.webp`);
+      assert.equal(shot.source, 'website/' + originals[kind][id].src);
+      assert.equal(shot.sourceSHA256, originals[kind][id].sha256);
+      assert.equal(shot.width, originals[kind][id].width);
+      assert.equal(shot.height, originals[kind][id].height);
+      const bytes = await readFile(new URL('../../docs/assets/readme/' + shot.src, import.meta.url));
+      assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+      assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+      assert.equal(createHash('sha256').update(bytes).digest('hex'), shot.sha256);
+      let frame;
+      for (let offset = 12; offset + 8 <= bytes.length;) {
+        const size = bytes.readUInt32LE(offset + 4);
+        if (bytes.toString('ascii', offset, offset + 4) === 'VP8L') {
+          assert.equal(bytes[offset + 8], 0x2f);
+          frame = bytes.readUInt32LE(offset + 9);
+          break;
+        }
+        offset += 8 + size + (size & 1);
+      }
+      assert.notEqual(frame, undefined, 'use lossless image data');
+      assert.equal((frame & 0x3fff) + 1, shot.width);
+      assert.equal(((frame >>> 14) & 0x3fff) + 1, shot.height);
+      assert.equal((frame >>> 28) & 1, 1, 'corners must use transparency');
+      assert.ok(bytes.length < shot.pngBytes, 'prefer the smaller lossless web format');
+    }
+  }
+});
+
 test('web navigation uses lightweight, unchanged icons embedded in the App artwork', async () => {
   const appIcon = await readFile(new URL('../../AppResources/AppIcon.icns', import.meta.url));
   for (const size of [128, 256]) {
@@ -181,7 +218,7 @@ test('seven READMEs cover all ten features and use current App action names', as
     assert.match(readme, /HDR/);
     assert.ok((readme.match(/https:\/\/github\.com\/ixiehao\/MP4Flow\/releases\/latest/g) ?? []).length >= 2, language.id);
     assert.doesNotMatch(readme, /releases\/download\/v\d/);
-    for (const kind of ['queue', 'crop']) assert.ok(readme.includes(`website/assets/mp4flow-v150-${kind}-${language.id}.jpg`));
+    for (const kind of ['queue', 'trim', 'crop', 'aspect', 'adjust', 'export']) assert.ok(readme.includes(`docs/assets/readme/mp4flow-v150-${kind}-${language.id}.webp`));
     assert.match(readme, /https:\/\/mango\.blender\.org\//);
     assert.match(readme, /https:\/\/creativecommons\.org\/licenses\/by\/3\.0\//);
     assert.doesNotMatch(readme, /mp4flow-v130/);
