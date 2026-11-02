@@ -8,7 +8,7 @@
 
 **运行要求：** macOS 13+ · Apple 芯片或 Intel · FFmpeg 和 ffprobe（安装方法见下方）。
 
-![MP4Flow 中文界面，转换队列中使用 Tears of Steel 电影片段](website/assets/mp4flow-v150-queue-zh.jpg)
+![MP4Flow 中文界面，转换队列中使用 Tears of Steel 电影片段](docs/assets/readme/mp4flow-v150-queue-zh.webp)
 
 ## 主要功能
 
@@ -50,13 +50,13 @@
 
 | **剪切** | **裁切** |
 | :---: | :---: |
-| ![剪切 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-zh.jpg) | ![裁切 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-zh.jpg) |
+| ![剪切 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-trim-zh.webp) | ![裁切 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-crop-zh.webp) |
 | **比例矫正** | **提亮与降噪** |
-| ![比例矫正 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-zh.jpg) | ![提亮与降噪 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-zh.jpg) |
+| ![比例矫正 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-aspect-zh.webp) | ![提亮与降噪 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-adjust-zh.webp) |
 
 **导出设置**
 
-![导出设置 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-zh.jpg)
+![导出设置 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-export-zh.webp)
 
 演示素材：[Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)。片段经编辑，截图经裁边与缩放。[素材说明](docs/MEDIA-CREDITS.md)。
 

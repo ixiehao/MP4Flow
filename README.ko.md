@@ -8,7 +8,7 @@
 
 **사용 환경:** macOS 13+ · Apple Silicon 또는 Intel Mac · FFmpeg와 ffprobe (아래 설치 방법 참고).
 
-![한국어 MP4Flow에서 Tears of Steel 클립을 변환 대기열에 추가한 화면](website/assets/mp4flow-v150-queue-ko.jpg)
+![한국어 MP4Flow에서 Tears of Steel 클립을 변환 대기열에 추가한 화면](docs/assets/readme/mp4flow-v150-queue-ko.webp)
 
 ## 주요 기능
 
@@ -50,13 +50,13 @@
 
 | **구간 자르기** | **화면 자르기** |
 | :---: | :---: |
-| ![구간 자르기 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-ko.jpg) | ![화면 자르기 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ko.jpg) |
+| ![구간 자르기 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-trim-ko.webp) | ![화면 자르기 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-crop-ko.webp) |
 | **화면 비율 보정** | **밝기와 노이즈 감소** |
-| ![화면 비율 보정 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-ko.jpg) | ![밝기와 노이즈 감소 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-ko.jpg) |
+| ![화면 비율 보정 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-aspect-ko.webp) | ![밝기와 노이즈 감소 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-adjust-ko.webp) |
 
 **내보내기 설정**
 
-![내보내기 설정 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-ko.jpg)
+![내보내기 설정 — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-export-ko.webp)
 
 시연 영상: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). 영화 일부를 편집했으며 화면 사진은 가장자리를 자르고 축소했습니다. [미디어 출처](docs/MEDIA-CREDITS.md).
 

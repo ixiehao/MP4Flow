@@ -39,6 +39,7 @@ The FAQ uses the same full-width, pale rounded panel as the surrounding sections
 ## Images, icons and fonts
 
 - Current hero images are `mp4flow-v150-queue-*.jpg`; the feature articles use `mp4flow-v150-{crop,aspect,adjust,trim,export}-*.jpg`. These are real v1.5.0 native window captures using *Tears of Steel*, with a matching interface language for each page. Exact sizes and hashes are in `website/screenshots.json`; the builder uses those dimensions in HTML and schema.
+- READMEs use the corresponding lossless WebP files under `docs/assets/readme/`, with transparent rounded corners baked into the asset because GitHub Markdown cannot rely on custom CSS. Generate them with `Scripts/prepare-readme-screenshots.swift`; preserve the JPEG sources and check the derivative manifest. Do not flatten the corners onto a white background, which leaves visible boxes in dark mode.
 - Film attribution, CC BY 3.0 links and modification notes accompany the screenshots in every locale and README, and are embedded in the social card. Source, scope and capture provenance: [MEDIA-CREDITS.md](MEDIA-CREDITS.md). No film/audio/subtitle files are published.
 - `Scripts/prepare-website-screenshots.swift` only crops empty main-window chrome, resizes and JPEG-encodes real captures. Do not paint UI or invent progress. `Scripts/create-social-preview.swift` preserves the complete English crop-window proportions. Use system fonts.
 - Previously hand-edited screenshots remain in `website/assets/` for existing references. Do not overwrite them when refreshing hero images.

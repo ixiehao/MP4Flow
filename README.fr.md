@@ -8,7 +8,7 @@
 
 **Prérequis :** macOS 13+ · Mac Apple Silicon ou Intel · FFmpeg et ffprobe (installation ci-dessous).
 
-![MP4Flow en français avec des extraits de Tears of Steel dans la file de conversion](website/assets/mp4flow-v150-queue-fr.jpg)
+![MP4Flow en français avec des extraits de Tears of Steel dans la file de conversion](docs/assets/readme/mp4flow-v150-queue-fr.webp)
 
 ## Les fonctions essentielles
 
@@ -50,13 +50,13 @@ Par défaut, le résultat est enregistré dans le dossier d’origine, sans écr
 
 | **Découper** | **Recadrer** |
 | :---: | :---: |
-| ![Découper — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-fr.jpg) | ![Recadrer — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-fr.jpg) |
+| ![Découper — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-trim-fr.webp) | ![Recadrer — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-crop-fr.webp) |
 | **Correction du ratio** | **Luminosité et débruitage** |
-| ![Correction du ratio — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-fr.jpg) | ![Luminosité et débruitage — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-fr.jpg) |
+| ![Correction du ratio — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-aspect-fr.webp) | ![Luminosité et débruitage — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-adjust-fr.webp) |
 
 **Réglages d’export**
 
-![Réglages d’export — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-fr.jpg)
+![Réglages d’export — MP4Flow · Tears of Steel](docs/assets/readme/mp4flow-v150-export-fr.webp)
 
 Film de démonstration : [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Extraits montés ; captures recadrées et redimensionnées. [Crédits](docs/MEDIA-CREDITS.md).
 
