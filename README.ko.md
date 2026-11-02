@@ -8,6 +8,8 @@
 
 **사용 환경:** macOS 13+ · Apple Silicon 또는 Intel Mac · FFmpeg와 ffprobe (아래 설치 방법 참고).
 
+![한국어 MP4Flow에서 Tears of Steel 클립을 변환 대기열에 추가한 화면](website/assets/mp4flow-v150-queue-ko.jpg)
+
 ## 주요 기능
 
 | 기능 | 할 수 있는 일 |
@@ -44,14 +46,17 @@
 
 기본 저장 위치는 원본 영상과 같은 폴더이며 기존 파일을 덮어쓰지 않아요. **폴더 열기**로 결과를 확인하세요. 앱 언어는 Mac 메뉴 막대의 **언어**에서 바꿀 수 있어요.
 
-<details>
-<summary>앱 화면 보기</summary>
+## 기능 미리보기
 
-![한국어 MP4Flow에서 Tears of Steel 클립을 변환 대기열에 추가한 화면](website/assets/mp4flow-v150-queue-ko.jpg)
+| **구간 자르기** | **화면 자르기** |
+| :---: | :---: |
+| ![구간 자르기 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-ko.jpg) | ![화면 자르기 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ko.jpg) |
+| **화면 비율 보정** | **밝기와 노이즈 감소** |
+| ![화면 비율 보정 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-ko.jpg) | ![밝기와 노이즈 감소 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-ko.jpg) |
 
-![화면 자르기 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ko.jpg)
+**내보내기 설정**
 
-</details>
+![내보내기 설정 — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-ko.jpg)
 
 시연 영상: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). 영화 일부를 편집했으며 화면 사진은 가장자리를 자르고 축소했습니다. [미디어 출처](docs/MEDIA-CREDITS.md).
 

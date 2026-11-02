@@ -8,6 +8,8 @@
 
 **Требования:** macOS 13+ · Mac с Apple Silicon или Intel · FFmpeg и ffprobe (установка ниже).
 
+![MP4Flow на русском: фрагменты Tears of Steel в очереди конвертации](website/assets/mp4flow-v150-queue-ru.jpg)
+
 ## Основные возможности
 
 | Функция | Что она делает |
@@ -44,14 +46,17 @@
 
 По умолчанию результат сохраняется рядом с исходным файлом без перезаписи существующих файлов. Найти его можно кнопкой **Открыть папку**. Язык приложения меняется в меню **Язык** в строке меню Mac.
 
-<details>
-<summary>Посмотреть интерфейс</summary>
+## Функции в действии
 
-![MP4Flow на русском: фрагменты Tears of Steel в очереди конвертации](website/assets/mp4flow-v150-queue-ru.jpg)
+| **Обрезка** | **Кадрирование** |
+| :---: | :---: |
+| ![Обрезка — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-ru.jpg) | ![Кадрирование — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ru.jpg) |
+| **Коррекция пропорций** | **Яркость и шумоподавление** |
+| ![Коррекция пропорций — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-ru.jpg) | ![Яркость и шумоподавление — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-ru.jpg) |
 
-![Кадрирование — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-ru.jpg)
+**Настройки экспорта**
 
-</details>
+![Настройки экспорта — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-ru.jpg)
 
 Демонстрационный материал: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Фрагменты изменены; скриншоты обрезаны и уменьшены. [Об источниках](docs/MEDIA-CREDITS.md).
 

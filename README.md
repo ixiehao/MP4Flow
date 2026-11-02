@@ -8,6 +8,8 @@
 
 **Requires:** macOS 13+ · Apple silicon or Intel · FFmpeg and ffprobe (installation below).
 
+![MP4Flow in English with Tears of Steel excerpts in the conversion queue](website/assets/mp4flow-v150-queue-en.jpg)
+
 ## What you can do
 
 | Feature | Use it to… |
@@ -44,14 +46,17 @@ You can also change output resolution. All video processing stays on your Mac.
 
 By default, results go beside the original file, without overwriting existing files. Use **Open Folder** to find them. Switch the app language from **Language** in the Mac menu bar.
 
-<details>
-<summary>See the app</summary>
+## Feature previews
 
-![MP4Flow in English with Tears of Steel excerpts in the conversion queue](website/assets/mp4flow-v150-queue-en.jpg)
+| **Trim** | **Crop** |
+| :---: | :---: |
+| ![Trim — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-trim-en.jpg) | ![Crop — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-en.jpg) |
+| **Aspect Correction** | **Brightness & denoise** |
+| ![Aspect Correction — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-aspect-en.jpg) | ![Brightness & denoise — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-adjust-en.jpg) |
 
-![Crop — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-crop-en.jpg)
+**Export Settings**
 
-</details>
+![Export Settings — MP4Flow · Tears of Steel](website/assets/mp4flow-v150-export-en.jpg)
 
 Demo footage: [Tears of Steel](https://mango.blender.org/) · (CC) Blender Foundation | mango.blender.org · [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Edited excerpts; cropped and resized screenshots. [Media credits](docs/MEDIA-CREDITS.md).
 
