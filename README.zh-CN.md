@@ -4,7 +4,7 @@
 
 **把视频变成 MP4，特别简单。** 免费、开源的原生 Mac 应用。不用登录，不用上传视频。
 
-[**下载 Mac 版**](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/) · [反馈问题](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+[**下载 Mac 版**](https://github.com/ixiehao/MP4Flow/releases/latest) · [官方网站](https://ixiehao.github.io/MP4Flow/zh/) · [反馈问题](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
 **运行要求：** macOS 13+ · Apple 芯片或 Intel · FFmpeg 和 ffprobe（安装方法见下方）。
 

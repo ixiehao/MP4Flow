@@ -8,8 +8,8 @@ The existing GitHub Pages site stays at <https://ixiehao.github.io/MP4Flow/>.
 
 | Language | Path |
 | --- | --- |
-| 简体中文 | `/MP4Flow/` |
-| English | `/MP4Flow/en/` |
+| English | `/MP4Flow/` |
+| 简体中文 | `/MP4Flow/zh/` |
 | Français | `/MP4Flow/fr/` |
 | Русский | `/MP4Flow/ru/` |
 | Español | `/MP4Flow/es/` |
@@ -19,7 +19,9 @@ The existing GitHub Pages site stays at <https://ixiehao.github.io/MP4Flow/>.
 - `website/index.html` is the shared template; `website/locales/*.json` contains all public copy, accessible labels and metadata.
 - `Scripts/build-website.mjs` uses Node.js standard libraries to generate `_site/`. No framework, package install or runtime translation request is required.
 - Each generated page contains its full translation, canonical URL, reciprocal `hreflang` links, share metadata and structured data. The build also creates the seven-page sitemap.
+- English is served directly at the root, including without JavaScript. The old `/MP4Flow/en/` remains an English alias with the root as its canonical URL; only the seven canonical routes appear in the sitemap.
 - Existing `?lang=en`, `?lang=ja` and other supported language links redirect to the corresponding page, preserving the section and other query parameters. Explicit page URLs take priority over browser language or old preferences.
+- Query-language routing uses the generated language links rather than maintaining a second route map in JavaScript.
 - Language links work without JavaScript. The installation guide has a no-script fallback.
 
 Keep copy short and product-focused. Do not put implementation notes, language ordering or test results into marketing text. Maintain the same spacing rules across languages; allow natural text wrapping instead of hiding overflow or shrinking individual translations.

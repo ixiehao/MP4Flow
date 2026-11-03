@@ -4,7 +4,7 @@
 
 **Video to MP4. Seriously simple.** A free, open-source native Mac app. No account, no video uploads.
 
-[**Download for Mac**](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/en/) · [Report an issue](https://github.com/ixiehao/MP4Flow/issues/new/choose)
+[**Download for Mac**](https://github.com/ixiehao/MP4Flow/releases/latest) · [Website](https://ixiehao.github.io/MP4Flow/) · [Report an issue](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
 **Requires:** macOS 13+ · Apple silicon or Intel · FFmpeg and ffprobe (installation below).
 
