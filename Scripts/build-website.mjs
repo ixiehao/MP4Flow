@@ -15,7 +15,7 @@ export const languages = [
   { id: 'ja', locale: 'ja', name: '日本語', og: 'ja_JP' },
   { id: 'ko', locale: 'ko', name: '한국어', og: 'ko_KR' }
 ];
-export const localePath = id => id === 'zh' ? '' : `${id}/`;
+export const localePath = id => id === 'en' ? '' : `${id}/`;
 const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
 
 export async function readCatalogs() {
@@ -34,9 +34,9 @@ export async function readCatalogs() {
   return catalogs;
 }
 
-export function renderPage(template, language, copy, screenshots, assetVersions) {
+export function renderPage(template, language, copy, screenshots, assetVersions, pagePath = localePath(language.id)) {
   const url = siteURL + localePath(language.id);
-  const prefix = language.id === 'zh' ? './' : '../';
+  const prefix = pagePath ? '../' : './';
   const queue = screenshots.queue[language.id];
   const alternates = languages.map(l => `<link rel="alternate" hreflang="${l.locale}" href="${siteURL}${localePath(l.id)}" />`).join('\n    ');
   const schema = {
@@ -124,6 +124,10 @@ export async function buildSite(output = path.join(root, '_site')) {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, 'index.html'), renderPage(template, language, catalogs[language.id], screenshots, assetVersions));
   }
+  // Keep shared /en/ links working, with the root English page as canonical.
+  const english = languages.find(language => language.id === 'en');
+  await mkdir(path.join(output, 'en'), { recursive: true });
+  await writeFile(path.join(output, 'en/index.html'), renderPage(template, english, catalogs.en, screenshots, assetVersions, 'en/'));
   const alternates = [...languages.map(l => ({ locale: l.locale, url: siteURL + localePath(l.id) })), { locale: 'x-default', url: siteURL }];
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${languages.map(l => `  <url><loc>${siteURL}${localePath(l.id)}</loc>\n${alternates.map(a => `    <xhtml:link rel="alternate" hreflang="${a.locale}" href="${a.url}" />`).join('\n')}\n  </url>`).join('\n')}\n</urlset>\n`;
   await writeFile(path.join(output, 'sitemap.xml'), sitemap);

@@ -1,12 +1,13 @@
 // Every language is already rendered in HTML. JavaScript only enhances controls.
-const languages = ['en', 'zh', 'fr', 'ru', 'es', 'ja', 'ko'];
-const root = new URL(document.documentElement.dataset.root, window.location.href);
+const languageLinks = document.querySelectorAll('.language-picker a[data-language]');
 const requested = new URLSearchParams(window.location.search).get('lang');
 
 // Keep previously shared ?lang= links working without replacing explicit routes
 // with a language inferred from the browser or a stale saved preference.
-if (languages.includes(requested)) {
-  const target = new URL(requested === 'zh' ? './' : `${requested}/`, root);
+// Use the generated links as the single source of truth for locale routes.
+const requestedLink = [...languageLinks].find(link => link.dataset.language === requested);
+if (requestedLink) {
+  const target = new URL(requestedLink.href);
   target.search = window.location.search;
   target.searchParams.delete('lang');
   target.hash = window.location.hash;
@@ -15,7 +16,7 @@ if (languages.includes(requested)) {
 
 const picker = document.querySelector('.language-picker');
 const summary = picker.querySelector('summary');
-picker.querySelectorAll('a[data-language]').forEach(link => {
+languageLinks.forEach(link => {
   link.addEventListener('click', () => {
     const target = new URL(link.href);
     target.search = window.location.search;

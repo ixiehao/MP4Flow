@@ -6,7 +6,7 @@ import os from 'node:os';
 import { createHash } from 'node:crypto';
 import { buildSite, languages, localePath, readCatalogs, siteURL } from '../build-website.mjs';
 
-test('seven static pages are complete, crawlable and use matching real screenshots', async t => {
+test('seven canonical pages are complete, crawlable and use matching real screenshots', async t => {
   const output = await mkdtemp(path.join(os.tmpdir(), 'mp4flow-website-test-'));
   t.after(() => rm(output, { recursive: true, force: true }));
   await buildSite(output);
@@ -101,9 +101,29 @@ test('seven static pages are complete, crawlable and use matching real screensho
   assert.equal(shots.size, 7, 'each locale needs its own screenshot');
   assert.equal(titles.size, 7, 'localized search titles must be distinct');
   assert.equal(descriptions.size, 7, 'localized search descriptions must be distinct');
+  await t.test('English is the static default and the old English URL remains valid', async () => {
+    const english = await readFile(path.join(output, 'index.html'), 'utf8');
+    const chinese = await readFile(path.join(output, 'zh/index.html'), 'utf8');
+    const legacyEnglish = await readFile(path.join(output, 'en/index.html'), 'utf8');
+    assert.ok(english.includes('<html data-language="en" data-root="./" lang="en">'));
+    assert.ok(english.includes(`<title>${catalogs.en.pageTitle}</title>`));
+    assert.ok(english.includes('hreflang="zh-CN" href="https://ixiehao.github.io/MP4Flow/zh/"'));
+    assert.ok(chinese.includes('<html data-language="zh" data-root="../" lang="zh-CN">'));
+    assert.ok(chinese.includes('rel="canonical" href="https://ixiehao.github.io/MP4Flow/zh/"'));
+    assert.ok(legacyEnglish.includes('<html data-language="en" data-root="../" lang="en">'));
+    assert.ok(legacyEnglish.includes('rel="canonical" href="https://ixiehao.github.io/MP4Flow/"'));
+    assert.ok(legacyEnglish.includes('id="hero-app-screen" src="../assets/mp4flow-v150-queue-en.jpg"'));
+    assert.ok(legacyEnglish.includes('href="../zh/" lang="zh-CN"'));
+    const readme = await readFile(new URL('../../README.md', import.meta.url), 'utf8');
+    const chineseReadme = await readFile(new URL('../../README.zh-CN.md', import.meta.url), 'utf8');
+    assert.ok(readme.includes('[Website](https://ixiehao.github.io/MP4Flow/)'));
+    assert.ok(chineseReadme.includes('[官方网站](https://ixiehao.github.io/MP4Flow/zh/)'));
+  });
   const sitemap = await readFile(path.join(output, 'sitemap.xml'), 'utf8');
   assert.equal((sitemap.match(/<loc>/g) ?? []).length, 7);
   assert.equal((sitemap.match(/xhtml:link/g) ?? []).length, 56);
+  assert.doesNotMatch(sitemap, /https:\/\/ixiehao.github.io\/MP4Flow\/en\//);
+  assert.match(sitemap, /<loc>https:\/\/ixiehao.github.io\/MP4Flow\/zh\/<\/loc>/);
   await assert.rejects(stat(path.join(output, 'locales')));
   await assert.rejects(stat(path.join(output, 'Scripts')));
 });
