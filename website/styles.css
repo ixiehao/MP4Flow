@@ -23,8 +23,8 @@ main:focus { outline: none; }
 .wordmark { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); font-size: 1.4rem; font-weight: 800; letter-spacing: -.05em; white-space: nowrap; }
 .wordmark-icon { display: block; flex: none; width: 34px; height: 34px; }
 .wordmark-name span { color: var(--blue); }
-.primary-nav { display: flex; align-items: center; gap: 28px; margin-left: auto; }
-.primary-nav a { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; color: var(--muted); font-size: .88rem; font-weight: 600; }
+.primary-nav { display: flex; flex-wrap: wrap; min-width: 0; align-items: center; gap: 28px; margin-left: auto; }
+.primary-nav a { display: flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; color: var(--muted); font-size: .88rem; font-weight: 600; }
 .primary-nav a:hover, .footer-links a:hover { color: var(--blue); }
 .tabler-icon { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .language-picker { position: relative; flex: none; font-size: .84rem; font-weight: 600; }
@@ -153,7 +153,7 @@ footer .media-credit { flex: 0 0 100%; margin-top: 5px; color: #7b889c; font-siz
   .site-header, main, footer { width: min(650px, calc(100% - 40px)); }
   .site-header { flex-wrap: wrap; gap: 14px; padding: 18px 0 12px; }
   .primary-nav { order: 3; width: 100%; justify-content: space-between; margin: 0; gap: 14px; }
-  .primary-nav a { justify-content: center; flex: 1; }
+  .primary-nav a { justify-content: center; flex: 1 0 auto; }
   .language-picker { margin-left: auto; }
   .hero { grid-template-columns: minmax(0, 1fr); gap: 34px; min-height: 0; padding: 48px 0 64px; }
   .hero-copy { max-width: 560px; }
