@@ -1,0 +1,15 @@
+{
+  "name": "mp4flow-website-checks",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check:website": "node --check website/app.js && node --test Scripts/tests/website.test.mjs",
+    "test:website": "playwright test",
+    "test:website:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}
