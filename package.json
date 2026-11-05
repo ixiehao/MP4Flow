@@ -5,9 +5,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "check:website": "node --check website/app.js && node --test Scripts/tests/website.test.mjs",
+    "check:website": "node --check website/app.js && node --test Scripts/tests/website.test.mjs && node Scripts/build-website.mjs && python3 Scripts/search-content.py && python3 Scripts/search-content.py --self-test && python3 Scripts/search-content.py --check",
     "test:website": "playwright test",
-    "test:website:report": "playwright show-report"
+    "test:website:report": "playwright show-report",
+    "build:website": "node Scripts/build-website.mjs && python3 Scripts/search-content.py",
+    "notify:search": "python3 Scripts/search-content.py --notify"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1"
