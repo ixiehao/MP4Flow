@@ -6,7 +6,7 @@ export default {
   "prefix": "/MP4Flow/",
   "url": "https://ixiehao.github.io/MP4Flow/",
   "directory": "_site",
-  "build": "node Scripts/build-website.mjs",
+  "build": "npm run build:website",
   "breakpoints": [
     520,
     640,
