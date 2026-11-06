@@ -115,7 +115,7 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 740; 
 .faq-action .install-guide-trigger:hover { border-color: #a7c3f4; background: #e8f0ff; }
 .download-panel { margin-bottom: 66px; padding: 66px 28px; border: 1px solid #d8e4f8; border-radius: 24px; background: #eff5ff; text-align: center; }
 .download-panel h2 { margin-bottom: 20px; }
-.download-panel > p:not(.download-note) { max-width: 590px; margin: 0 auto; color: var(--muted); font-size: .98rem; line-height: 1.85; }
+.download-panel > p:not(.download-note):not(.chip-guide) { max-width: 590px; margin: 0 auto; color: var(--muted); font-size: .98rem; line-height: 1.85; }
 .download-panel .hero-actions { justify-content: center; }
 .download-panel > .chip-guide { margin: 18px auto 0; font-size: .8rem; }
 .download-note { margin: 22px 0 0; color: var(--muted); font-size: .74rem; line-height: 1.8; }
@@ -220,7 +220,7 @@ footer .media-credit { flex: 0 0 100%; margin-top: 5px; color: #7b889c; font-siz
   .faq-list details > p { padding: 0 16px 19px; font-size: .85rem; }
   .download-panel { margin-bottom: 42px; padding: 46px 22px; border-radius: 18px; }
   .download-panel .hero-actions { flex-direction: column; }
-  .download-panel > p:not(.download-note) { font-size: .9rem; }
+  .download-panel > p:not(.download-note):not(.chip-guide) { font-size: .9rem; }
   .footer-links { width: 100%; margin: 0; gap: 15px; }
   .install-dialog { width: calc(100% - 24px); padding: 22px; }
   .install-dialog h2 { font-size: 1.8rem; }
