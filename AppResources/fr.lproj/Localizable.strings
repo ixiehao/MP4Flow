@@ -461,7 +461,7 @@
 "请选择" = "Choisir une piste";
 "所选项目已不可用" = "Sélection indisponible";
 "应用设置" = "Appliquer";
-"已恢复 %d 个任务，点击开始继续。" = "%d éléments restaurés. Cliquez sur Démarrer.";
+"已恢复 %d 个任务，点击开始继续。" = "Éléments restaurés : %d. Cliquez sur Démarrer.";
 "正在恢复上次队列…" = "Restauration de la file…";
 "无法恢复上次队列，原记录已保留。" = "Restauration impossible. Le fichier d’origine est conservé.";
 "队列保存失败，请检查磁盘空间和权限。" = "Échec de l’enregistrement. Vérifiez l’espace disque et les droits.";

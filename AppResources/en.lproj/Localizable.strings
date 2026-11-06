@@ -460,7 +460,7 @@
 "请选择" = "Choose a track";
 "所选项目已不可用" = "Selection unavailable";
 "应用设置" = "Apply Settings";
-"已恢复 %d 个任务，点击开始继续。" = "Restored %d items. Click Start to continue.";
+"已恢复 %d 个任务，点击开始继续。" = "Restored tasks: %d. Click Start.";
 "正在恢复上次队列…" = "Restoring queue…";
 "无法恢复上次队列，原记录已保留。" = "Could not restore the queue. The original record is retained.";
 "队列保存失败，请检查磁盘空间和权限。" = "Could not save the queue. Check disk space and permissions.";
