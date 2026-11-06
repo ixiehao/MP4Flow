@@ -219,6 +219,76 @@ final class UpdateCheckerTests: XCTestCase {
     }
 
     @MainActor
+    func testClockRollbackDoesNotKeepAPIFallbackBlocked() async throws {
+        let current = Date(timeIntervalSince1970: 1_800_000_000)
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+            return (try Self.response(for: request, statusCode: 429, headers: ["Retry-After": "300"]), Data())
+        }
+        await expectResult(makeChecker(installed: "1.3.0", now: { current }), .failed)
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+            return (try Self.response(for: request, statusCode: 200), try Self.validRelease())
+        }
+        let afterClockCorrection = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(-86_400) })
+        guard case .available = await afterClockCorrection.checkForUpdate() else {
+            return XCTFail("Correcting a future system clock must not suppress API fallback for a day")
+        }
+        XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 2)
+    }
+
+    @MainActor
+    func testExcessiveRateLimitHeadersHaveAFiniteBackoffAcrossRelaunches() async throws {
+        let current = Date(timeIntervalSince1970: 1_800_000_000)
+        for headers in [["Retry-After": "1e100"], ["X-RateLimit-Reset": "1e100"]] {
+            defaults.removePersistentDomain(forName: defaultsSuiteName)
+            let requests = RequestLog()
+            StubURLProtocol.handler = { request in
+                requests.append(request)
+                if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+                return (try Self.response(for: request, statusCode: 429, headers: headers), Data())
+            }
+            await expectResult(makeChecker(installed: "1.3.0", now: { current }), .failed)
+            let before = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(UpdateAPIBackoff.maximumWait - 1) })
+            await expectResult(before, .failed)
+            XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 1)
+            StubURLProtocol.handler = { request in
+                requests.append(request)
+                if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+                return (try Self.response(for: request, statusCode: 200), try Self.validRelease())
+            }
+            let expired = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(UpdateAPIBackoff.maximumWait + 1) })
+            guard case .available = await expired.checkForUpdate() else {
+                return XCTFail("Malformed server cooldowns must not block future update notices indefinitely")
+            }
+            XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 2)
+        }
+    }
+
+    @MainActor
+    func testLegacyBackoffIsNormalizedOnlyOnce() async throws {
+        let current = Date(timeIntervalSince1970: 1_800_000_000)
+        defaults.set(current.addingTimeInterval(1e12), forKey: "com.ixiehao.MP4Flow.updates.apiRetryNotBefore")
+        let requests = RequestLog()
+        StubURLProtocol.handler = { request in
+            requests.append(request)
+            if request.url == ReleaseEndpoint.latest { return (try Self.response(for: request, statusCode: 405), Data()) }
+            return (try Self.response(for: request, statusCode: 200), try Self.validRelease())
+        }
+        await expectResult(makeChecker(installed: "1.3.0", now: { current }), .failed)
+        await expectResult(makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(60) }), .failed)
+        XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 0)
+        let expired = makeChecker(installed: "1.3.0", now: { current.addingTimeInterval(UpdateAPIBackoff.maximumWait + 1) })
+        guard case .available = await expired.checkForUpdate() else {
+            return XCTFail("Reading old state repeatedly must not keep extending its cooldown")
+        }
+        XCTAssertEqual(requests.values.filter { $0.url == ReleaseEndpoint.api }.count, 1)
+    }
+
+    @MainActor
     func testUntrustedRedirectAndInvalidAPIMetadataNeverReportUpToDate() async throws {
         for payload in [Data("invalid JSON".utf8), try Self.validRelease(url: "https://example.com/v1.3.1"),
                         try Self.validRelease(tag: "v1.3.2"), try Self.validRelease(prerelease: true)] {

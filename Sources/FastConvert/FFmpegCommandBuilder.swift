@@ -72,6 +72,14 @@ enum FFmpegCommandBuilder {
         } else if let resolutionFilter = resolution.filter(sourceHeight: rotatedSourceHeight, quality: quality, useVideoToolbox: hardwarePipeline, canSkipUnchangedSize: editedGeometry?.canSkipUnchangedSize == true) {
             filters.append(resolutionFilter)
         }
+        if preset != .remux, aspectRatio == nil, resolution == .original,
+           let editedGeometry,
+           !editedGeometry.width.isMultiple(of: 2) || !editedGeometry.height.isMultiple(of: 2) {
+            // H.264/HEVC 4:2:0 encoders need even dimensions. Keep every source
+            // pixel and its shape; add at most one border pixel instead of
+            // cropping content or resampling an otherwise original-size edit.
+            filters.append("pad=ceil(iw/2)*2:ceil(ih/2)*2")
+        }
         if let adjustmentFilter = imageAdjustment.ffmpegFilter {
             filters.append(info.imageAdjustmentColorNormalization)
             filters.append(adjustmentFilter)
@@ -97,9 +105,14 @@ enum FFmpegCommandBuilder {
                 ? hardware(codec: "h264_videotoolbox", videoRate: videoRate, keepsVideoToolboxFrames: hardwarePipeline)
                 : softwareBitrate(videoRate: videoRate)
         case .hevcHardware:
-            args += preferHardwareEncoder
-                ? hardware(codec: "hevc_videotoolbox", videoRate: videoRate, keepsVideoToolboxFrames: hardwarePipeline) + ["-tag:v", "hvc1"]
-                : softwareBitrate(videoRate: videoRate)
+            if preferHardwareEncoder {
+                args += hardware(codec: "hevc_videotoolbox", videoRate: videoRate, keepsVideoToolboxFrames: hardwarePipeline)
+            } else if let targetPlan {
+                args += ["-c:v", "libx265", "-preset", quality.targetCompressionPreset, "-b:v", rate(targetPlan.videoRate), "-pix_fmt", "yuv420p"]
+            } else {
+                args += softwareBitrate(videoRate: videoRate, codec: "libx265")
+            }
+            args += ["-tag:v", "hvc1"]
         case .h264Software:
             if let targetPlan {
                 // ABR allocates this approximate budget across the complete
@@ -109,7 +122,9 @@ enum FFmpegCommandBuilder {
             } else {
                 args += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "\(quality.crf)", "-pix_fmt", "yuv420p"]
             }
-        case .remux: args += ["-c:v", "copy"]
+        case .remux:
+            args += ["-c:v", "copy"]
+            if info.videoCodec?.lowercased() == "hevc" { args += ["-tag:v", "hvc1"] }
         }
         if !imageAdjustment.isIdentity, preset != .remux {
             // Match the chosen working transfer in both encoder and container;
@@ -126,6 +141,10 @@ enum FFmpegCommandBuilder {
     static func canUseVideoToolboxPipeline(info: VideoInfo, preset: ConversionPreset, crop: CropRect?, imageAdjustment: ImageAdjustment) -> Bool {
         usesVideoToolboxEncoder(preset)
             && crop == nil && imageAdjustment.isIdentity
+            // Padding is a CPU filter. Avoid an incompatible hardware-frame
+            // graph (and a wasted full attempt) for odd-sized encoded input.
+            && info.width.map({ $0.isMultiple(of: 2) }) != false
+            && info.height.map({ $0.isMultiple(of: 2) }) != false
             && (info.displayRotation == nil || info.displayGeometry != nil)
             && ["h264", "hevc"].contains(info.videoCodec?.lowercased() ?? "")
     }
@@ -135,8 +154,8 @@ enum FFmpegCommandBuilder {
         if !keepsVideoToolboxFrames { args += ["-pix_fmt", "yuv420p"] }
         return args
     }
-    private static func softwareBitrate(videoRate: Int) -> [String] {
-        ["-c:v", "libx264", "-preset", "veryfast", "-b:v", rate(videoRate), "-maxrate", rate(Int(Double(videoRate) * 1.25)), "-bufsize", rate(videoRate * 2), "-pix_fmt", "yuv420p"]
+    private static func softwareBitrate(videoRate: Int, codec: String = "libx264") -> [String] {
+        ["-c:v", codec, "-preset", "veryfast", "-b:v", rate(videoRate), "-maxrate", rate(Int(Double(videoRate) * 1.25)), "-bufsize", rate(videoRate * 2), "-pix_fmt", "yuv420p"]
     }
     private static func rate(_ bits: Int) -> String { "\(max(64, bits / 1_000))k" }
 }

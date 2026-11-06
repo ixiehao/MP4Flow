@@ -95,8 +95,8 @@ final class RealtimeProgressTests: XCTestCase {
         let started = ProcessInfo.processInfo.systemUptime
         store.start()
         var firstLiveProgress: TimeInterval?
-        let deadline = Date().addingTimeInterval(15)
-        while store.isRunning && Date() < deadline {
+        let deadline = TestDeadline(seconds: 15)
+        while store.isRunning && deadline.hasTimeRemaining {
             if case .running(let progress) = store.items[0].state,
                let progress, progress > 0, progress < 0.999,
                store.items[0].phase == .hardwareTranscoding || store.items[0].phase == .softwareTranscoding {

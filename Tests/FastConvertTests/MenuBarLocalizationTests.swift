@@ -336,13 +336,27 @@ final class MenuBarLocalizationTests: XCTestCase {
 }
 
 @MainActor
+private final class MenuPropertyWriteCounter {
+    var value = 0
+    nonisolated init() {}
+}
+
+@MainActor
 private final class TitleCountingMenuItem: NSMenuItem {
-    var titleWriteCount = 0
+    private nonisolated let writes = MenuPropertyWriteCounter()
+    var titleWriteCount: Int {
+        get { writes.value }
+        set { writes.value = newValue }
+    }
 
     override var title: String {
         get { super.title }
         set {
-            titleWriteCount += 1
+            // Objective-C's title override lacks an actor annotation. These
+            // native-menu fixtures are exclusively driven by @MainActor tests;
+            // assert that real UI boundary rather than weakening the counter.
+            let counter = writes
+            MainActor.assumeIsolated { counter.value += 1 }
             super.title = newValue
         }
     }
@@ -350,12 +364,17 @@ private final class TitleCountingMenuItem: NSMenuItem {
 
 @MainActor
 private final class FixedAccessibilityTitleMenuItem: NSMenuItem {
-    var accessibilityTitleWriteCount = 0
+    private nonisolated let writes = MenuPropertyWriteCounter()
+    var accessibilityTitleWriteCount: Int {
+        get { writes.value }
+        set { writes.value = newValue }
+    }
 
     override func accessibilityTitle() -> String? { "Original AX title" }
 
     override func setAccessibilityTitle(_ title: String?) {
-        accessibilityTitleWriteCount += 1
+        let counter = writes
+        MainActor.assumeIsolated { counter.value += 1 }
         super.setAccessibilityTitle(title)
     }
 }

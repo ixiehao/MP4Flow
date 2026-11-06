@@ -20,8 +20,8 @@ final class MergeGeometryTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: directory) }
         let first = directory.appendingPathComponent("anamorphic.mp4")
         let second = directory.appendingPathComponent("square.mp4")
-        try await makeVideo(first, sar: "4/3", ffmpeg: tools.ffmpeg)
-        try await makeVideo(second, sar: "1", ffmpeg: tools.ffmpeg)
+        try await Self.makeVideo(first, sar: "4/3", ffmpeg: tools.ffmpeg)
+        try await Self.makeVideo(second, sar: "1", ffmpeg: tools.ffmpeg)
         let displayedFirst: URL
         if rotateFirst {
             displayedFirst = directory.appendingPathComponent("rotated-anamorphic.mp4")
@@ -83,7 +83,7 @@ final class MergeGeometryTests: XCTestCase {
         let first = directory.appendingPathComponent("baseline.mp4")
         let clock = directory.appendingPathComponent("different-clock.mp4")
         let rotated = directory.appendingPathComponent("rotated.mp4")
-        try await makeVideo(first, sar: "1", ffmpeg: tools.ffmpeg)
+        try await Self.makeVideo(first, sar: "1", ffmpeg: tools.ffmpeg)
         let retimed = await FFmpegProcessRunner(executable: tools.ffmpeg, arguments: [
             "-v", "error", "-nostdin", "-i", first.path, "-c", "copy", "-video_track_timescale", "90000", "-y", clock.path
         ]).run()
@@ -118,7 +118,7 @@ final class MergeGeometryTests: XCTestCase {
         return directory
     }
 
-    private func makeVideo(_ output: URL, sar: String, ffmpeg: URL) async throws {
+    private static func makeVideo(_ output: URL, sar: String, ffmpeg: URL) async throws {
         let encoders = await FFmpegProcessRunner(executable: ffmpeg, arguments: ["-hide_banner", "-encoders"]).run()
         guard encoders.succeeded, String(decoding: encoders.standardOutput, as: UTF8.self).contains(" libx264 ") else { throw XCTSkip("libx264 is required") }
         let result = await FFmpegProcessRunner(executable: ffmpeg, arguments: [
@@ -131,8 +131,8 @@ final class MergeGeometryTests: XCTestCase {
 
     @MainActor
     private func waitForMerge(_ store: ConverterStore) async throws {
-        let deadline = Date().addingTimeInterval(20)
-        while store.isMerging && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        let deadline = TestDeadline(seconds: 20)
+        while store.isMerging && deadline.hasTimeRemaining { try await Task.sleep(nanoseconds: 20_000_000) }
         if store.isMerging { store.cancel(); XCTFail("Merge did not finish within the test deadline") }
     }
 }

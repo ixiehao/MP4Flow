@@ -8,16 +8,31 @@ import VideoToolbox
 /// the selected FFmpeg installation, not an unrelated later search directory.
 /// Existing, unusable candidates are retained only for failure diagnostics.
 enum DependencyToolResolver {
-    // An optional Homebrew full installation is keg-only. No force-linking
-    // or replacement of the user's normal installation is necessary.
-    static let defaultDirectories = [
-        "/opt/homebrew/opt/ffmpeg-full/bin", "/usr/local/opt/ffmpeg-full/bin",
-        "/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/usr/bin"
-    ].map { URL(fileURLWithPath: $0, isDirectory: true) }
+    // Prefer the Homebrew prefix native to this executable, including Intel
+    // builds running under Rosetta. Do not infer encoder capabilities from the
+    // prefix or CPU: health checks still open real VideoToolbox sessions.
+    // ffmpeg-full is keg-only; no force-linking or user installation changes.
+    static let defaultDirectories: [URL] = {
+#if arch(arm64)
+        let prefixes = ["/opt/homebrew", "/usr/local"]
+#else
+        let prefixes = ["/usr/local", "/opt/homebrew"]
+#endif
+        return (prefixes.flatMap { ["\($0)/opt/ffmpeg-full/bin", "\($0)/bin"] }
+            + ["/opt/local/bin", "/usr/bin"]).map { URL(fileURLWithPath: $0, isDirectory: true) }
+    }()
 
     static func resolve(in directories: [URL] = defaultDirectories) -> (ffmpeg: URL?, ffprobe: URL?) {
         let candidates = directories.map { $0.appendingPathComponent("ffmpeg") }
-        let ffmpeg = candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
+        // A partially removed ffmpeg-full installation must not hide a complete
+        // installation later in the search. Select the pair together, never
+        // borrow ffprobe from a different distribution. If no pair works, keep
+        // the original candidate and its own sibling for accurate diagnostics.
+        let complete = candidates.first {
+            FileManager.default.isExecutableFile(atPath: $0.path)
+                && FileManager.default.isExecutableFile(atPath: $0.deletingLastPathComponent().appendingPathComponent("ffprobe").path)
+        }
+        let ffmpeg = complete ?? candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
             ?? candidates.first { FileManager.default.fileExists(atPath: $0.path) }
         let sibling = ffmpeg?.deletingLastPathComponent().appendingPathComponent("ffprobe")
         let ffprobe = sibling.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }

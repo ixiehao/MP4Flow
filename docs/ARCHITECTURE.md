@@ -15,13 +15,15 @@ MP4Flow is a small native SwiftUI application without a server.
 - `FFmpegProcessRunner.swift` owns each FFmpeg/ffprobe process, pipe drains, cancellation and progress-stall watchdog.
 - `SmartEnhanceExporter.swift` owns the optional macOS 27 VideoToolbox enhancement pipeline and its reader/writer lifecycle.
 - `DependencyHealth.swift` checks local tools, hardware encoding, and output locations. Tool results are reused during ordinary queue edits; manual refresh performs a fresh tool check.
+- `EditorMediaProbe.swift` reuses the shared media inspector and executable resolver with an editor-owned short deadline; it rejects unrepresentable timeline data and uses measured VFR cadence.
+- `OutputFileNaming.swift` applies one Unicode-aware filename budget and collision rule to conversion and merge, preserving edit suffixes and whole characters.
 - `AppLanguage.swift` resolves the selected language and exposes `L10n` for dynamic strings that SwiftUI cannot localize automatically.
 - `AppResources/*.lproj/Localizable.strings` holds seven App languages, with English as the fallback. CI checks matching keys and format arguments across all catalogs; see [Localization](LOCALIZATION.md).
 - `MenuBarLocalization.swift` refreshes native menu titles through public roles and actions, preserving targets, shortcuts and validation. Language selection lives in the menu bar.
 - `AspectCorrection.swift` stores validated rational display ratios and bounded square-pixel output dimensions. `AspectPreview.swift` reshapes the existing player live, applying the same crop → rotation → final display-ratio order as export; no preview transcodes or per-keystroke probing are required.
 - `CropGeometry.swift` normalizes crop coordinates and presets within even-pixel source bounds; zero is a valid origin.
 - `ImageAdjustment.swift` owns bounded brightness/shadow settings, matching Core Image preview and FFmpeg export curves, and SDR color normalization. `PreviewCanvas.swift` provides a transparent AVPlayerLayer surface and the shared light editor canvas.
-- `Scripts/build-app.sh` produces an app bundle; `Scripts/package-dmg.sh` creates an installer from an isolated temporary build.
+- `Scripts/build-app.sh` builds one native architecture with its own cache; `Scripts/package-dmg.sh` publishes separate Apple Silicon and Intel groups after verification. `build_contract.py` and `verify_native_binary.py` share destination, deployment, resource, symbol and publication contracts.
 
 The converter uses FFmpeg and ffprobe from the local computer. For supported H.264 and HEVC input without cropping, VideoToolbox keeps decode, scaling, rotation, and encoding in hardware memory. Rotation uses FFmpeg's `transpose_vt` filter when available and falls back to its software filter if a local FFmpeg build cannot run the hardware path. Queue work is serial by design: it avoids competing for CPU, disk I/O, and VideoToolbox resources during long batch operations.
 
@@ -59,7 +61,7 @@ release HTML. If the link check fails, a bounded GET to the public REST endpoint
 is used instead. Each request has a five-second timeout; there is no retry loop.
 
 API 403/429 responses store a retry deadline from Retry-After / X-RateLimit-Reset
-(with at least a minute of backoff), including across relaunches. Link checks
+(with at least a minute of backoff), including across relaunches. `UpdateAPIBackoff.swift` bounds stored waits to 24 hours, normalizes legacy records once, and clears cooldowns after a backwards clock correction. Link checks
 remain available during API cooldown. Offline or invalid responses are failures,
 never proof that the app is up to date; an already-found update stays visible.
 A dismissed version stays dismissed, while a later version can notify normally.

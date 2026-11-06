@@ -191,9 +191,9 @@ final class ConverterStoreTests: XCTestCase {
         store.items = history + survivors
         store.start()
         defer { store.cancel() }
-        let deadline = Date().addingTimeInterval(5)
+        let deadline = TestDeadline(seconds: 5)
         while !store.items.contains(where: { if case .running = $0.state { return true }; return false }),
-              store.isRunning, Date() < deadline {
+              store.isRunning, deadline.hasTimeRemaining {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
         XCTAssertTrue(store.isRunning)
@@ -260,9 +260,9 @@ final class ConverterStoreTests: XCTestCase {
         store.items = history + pending
         store.start()
         defer { store.cancel() }
-        let deadline = Date().addingTimeInterval(5)
+        let deadline = TestDeadline(seconds: 5)
         while !store.items.contains(where: { if case .running = $0.state { return true }; return false }),
-              store.isRunning, Date() < deadline {
+              store.isRunning, deadline.hasTimeRemaining {
             try await Task.sleep(nanoseconds: 10_000_000)
         }
         XCTAssertTrue(store.items.contains { if case .running = $0.state { return true }; return false })
@@ -647,8 +647,8 @@ final class ConverterStoreTests: XCTestCase {
 
     @MainActor
     private func waitForQueue(_ store: ConverterStore, timeout: TimeInterval = 20) async throws {
-        let deadline = Date().addingTimeInterval(timeout)
-        while store.isRunning && Date() < deadline {
+        let deadline = TestDeadline(seconds: timeout)
+        while store.isRunning && deadline.hasTimeRemaining {
             try await Task.sleep(nanoseconds: 50_000_000)
         }
         if store.isRunning {

@@ -179,7 +179,7 @@ final class ImageAdjustmentTests: XCTestCase {
         let audio = try capture(tools.ffmpeg, ["-v", "error", "-i", source.path, "-map", "0:a:0", "-c", "copy", "-f", "hash", "-"])
         let input = try pixels(source, ffmpeg: tools.ffmpeg)
         for preset in [ConversionPreset.smartMP4, .remux, .h264Software, .h264Hardware, .hevcHardware] {
-            let store = ConverterStore()
+            let store = ConverterStore(ffmpegOverride: tools.ffmpeg)
             store.preset = preset; store.outputDirectory = directory
             store.items = [ConversionItem(source: source)]
             let setting = ImageAdjustment(brightness: 12, shadows: 60, denoise: true)
@@ -196,7 +196,7 @@ final class ImageAdjustmentTests: XCTestCase {
             XCTAssertTrue(output.lastPathComponent.contains("adjusted"))
         }
         // Neutral edits do not force an otherwise compatible video to encode.
-        let neutral = ConverterStore(); neutral.outputDirectory = directory
+        let neutral = ConverterStore(ffmpegOverride: tools.ffmpeg); neutral.outputDirectory = directory
         neutral.items = [ConversionItem(source: source)]
         neutral.start(); try await wait(neutral)
         guard case .complete(let output) = neutral.items[0].state else { return XCTFail("Neutral conversion failed") }
@@ -209,7 +209,7 @@ final class ImageAdjustmentTests: XCTestCase {
         let tools = try tools(), directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let source = try fixture(in: directory, ffmpeg: tools.ffmpeg)
-        let store = ConverterStore(); store.preset = .h264Software; store.outputDirectory = directory
+        let store = ConverterStore(ffmpegOverride: tools.ffmpeg); store.preset = .h264Software; store.outputDirectory = directory
         store.items = [ConversionItem(source: source)]
         store.scheduleTrim(store.items[0], start: 0.2, end: 1.2)
         store.scheduleRotation(store.items[0], rotation: .clockwise)
@@ -256,7 +256,7 @@ final class ImageAdjustmentTests: XCTestCase {
         XCTAssertEqual(inspected.colorTransfer, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : (name == "srgb" ? "iec61966-2-1" : "bt709")), name)
         XCTAssertEqual(inspected.colorPrimaries, name == "untagged" ? nil : (name == "sd601" ? "smpte170m" : "bt709"), name)
         let setting = ImageAdjustment(brightness: 12, shadows: 60, denoise: true)
-        let store = ConverterStore(); store.preset = .h264Software; store.outputDirectory = directory
+        let store = ConverterStore(ffmpegOverride: tools.ffmpeg); store.preset = .h264Software; store.outputDirectory = directory
         store.items = [ConversionItem(source: candidate)]
         store.scheduleFrameEdits(store.items[0], crop: nil, aspectRatio: nil, imageAdjustment: setting)
         store.start(); try await wait(store)
@@ -303,7 +303,7 @@ final class ImageAdjustmentTests: XCTestCase {
         _ = try capture(tools.ffmpeg, ["-v","error","-i",source.path,"-c:v","libx264","-pix_fmt","yuv420p","-vf","setparams=color_primaries=bt2020:color_trc=smpte2084:colorspace=bt2020nc","-x264-params","colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc","-c:a","copy",hdr.path])
         let inspected = await EditorMediaProbe.inspect(source: hdr)
         XCTAssertTrue(try XCTUnwrap(inspected).isHDR)
-        let store = ConverterStore(); store.outputDirectory = directory; store.items = [ConversionItem(source: hdr)]
+        let store = ConverterStore(ffmpegOverride: tools.ffmpeg); store.outputDirectory = directory; store.items = [ConversionItem(source: hdr)]
         store.scheduleFrameEdits(store.items[0], crop: nil, aspectRatio: nil, imageAdjustment: ImageAdjustment(shadows: 30))
         store.start(); try await wait(store)
         guard case .failed = store.items[0].state else { return XCTFail("HDR should fail rather than silently lose color") }
@@ -312,8 +312,8 @@ final class ImageAdjustmentTests: XCTestCase {
     }
 
     @MainActor private func wait(_ store: ConverterStore) async throws {
-        let deadline = Date().addingTimeInterval(30)
-        while store.isBusy && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        let deadline = TestDeadline(seconds: 30)
+        while store.isBusy && deadline.hasTimeRemaining { try await Task.sleep(nanoseconds: 20_000_000) }
         XCTAssertFalse(store.isBusy)
         if store.isBusy { store.cancel(); throw NSError(domain: "ImageAdjustmentTimeout", code: 1) }
     }
@@ -326,11 +326,17 @@ final class ImageAdjustmentTests: XCTestCase {
         try capture(ffmpeg, ["-v","error","-i",url.path,"-frames:v","1","-pix_fmt","rgb24","-f","rawvideo","-"])
     }
     private func tools() throws -> (ffmpeg: URL, ffprobe: URL) {
-        for root in ["/opt/homebrew/bin", "/usr/local/bin"] {
-            let ffmpeg = URL(fileURLWithPath: root + "/ffmpeg"), ffprobe = URL(fileURLWithPath: root + "/ffprobe")
-            if FileManager.default.isExecutableFile(atPath: ffmpeg.path) && FileManager.default.isExecutableFile(atPath: ffprobe.path) { return (ffmpeg, ffprobe) }
+        let override = ProcessInfo.processInfo.environment["MP4FLOW_TEST_FFMPEG"].map { URL(fileURLWithPath: $0) }
+        guard let ffmpeg = override ?? DependencyToolResolver.resolve().ffmpeg else {
+            throw XCTSkip("FFmpeg and ffprobe are required")
         }
-        throw XCTSkip("FFmpeg and ffprobe are required")
+        let ffprobe = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        guard FileManager.default.isExecutableFile(atPath: ffmpeg.path),
+              FileManager.default.isExecutableFile(atPath: ffprobe.path) else {
+            if override != nil { XCTFail("MP4FLOW_TEST_FFMPEG must name a complete executable FFmpeg/ffprobe pair") }
+            throw XCTSkip("FFmpeg and ffprobe are required")
+        }
+        return (ffmpeg, ffprobe)
     }
     private func temporaryDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("MP4Flow-Image-" + UUID().uuidString)

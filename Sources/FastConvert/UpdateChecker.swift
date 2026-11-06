@@ -117,12 +117,12 @@ final class UpdateChecker: ObservableObject {
     private let session: URLSession
     private let currentVersion: ReleaseVersion
     private let defaults: UserDefaults
+    private let apiBackoff: UpdateAPIBackoff
     private let pause: @Sendable (TimeInterval) async throws -> Void
     private let now: @Sendable () -> Date
     private var hasScheduledStartupCheck = false
 
     private let redirectBlocker = ReleaseRedirectBlocker()
-    private static let apiRetryTimeKey = "com.ixiehao.MP4Flow.updates.apiRetryNotBefore"
     private static let dismissedUpdateVersionKey = "com.ixiehao.MP4Flow.updates.dismissedVersion"
 
     init(
@@ -137,6 +137,7 @@ final class UpdateChecker: ObservableObject {
         self.currentVersion = currentVersion ?? Self.installedVersion
         self.session = session
         self.defaults = defaults
+        self.apiBackoff = UpdateAPIBackoff(defaults: defaults)
         self.pause = pause
         self.now = now
     }
@@ -191,7 +192,7 @@ final class UpdateChecker: ObservableObject {
             if Task.isCancelled { return failedCheck() }
         }
 
-        if let retryTime = defaults.object(forKey: Self.apiRetryTimeKey) as? Date, now() < retryTime {
+        if apiBackoff.isActive(at: now()) {
             return failedCheck()
         }
         do {
@@ -200,13 +201,13 @@ final class UpdateChecker: ObservableObject {
             let (data, response) = try await session.data(for: request, delegate: redirectBlocker)
             guard let response = response as? HTTPURLResponse else { return failedCheck() }
             if response.statusCode == 403 || response.statusCode == 429 {
-                deferAPI(after: response)
+                apiBackoff.record(response, at: now())
                 return failedCheck()
             }
             guard response.statusCode == 200 else { return failedCheck() }
             let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
             guard let version = release.stableVersion else { return failedCheck() }
-            defaults.removeObject(forKey: Self.apiRetryTimeKey)
+            apiBackoff.clear()
             return accept(version: version, page: release.htmlURL)
         } catch {
             return failedCheck()
@@ -237,27 +238,6 @@ final class UpdateChecker: ObservableObject {
         // A failed request must not hide an update already found this session.
         lastCheckFailed = true
         return .failed
-    }
-
-    private func deferAPI(after response: HTTPURLResponse) {
-        let current = now()
-        var retryTime = current.addingTimeInterval(60)
-        if let raw = response.value(forHTTPHeaderField: "X-RateLimit-Reset"),
-           let timestamp = TimeInterval(raw), timestamp.isFinite {
-            retryTime = max(retryTime, Date(timeIntervalSince1970: timestamp))
-        }
-        if let raw = response.value(forHTTPHeaderField: "Retry-After") {
-            if let seconds = TimeInterval(raw), seconds.isFinite, seconds >= 0 {
-                retryTime = max(retryTime, current.addingTimeInterval(seconds))
-            } else {
-                let formatter = DateFormatter()
-                formatter.locale = Locale(identifier: "en_US_POSIX")
-                formatter.timeZone = TimeZone(secondsFromGMT: 0)
-                formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss z"
-                if let date = formatter.date(from: raw) { retryTime = max(retryTime, date) }
-            }
-        }
-        defaults.set(retryTime, forKey: Self.apiRetryTimeKey)
     }
 
     func openDownloadPage() {

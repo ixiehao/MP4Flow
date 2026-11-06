@@ -68,14 +68,14 @@ final class VideoStreamSelectionTests: XCTestCase {
         let tools = try tools()
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let media = try await makeMedia(in: directory, tools: tools)
+        let media = try await Self.makeMedia(in: directory, tools: tools)
         let info = await MediaInspector.inspect(at: media.covered, using: tools.probe)
         XCTAssertEqual(info.videoTrackCount, 1)
         XCTAssertEqual(info.selectedVideoStreamIndex, 1, "The fixture deliberately stores audio before the movie")
         XCTAssertEqual(info.width, 320)
         XCTAssertEqual(info.height, 240)
         XCTAssertNil(ConverterStore.mediaHandlingNotice(for: info, preset: .remux))
-        let sourceHash = try await capture(tools.ffmpeg, ["-v", "error", "-i", media.covered.path, "-map", "0:V:0", "-c:v", "copy", "-f", "hash", "-"])
+        let sourceHash = try await Self.capture(tools.ffmpeg, ["-v", "error", "-i", media.covered.path, "-map", "0:V:0", "-c:v", "copy", "-f", "hash", "-"])
 
         for preset in [ConversionPreset.remux, .h264Software, .h264Hardware] {
             let store = ConverterStore()
@@ -89,12 +89,12 @@ final class VideoStreamSelectionTests: XCTestCase {
             guard case .complete(let output) = store.items[0].state else {
                 return XCTFail("Covered input must convert: \(store.items[0].state)")
             }
-            try await assertMovie(output, frames: 24, duration: 2, tools: tools)
+            try await Self.assertMovie(output, frames: 24, duration: 2, tools: tools)
             let outputInfo = await MediaInspector.inspect(at: output, using: tools.probe)
             XCTAssertEqual(outputInfo.width, preset == .remux ? 320 : 240)
             XCTAssertEqual(outputInfo.height, preset == .remux ? 240 : 320)
             if preset == .remux {
-                let hash = try await capture(tools.ffmpeg, ["-v", "error", "-i", output.path, "-map", "0:V:0", "-c:v", "copy", "-f", "hash", "-"])
+                let hash = try await Self.capture(tools.ffmpeg, ["-v", "error", "-i", output.path, "-map", "0:V:0", "-c:v", "copy", "-f", "hash", "-"])
                 XCTAssertEqual(hash, sourceHash, "Stream copy must preserve the movie bytes, not the JPEG cover")
             }
         }
@@ -105,7 +105,7 @@ final class VideoStreamSelectionTests: XCTestCase {
         lossless.mergeWaitingItems()
         try await wait(lossless)
         let merged = try XCTUnwrap(lossless.mergeOutput, lossless.mergeNotice)
-        try await assertMovie(merged, frames: 48, duration: 4, tools: tools)
+        try await Self.assertMovie(merged, frames: 48, duration: 4, tools: tools)
 
         let compatible = ConverterStore()
         compatible.outputDirectory = directory
@@ -117,7 +117,7 @@ final class VideoStreamSelectionTests: XCTestCase {
         compatible.startCompatibleMerge()
         try await wait(compatible)
         let normalized = try XCTUnwrap(compatible.mergeOutput, compatible.mergeNotice)
-        try await assertMovie(normalized, frames: 48, duration: 4, tools: tools)
+        try await Self.assertMovie(normalized, frames: 48, duration: 4, tools: tools)
     }
 
     @MainActor
@@ -125,9 +125,9 @@ final class VideoStreamSelectionTests: XCTestCase {
         let tools = try tools()
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let media = try await makeMedia(in: directory, tools: tools)
+        let media = try await Self.makeMedia(in: directory, tools: tools)
         let coverOnly = directory.appendingPathComponent("audio-and-cover.mp4")
-        _ = try await capture(tools.ffmpeg, ["-v", "error", "-i", media.covered.path, "-map", "0:a:0", "-map", "0:v:1", "-c", "copy", "-disposition:v:0", "attached_pic", coverOnly.path])
+        _ = try await Self.capture(tools.ffmpeg, ["-v", "error", "-i", media.covered.path, "-map", "0:a:0", "-map", "0:v:1", "-c", "copy", "-disposition:v:0", "attached_pic", coverOnly.path])
 
         let input = ConverterStore()
         input.outputDirectory = directory
@@ -154,7 +154,7 @@ final class VideoStreamSelectionTests: XCTestCase {
             || $0.lastPathComponent.hasPrefix("audio-and-cover-MP4FlowConverted") })
     }
 
-    private struct Tools { let ffmpeg: URL; let probe: URL }
+    private struct Tools: Sendable { let ffmpeg: URL; let probe: URL }
 
     private func tools() throws -> Tools {
         for directory in ["/opt/homebrew/bin", "/usr/local/bin"] {
@@ -173,28 +173,28 @@ final class VideoStreamSelectionTests: XCTestCase {
         return directory
     }
 
-    private func makeMedia(in directory: URL, tools: Tools) async throws -> (plain: URL, covered: URL) {
+    private static func makeMedia(in directory: URL, tools: Tools) async throws -> (plain: URL, covered: URL) {
         let plain = directory.appendingPathComponent("plain.mp4"), covered = directory.appendingPathComponent("covered.mp4")
         let cover = directory.appendingPathComponent("cover.jpg")
-        _ = try await capture(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=12:duration=2", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-map", "1:a", "-map", "0:v", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", plain.path])
-        _ = try await capture(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=red:size=640x480", "-frames:v", "1", cover.path])
-        _ = try await capture(tools.ffmpeg, ["-v", "error", "-i", plain.path, "-i", cover.path, "-map", "0", "-map", "1:v", "-c", "copy", "-disposition:v:1", "attached_pic", covered.path])
+        _ = try await Self.capture(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=12:duration=2", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-map", "1:a", "-map", "0:v", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", plain.path])
+        _ = try await Self.capture(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "color=red:size=640x480", "-frames:v", "1", cover.path])
+        _ = try await Self.capture(tools.ffmpeg, ["-v", "error", "-i", plain.path, "-i", cover.path, "-map", "0", "-map", "1:v", "-c", "copy", "-disposition:v:1", "attached_pic", covered.path])
         return (plain, covered)
     }
 
-    private func assertMovie(_ source: URL, frames: Int, duration: Double, tools: Tools) async throws {
+    private static func assertMovie(_ source: URL, frames: Int, duration: Double, tools: Tools) async throws {
         let info = await MediaInspector.inspect(at: source, using: tools.probe)
         XCTAssertTrue(info.hasVideo)
         XCTAssertEqual(info.videoTrackCount, 1)
         XCTAssertEqual(info.duration ?? 0, duration, accuracy: 0.15)
-        let hashes = try await capture(tools.ffmpeg, ["-v", "error", "-xerror", "-i", source.path, "-map", "0:V:0", "-fps_mode", "passthrough", "-f", "framemd5", "-"])
+        let hashes = try await Self.capture(tools.ffmpeg, ["-v", "error", "-xerror", "-i", source.path, "-map", "0:V:0", "-fps_mode", "passthrough", "-f", "framemd5", "-"])
         let rows = hashes.split(separator: "\n").filter { !$0.hasPrefix("#") }
         XCTAssertEqual(rows.count, frames)
         let distinctFrames = Set(rows.compactMap { $0.split(separator: ",").last?.trimmingCharacters(in: .whitespaces) })
         XCTAssertGreaterThan(distinctFrames.count, 2, "The result must contain changing movie frames, not a repeated cover")
     }
 
-    private func capture(_ binary: URL, _ arguments: [String]) async throws -> String {
+    private static func capture(_ binary: URL, _ arguments: [String]) async throws -> String {
         let result = await FFmpegProcessRunner(executable: binary, arguments: arguments).run()
         guard result.succeeded else {
             throw NSError(domain: "VideoStreamSelectionTests", code: 1, userInfo: [NSLocalizedDescriptionKey: result.standardError])

@@ -2402,102 +2402,23 @@ private struct CropAspectButtonStyle: ButtonStyle {
     }
 }
 
-struct EditorMediaInfo: Sendable {
-    let duration: Double
-    let width: Int
-    let height: Int
-    let frameRate: Double
-    var pixelRatio: Double = 1
-    var isHDR: Bool = false
-    var colorTransfer: String? = nil
-
-    var frameDuration: Double { 1 / frameRate }
-}
-
-/// Editors must never wait on AVFoundation's lazy duration loading.  FFprobe is
-/// already the conversion engine's source of truth and returns the dimensions
-/// and duration in one bounded process call.
-enum EditorMediaProbe {
-    private struct Response: Decodable {
-        let streams: [Stream]
-        let format: Format?
-    }
-    private struct Stream: Decodable {
-        let codecType: String?
-        let disposition: MediaStreamDisposition?
-        let width: Int?
-        let height: Int?
-        let frameRate: String?
-        let sampleAspectRatio: String?
-        let colorTransfer: String?
-        let sideDataList: [RotationData]?
-        let tags: [String: String]?
-        enum CodingKeys: String, CodingKey {
-            case disposition
-            case codecType = "codec_type"
-            case width, height
-            case frameRate = "r_frame_rate"
-            case colorTransfer = "color_transfer"
-            case sampleAspectRatio = "sample_aspect_ratio", sideDataList = "side_data_list", tags
-        }
-    }
-    private struct RotationData: Decodable { let rotation: Double? }
-    private struct Format: Decodable {
-        let duration: String?
-    }
-
-    static func inspect(source: URL, using probeOverride: URL? = nil) async -> EditorMediaInfo? {
-        let candidates = ["/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe", "/opt/local/bin/ffprobe", "/usr/bin/ffprobe"]
-        guard let binary = probeOverride ?? candidates
-            .map(URL.init(fileURLWithPath:))
-            .first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else { return nil }
-
-        // Editors share the same bounded, cancellable pipe owner as conversion.
-        // Closing a loading sheet cancels inspection rather than leaving a
-        // detached probe alive, and stderr cannot fill an undrained pipe.
-        let result = await FFmpegProcessRunner(
-            executable: binary,
-            arguments: ["-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate,sample_aspect_ratio,color_transfer:stream_disposition=attached_pic,timed_thumbnails:stream_side_data=rotation:stream_tags=rotate:format=duration", "-of", "json", source.path],
-            configuration: FFmpegProcessRunner.Configuration(inactivityTimeout: 5, terminationGrace: 0.5, maximumOutputBytes: 1_000_000)
-        ).run()
-        guard !Task.isCancelled, result.succeeded,
-              let response = try? JSONDecoder().decode(Response.self, from: result.standardOutput),
-              let video = response.streams.first(where: { $0.codecType == "video" && $0.disposition?.isAuxiliaryImage != true }),
-              let width = video.width, let height = video.height,
-              width > 0, height > 0,
-              let duration = Double(response.format?.duration ?? ""), duration.isFinite, duration > 0 else { return nil }
-        let angle = video.sideDataList?.compactMap(\.rotation).first ?? video.tags?["rotate"].flatMap(Double.init)
-        guard let geometry = VideoGeometry.displayed(width: width, height: height, sampleAspectRatio: video.sampleAspectRatio, rotation: angle) else { return nil }
-        let sar = AspectGeometry.pixelRatio(video.sampleAspectRatio)
-        let swapped = abs(((angle ?? 0) / 90).rounded().truncatingRemainder(dividingBy: 2)) == 1
-        return EditorMediaInfo(duration: duration, width: geometry.width, height: geometry.height, frameRate: parseFrameRate(video.frameRate) ?? 30, pixelRatio: swapped ? 1 / sar : sar, isHDR: ["smpte2084", "arib-std-b67"].contains(video.colorTransfer?.lowercased() ?? ""), colorTransfer: video.colorTransfer)
-    }
-
-    private static func parseFrameRate(_ value: String?) -> Double? {
-        guard let value else { return nil }
-        let parts = value.split(separator: "/", maxSplits: 1).map(String.init)
-        let rate: Double?
-        if parts.count == 2, let numerator = Double(parts[0]), let denominator = Double(parts[1]), denominator != 0 {
-            rate = numerator / denominator
-        } else {
-            rate = Double(value)
-        }
-        guard let rate, rate.isFinite, (1...240).contains(rate) else { return nil }
-        return rate
-    }
-}
-
 /// Cropping keeps transport controls outside the video canvas. This gives the
 /// crop rectangle the whole preview to work in without blocking play, seeking,
 /// volume, or skip actions.
 private struct CropPlaybackControls: View {
     let player: AVPlayer?
     let duration: Double
-    @State private var currentTime = 0.0
-    @State private var isPlaying = false
+    @StateObject private var playback = EditorPlaybackObservation()
     @State private var volume = Float(1)
-    @State private var timeObserver: Any?
-    @State private var observerPlayer: AVPlayer?
+
+    private var currentTime: Double {
+        get { playback.currentTime }
+        nonmutating set { playback.currentTime = newValue }
+    }
+    private var isPlaying: Bool {
+        get { playback.isPlaying }
+        nonmutating set { playback.isPlaying = newValue }
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -2533,12 +2454,9 @@ private struct CropPlaybackControls: View {
         .frame(height: 40)
         .background(BrandColor.surface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(BrandColor.selectStroke, lineWidth: 1) }
-        .onAppear { installTimeObserver(for: player) }
+        .onAppear { attachPlayback(to: player) }
         .onChange(of: player) { newPlayer in
-            removeTimeObserver()
-            currentTime = 0
-            isPlaying = false
-            installTimeObserver(for: newPlayer)
+            attachPlayback(to: newPlayer)
         }
         .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { notification in
             guard let endedItem = notification.object as? AVPlayerItem,
@@ -2547,7 +2465,7 @@ private struct CropPlaybackControls: View {
             // to paused; update the button even when no further ticks follow.
             isPlaying = false
         }
-        .onDisappear { removeTimeObserver() }
+        .onDisappear { playback.detach() }
     }
 
     private func transportButton(icon: TablerIconName, title: String, action: @escaping () -> Void) -> some View {
@@ -2561,23 +2479,9 @@ private struct CropPlaybackControls: View {
         .accessibilityLabel(L10n.text(title))
     }
 
-    private func installTimeObserver(for player: AVPlayer?) {
-        guard let player, timeObserver == nil else { return }
-        observerPlayer = player
-        volume = player.volume
-        timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.15, preferredTimescale: 600), queue: .main) { [weak player] time in
-            let seconds = time.seconds
-            // This subscription can precede metadata loading. Do not capture the
-            // view's initial zero duration and clamp every later tick back to zero.
-            if seconds.isFinite { currentTime = max(0, seconds) }
-            isPlaying = player?.timeControlStatus == .playing
-        }
-    }
-
-    private func removeTimeObserver() {
-        if let timeObserver { observerPlayer?.removeTimeObserver(timeObserver) }
-        timeObserver = nil
-        observerPlayer = nil
+    private func attachPlayback(to player: AVPlayer?) {
+        playback.attach(to: player)
+        if let player { volume = player.volume }
     }
 
     private func togglePlayback() {

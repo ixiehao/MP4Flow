@@ -203,8 +203,8 @@ final class AspectCorrectionTests: XCTestCase {
         store.scheduleGeometry(store.items[0], crop: nil, aspectRatio: DisplayAspectRatio(width: 4, height: 3))
         store.start()
         XCTAssertTrue(store.isRunning, "The verification fixture must actually launch")
-        let deadline = Date().addingTimeInterval(20)
-        while store.isRunning && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        let deadline = TestDeadline(seconds: 20)
+        while store.isRunning && deadline.hasTimeRemaining { try await Task.sleep(nanoseconds: 20_000_000) }
         if store.isRunning { store.cancel(); return XCTFail("Verification fixture stalled") }
         XCTAssertEqual(store.items[0].failure?.diagnostic, "MP4Flow:aspect-mismatch")
         let files = try FileManager.default.contentsOfDirectory(atPath: directory.path)
@@ -254,8 +254,8 @@ final class AspectCorrectionTests: XCTestCase {
 
     @MainActor
     private func completedOutput(_ store: ConverterStore, context: String = "") async throws -> URL {
-        let deadline = Date().addingTimeInterval(20)
-        while store.isRunning && Date() < deadline { try await Task.sleep(nanoseconds: 20_000_000) }
+        let deadline = TestDeadline(seconds: 20)
+        while store.isRunning && deadline.hasTimeRemaining { try await Task.sleep(nanoseconds: 20_000_000) }
         if store.isRunning { store.cancel(); XCTFail("Geometry conversion exceeded 20 seconds") }
         guard case .complete(let output) = store.items.first?.state else {
             XCTFail("Geometry conversion failed [\(context)]: \(String(describing: store.items.first?.state)); \(String(describing: store.items.first?.failure))")

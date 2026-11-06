@@ -37,12 +37,61 @@ final class EditorPreviewTests: XCTestCase {
             "{truncated media response",
             #"{"streams":[],"format":{"duration":"2"}}"#,
             #"{"streams":[{"codec_type":"video","width":0,"height":1080}],"format":{"duration":"2"}}"#,
-            #"{"streams":[{"codec_type":"video","width":1920,"height":1080}],"format":{"duration":"nan"}}"#
+            #"{"streams":[{"codec_type":"video","width":1920,"height":1080}],"format":{"duration":"nan"}}"#,
+            #"{"streams":[{"codec_type":"video","width":1920,"height":1080}],"format":{"duration":"1e300"}}"#,
+            #"{"streams":[{"codec_type":"video","width":1920,"height":1080,"tags":{"rotate":"invalid"}}],"format":{"duration":"2"}}"#
         ]
         for response in invalidResponses {
             try response.write(to: source, atomically: true, encoding: .utf8)
             let media = await EditorMediaProbe.inspect(source: source, using: probe)
             XCTAssertNil(media, "Malformed or unusable probe data must not create an editor timeline")
+        }
+    }
+
+    func testEditorUsesTheSelectedKegOnlyToolInstallation() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fullTools = directory.appendingPathComponent("ffmpeg-full/bin", isDirectory: true)
+        let otherTools = directory.appendingPathComponent("other/bin", isDirectory: true)
+        for bin in [fullTools, otherTools] {
+            try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+        }
+        // Deliberately provide no linked ffprobe at the ordinary search path.
+        let ffmpeg = fullTools.appendingPathComponent("ffmpeg")
+        try "#!/bin/sh\nexit 0\n".write(to: ffmpeg, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: ffmpeg.path)
+        let fixtureProbe = try makeJSONProbe(in: directory)
+        try FileManager.default.copyItem(at: fixtureProbe, to: fullTools.appendingPathComponent("ffprobe"))
+        let source = directory.appendingPathComponent("probe response.json")
+        try #"{"streams":[{"codec_type":"video","width":640,"height":360,"r_frame_rate":"24/1"}],"format":{"duration":"4"}}"#
+            .write(to: source, atomically: true, encoding: .utf8)
+
+        let result = await EditorMediaProbe.inspect(source: source, toolDirectories: [fullTools, otherTools])
+        let media = try XCTUnwrap(result, "A working ffmpeg-full installation must also support editing")
+        XCTAssertEqual(media.width, 640)
+        XCTAssertEqual(media.duration, 4)
+
+        try FileManager.default.removeItem(at: fullTools.appendingPathComponent("ffprobe"))
+        try FileManager.default.copyItem(at: fixtureProbe, to: otherTools.appendingPathComponent("ffprobe"))
+        let mismatched = await EditorMediaProbe.inspect(source: source, toolDirectories: [fullTools, otherTools])
+        XCTAssertNil(mismatched, "Editors must not mix a probe from a different installation")
+    }
+
+    func testEditorUsesMeasuredVFRFrameCadence() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = directory.appendingPathComponent("VFR response.json")
+        let probe = try makeJSONProbe(in: directory)
+        for (average, nominal, expected) in [("24000/1001", "90000/1", 24_000.0 / 1_001), ("0/0", "25/1", 25.0)] {
+            let payload: [String: Any] = [
+                "streams": [["codec_type": "video", "width": 640, "height": 360, "r_frame_rate": nominal, "avg_frame_rate": average]],
+                "format": ["duration": "4"]
+            ]
+            try JSONSerialization.data(withJSONObject: payload).write(to: source)
+            let result = await EditorMediaProbe.inspect(source: source, using: probe)
+            let media = try XCTUnwrap(result)
+            XCTAssertEqual(media.frameRate, expected, accuracy: 0.000001)
+            XCTAssertEqual(media.frameDuration, 1 / expected, accuracy: 0.000001)
         }
     }
 
@@ -83,9 +132,9 @@ final class EditorPreviewTests: XCTestCase {
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: probe.path)
 
         let inspection = Task { await EditorMediaProbe.inspect(source: pidFile, using: probe) }
-        let launchDeadline = Date().addingTimeInterval(2)
+        let launchDeadline = TestDeadline(seconds: 2)
         var processID: Int32?
-        while Date() < launchDeadline {
+        while launchDeadline.hasTimeRemaining {
             if let text = try? String(contentsOf: pidFile, encoding: .utf8), let pid = Int32(text), pid > 1 {
                 processID = pid
                 break
