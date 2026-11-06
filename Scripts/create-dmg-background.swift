@@ -1,6 +1,7 @@
 import AppKit
 
 let output = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? "dmg-background.png")
+let architecture = CommandLine.arguments.dropFirst(2).first
 let canvasSize = NSSize(width: 960, height: 600)
 guard let bitmap = NSBitmapImageRep(
     bitmapDataPlanes: nil,
@@ -74,6 +75,10 @@ let instructionColor = color(0.27, 0.39, 0.60)
 
 drawCentered("MP4Flow", y: 500, font: titleStyle[.font] as! NSFont, textColor: titleStyle[.foregroundColor] as! NSColor)
 drawCentered("Video to MP4 · 视频转 MP4", y: 472, font: subtitleStyle[.font] as! NSFont, textColor: subtitleStyle[.foregroundColor] as! NSColor)
+if let architecture {
+    drawCentered(architecture == "arm64" ? "Apple Silicon · arm64" : "Intel · x86_64",
+                 y: 445, font: .systemFont(ofSize: 13, weight: .medium), textColor: instructionColor)
+}
 
 let arrow = NSBezierPath()
 arrow.move(to: NSPoint(x: 394, y: 305))

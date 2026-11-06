@@ -53,7 +53,7 @@ struct TablerIcon: View {
     let name: TablerIconName
     var color: Color = .primary
 
-    var body: some View {
+    @MainActor var body: some View {
         if let image = TablerIconLibrary.image(named: name) {
             Image(nsImage: image)
                 .renderingMode(.template)
@@ -67,6 +67,9 @@ struct TablerIcon: View {
     }
 }
 
+/// AppKit image creation and the UI's small image cache share the main actor.
+/// Keep the reference images confined rather than declaring NSImage sendable.
+@MainActor
 private enum TablerIconLibrary {
     private static var cache: [TablerIconName: NSImage] = [:]
 

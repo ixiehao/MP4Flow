@@ -33,7 +33,7 @@
 
 ## 下载与安装
 
-1. **安装应用。** 打开[最新版本页面](https://github.com/ixiehao/MP4Flow/releases/latest)，展开 **Assets**，下载以 **`.dmg` 结尾的 MP4Flow 安装包**。打开后，将 **MP4Flow** 拖入 **Applications（应用程序）**。
+1. **安装应用。** 打开[最新版本页面](https://github.com/ixiehao/MP4Flow/releases/latest)，展开 **Assets**，下载对应芯片的 **MP4Flow `.dmg` 安装包**：**arm64（Apple 芯片）** 或 **x86_64（Intel）**。打开后，将 **MP4Flow** 拖入 **Applications（应用程序）**。
 2. **首次安装视频工具。** 按 `⌘ 空格`，搜索并打开「终端」。如果还没有 Homebrew，先按[官网说明](https://brew.sh/)安装，并完成安装后提示的 **Next steps**。然后运行：
 
    ```sh

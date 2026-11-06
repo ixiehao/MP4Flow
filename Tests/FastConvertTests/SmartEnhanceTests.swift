@@ -11,6 +11,53 @@ private final class LockedCancellationFlag: @unchecked Sendable {
 }
 
 final class SmartEnhanceTests: XCTestCase {
+    func testNativePlanRejectsUntrustedDimensionsWithoutAFrameworkCall() throws {
+        for (width, height) in [(Int.max, 1), (Int.max, 240), (320, Int.max), (Int.min, 240), (0, 240), (320, 0), (16_384, 16_384)] {
+            XCTAssertNil(SmartEnhancePlan.geometry(sourceWidth: width, sourceHeight: height, target: .p480, scaleFactor: 2))
+        }
+        let invalidFactors: [Float] = [.nan, .infinity, -.infinity, 0, -1, 1, 2.1]
+        for factor in invalidFactors {
+            XCTAssertNil(SmartEnhancePlan.geometry(sourceWidth: 320, sourceHeight: 240, target: .p480, scaleFactor: factor))
+        }
+        XCTAssertNil(SmartEnhancePlan.geometry(sourceWidth: 320, sourceHeight: 480, target: .p480, scaleFactor: 2), "A same-height target is not enhancement")
+        XCTAssertNil(SmartEnhancePlan.geometry(sourceWidth: 320, sourceHeight: 240, target: .p1080, scaleFactor: 2))
+        for target in [SmartEnhanceTarget.p480, .p576, .p720] {
+            let plan = try XCTUnwrap(SmartEnhancePlan.geometry(sourceWidth: 640, sourceHeight: 360, target: target, scaleFactor: 2))
+            XCTAssertEqual(plan.targetHeight, target.rawValue)
+            XCTAssertEqual(plan.enhancedWidth, 1280)
+            XCTAssertEqual(plan.enhancedHeight, 720)
+            XCTAssertTrue(plan.targetWidth.isMultiple(of: 2))
+            XCTAssertEqual(Double(plan.targetWidth) / Double(plan.targetHeight), 16.0 / 9, accuracy: 0.005)
+        }
+        let high = try XCTUnwrap(SmartEnhancePlan.geometry(sourceWidth: 1280, sourceHeight: 1080, target: .p4K, scaleFactor: 2))
+        XCTAssertEqual(high.targetWidth, 2560)
+        XCTAssertEqual(high.targetHeight, 2160)
+    }
+
+    func testArchitectureShellPreservesTheNativeFailureContract() async throws {
+        XCTAssertEqual(SmartEnhanceExportError.unavailable.localizedDescription, L10n.text("此 Mac 不支持智能增强放大。"))
+        guard #available(macOS 27.0, *) else {
+            XCTAssertFalse(SmartEnhanceAvailability.isSupported)
+            return
+        }
+        let error: SmartEnhanceExporter.ExportError = .unavailable
+        XCTAssertEqual(error.localizedDescription, SmartEnhanceExportError.unavailable.localizedDescription)
+#if compiler(>=6.4) && arch(arm64)
+        XCTAssertEqual(SmartEnhanceAvailability.isSupported, SmartEnhanceExporter.isSupported)
+#else
+        XCTAssertFalse(SmartEnhanceExporter.isSupported)
+        XCTAssertTrue(SmartEnhancePlan.availableTargets(sourceWidth: 320, sourceHeight: 240).isEmpty)
+        let plan = SmartEnhancePlan(sourceWidth: 320, sourceHeight: 240, enhancedWidth: 640, enhancedHeight: 480, targetWidth: 640, targetHeight: 480, scaleFactor: 2)
+        let unused = FileManager.default.temporaryDirectory.appendingPathComponent("MP4Flow-unsupported-enhance-\(UUID()).mp4")
+        do {
+            try await SmartEnhanceExporter().export(source: unused, output: unused, plan: plan, trim: nil, videoBitRate: 500_000, shouldCancel: { false }, onProgress: { _ in XCTFail("An unsupported architecture must not start a native job") })
+            XCTFail("The compatibility shell must fail with the typed unsupported error")
+        } catch SmartEnhanceExportError.unavailable {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: unused.path))
+        }
+#endif
+    }
+
     func testShortVideoWithAudioExportsAndRetriesAfterCancellation() async throws {
 #if compiler(>=6.4)
         guard #available(macOS 27.0, *), SmartEnhanceExporter.isSupported else {

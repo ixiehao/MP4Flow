@@ -55,8 +55,8 @@ final class GeometryRegressionTests: XCTestCase {
             store.items = [item]
             store.scheduleRotation(item, rotation: .clockwise)
             store.start()
-            let deadline = Date().addingTimeInterval(20)
-            while store.isRunning && Date() < deadline {
+            let deadline = TestDeadline(seconds: 20)
+            while store.isRunning && deadline.hasTimeRemaining {
                 try await Task.sleep(nanoseconds: 50_000_000)
             }
             if store.isRunning {

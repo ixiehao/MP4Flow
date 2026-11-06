@@ -33,7 +33,7 @@ También puedes cambiar la resolución de salida. Todo el procesamiento de video
 
 ## Descargar e instalar
 
-1. **Instala la app.** Abre la [última versión](https://github.com/ixiehao/MP4Flow/releases/latest), despliega **Assets** y descarga el **instalador `.dmg` de MP4Flow**. Ábrelo y arrastra **MP4Flow** a **Applications (Aplicaciones)**.
+1. **Instala la app.** Abre la [última versión](https://github.com/ixiehao/MP4Flow/releases/latest), despliega **Assets** y descarga el **instalador `.dmg` de MP4Flow** para tu chip: **arm64 (Apple Silicon)** o **x86_64 (Intel)**. Ábrelo y arrastra **MP4Flow** a **Applications (Aplicaciones)**.
 2. **Instala las herramientas de video una vez.** Abre **Terminal** con Spotlight (`⌘ Espacio`). Si no tienes Homebrew, [instálalo](https://brew.sh/) y completa sus **Next steps**. Después ejecuta:
 
    ```sh

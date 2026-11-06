@@ -52,21 +52,59 @@ final class DependencyHealthTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(started), 3)
     }
 
-    func testProbeMustBelongToTheFirstSelectedFFmpegInstallation() throws {
+    func testIncompleteInstallationDoesNotHideACompleteSiblingPair() throws {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let first = try makeBinDirectory("first", in: directory)
         let second = try makeBinDirectory("second", in: directory)
-        let selectedFFmpeg = try makeExecutable("ffmpeg", in: first)
-        _ = try makeExecutable("ffmpeg", in: second)
-        _ = try makeExecutable("ffprobe", in: second)
+        let preferredFFmpeg = try makeExecutable("ffmpeg", in: first)
+        let completeFFmpeg = try makeExecutable("ffmpeg", in: second)
+        let completeProbe = try makeExecutable("ffprobe", in: second)
 
         let tools = DependencyToolResolver.resolve(in: [first, second])
-        XCTAssertEqual(tools.ffmpeg, selectedFFmpeg)
-        XCTAssertNil(tools.ffprobe, "A probe from another installation would falsely report the converter ready")
+        XCTAssertEqual(tools.ffmpeg, completeFFmpeg)
+        XCTAssertEqual(tools.ffprobe, completeProbe, "The chosen tools must be a complete pair from one installation")
 
         let sibling = try makeExecutable("ffprobe", in: first)
+        XCTAssertEqual(DependencyToolResolver.resolve(in: [first, second]).ffmpeg, preferredFFmpeg)
         XCTAssertEqual(DependencyToolResolver.resolve(in: [first, second]).ffprobe, sibling)
+    }
+
+    func testProbeFromDifferentInstallationIsNeverBorrowed() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = try makeBinDirectory("first", in: directory)
+        let second = try makeBinDirectory("unrelated-probe", in: directory)
+        let ffmpeg = try makeExecutable("ffmpeg", in: first)
+        _ = try makeExecutable("ffprobe", in: second)
+        let tools = DependencyToolResolver.resolve(in: [first, second])
+        XCTAssertEqual(tools.ffmpeg, ffmpeg)
+        XCTAssertNil(tools.ffprobe, "A standalone probe cannot complete another installation")
+    }
+
+    func testNonExecutableProbeDoesNotHideLaterCompleteInstallation() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = try makeBinDirectory("partial", in: directory)
+        let second = try makeBinDirectory("complete", in: directory)
+        _ = try makeExecutable("ffmpeg", in: first)
+        try Data().write(to: first.appendingPathComponent("ffprobe"))
+        let ffmpeg = try makeExecutable("ffmpeg", in: second)
+        let probe = try makeExecutable("ffprobe", in: second)
+        let tools = DependencyToolResolver.resolve(in: [first, second])
+        XCTAssertEqual(tools.ffmpeg, ffmpeg)
+        XCTAssertEqual(tools.ffprobe, probe)
+    }
+
+    func testDefaultDirectoriesPreferTheExecutableArchitecture() {
+#if arch(arm64)
+        let prefix = "/opt/homebrew"
+#else
+        let prefix = "/usr/local"
+#endif
+        XCTAssertEqual(DependencyToolResolver.defaultDirectories.prefix(2).map(\.path),
+                       [prefix + "/opt/ffmpeg-full/bin", prefix + "/bin"])
+        XCTAssertEqual(Set(DependencyToolResolver.defaultDirectories).count, DependencyToolResolver.defaultDirectories.count)
     }
 
     func testAnUnrelatedProbeWithoutFFmpegCannotReportAUsableInstallation() throws {

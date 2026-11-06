@@ -158,7 +158,7 @@ final class ConversionPlanningTests: XCTestCase {
         for (actual, expected) in zip(outputTimes.dropFirst(), referenceTimes.dropFirst()) {
             XCTAssertEqual(actual, expected, accuracy: 0.00007, "Preview repair must not shift the rest of the video away from copied audio")
         }
-        try await assertNativeFrameAtZero(output)
+        try await Self.assertNativeFrameAtZero(output)
     }
 
     @MainActor
@@ -189,7 +189,7 @@ final class ConversionPlanningTests: XCTestCase {
             let originalTimes = try frameTimes(input, ffprobe: tools.ffprobe).filter { $0 >= 1.123 && $0 < 2.456 }
             store.start()
             let output = try await completedOutput(store)
-            try await assertNativeFrameAtZero(output)
+            try await Self.assertNativeFrameAtZero(output)
             let times = try frameTimes(output, ffprobe: tools.ffprobe)
             XCTAssertEqual(times.count, originalTimes.count)
             for (actual, original) in zip(times.dropFirst(), originalTimes.dropFirst()) {
@@ -247,10 +247,10 @@ final class ConversionPlanningTests: XCTestCase {
         for (actual, original) in zip(outputTimes.dropFirst(), sourceTimes.dropFirst()) {
             XCTAssertEqual(actual, original - 0.123, accuracy: 0.000025)
         }
-        try await assertNativeFrameAtZero(output)
+        try await Self.assertNativeFrameAtZero(output)
     }
 
-    private func assertNativeFrameAtZero(_ output: URL) async throws {
+    private static func assertNativeFrameAtZero(_ output: URL) async throws {
         let generator = AVAssetImageGenerator(asset: AVURLAsset(url: output))
         generator.requestedTimeToleranceBefore = .zero
         generator.requestedTimeToleranceAfter = .zero
@@ -312,8 +312,8 @@ final class ConversionPlanningTests: XCTestCase {
 
     @MainActor
     private func completedOutput(_ store: ConverterStore) async throws -> URL {
-        let deadline = Date().addingTimeInterval(30)
-        while store.isRunning && Date() < deadline { try await Task.sleep(for: .milliseconds(25)) }
+        let deadline = TestDeadline(seconds: 30)
+        while store.isRunning && deadline.hasTimeRemaining { try await Task.sleep(for: .milliseconds(25)) }
         XCTAssertFalse(store.isRunning, "The small synthetic conversion should complete")
         guard case .complete(let output) = store.items[0].state else {
             throw NSError(domain: "ConversionPlanningTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unexpected state: \(store.items[0].state)"])

@@ -33,7 +33,7 @@
 
 ## ダウンロードと導入
 
-1. **アプリを入れる。** [最新リリース](https://github.com/ixiehao/MP4Flow/releases/latest)の **Assets** を開き、**MP4Flow の `.dmg` ファイル**をダウンロード。開いて **MP4Flow** を **Applications（アプリケーション）** にドラッグします。
+1. **アプリを入れる。** [最新リリース](https://github.com/ixiehao/MP4Flow/releases/latest)の **Assets** を開き、チップに合う **MP4Flow の `.dmg` ファイル**（**arm64：Apple Silicon** ／ **x86_64：Intel**）をダウンロード。開いて **MP4Flow** を **Applications（アプリケーション）** にドラッグします。
 2. **動画ツールを一度だけ入れる。** `⌘ スペース` で「ターミナル」を検索して開きます。Homebrew がなければ[公式の手順](https://brew.sh/)で導入し、最後に表示される **Next steps** まで完了してください。その後、次を実行します。
 
    ```sh

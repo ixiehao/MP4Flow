@@ -4,6 +4,33 @@ import CoreVideo
 @preconcurrency import Dispatch
 import VideoToolbox
 
+/// The queue handles the same typed failures on every architecture and SDK.
+/// Keeping this contract outside the native implementation lets Intel builds
+/// omit the Apple-silicon-only processing code without changing recovery UI.
+enum SmartEnhanceExportError: LocalizedError {
+    case unavailable
+    case invalidSource
+    case reader(String)
+    case writer(String)
+    case pixelBuffer
+    case pixelTransfer
+    case processingTimeout
+    case finalizationTimeout
+
+    var errorDescription: String? {
+        switch self {
+        case .unavailable: L10n.text("此 Mac 不支持智能增强放大。")
+        case .invalidSource, .reader: L10n.text("无法读取用于智能增强的视频。")
+        case .writer: L10n.text("无法写入智能增强输出文件。")
+        case .pixelBuffer: L10n.text("无法准备智能增强的视频帧。")
+        case .pixelTransfer: L10n.text("无法调整智能增强输出尺寸。")
+        case .processingTimeout: L10n.text("智能增强处理超时。")
+        case .finalizationTimeout: L10n.text("整理输出文件超时。")
+        }
+    }
+}
+
+#if compiler(>=6.4) && arch(arm64)
 /// Resolves an async bridge exactly once when a framework callback races a
 /// watchdog. VideoToolbox callbacks can arrive after a cancelled export.
 private final class ExportCompletionGate: @unchecked Sendable {
@@ -79,6 +106,7 @@ private final class ExportWriterReference: @unchecked Sendable {
         self.writer = writer
     }
 }
+#endif
 
 enum SmartEnhanceAvailability {
     static var isSupported: Bool {
@@ -92,6 +120,8 @@ enum SmartEnhanceAvailability {
 /// user-selected output height without pretending arbitrary scaling is ML.
 struct SmartEnhancePlan: Sendable {
     static let maximumScaleFactor: Float = 2
+    private static let maximumDimension = 16_384
+    private static let maximumPixels = 67_108_864
 
     let sourceWidth: Int
     let sourceHeight: Int
@@ -105,46 +135,57 @@ struct SmartEnhancePlan: Sendable {
 
     @available(macOS 27.0, *)
     static func availableTargets(sourceWidth: Int, sourceHeight: Int) -> [SmartEnhanceTarget] {
-#if compiler(>=6.4)
+#if compiler(>=6.4) && arch(arm64)
         guard SmartEnhanceExporter.isSupported,
-              sourceWidth > 0,
-              sourceHeight > 0 else { return [] }
+              validFrame(width: sourceWidth, height: sourceHeight) else { return [] }
 
         let supported = VTLowLatencySuperResolutionScalerConfiguration
             .supportedScaleFactors(frameWidth: sourceWidth, frameHeight: sourceHeight)
-        guard let maximumFactor = supported.filter({ $0 <= maximumScaleFactor }).max() else { return [] }
-        let maximumHeight = Int((Float(sourceHeight) * maximumFactor).rounded(.down))
         return SmartEnhanceTarget.allCases.filter { target in
-            target.rawValue > sourceHeight
-                && target.rawValue <= maximumHeight
+            supported.contains { factor in
+                geometry(sourceWidth: sourceWidth, sourceHeight: sourceHeight, target: target, scaleFactor: factor) != nil
+            }
         }
 #else
-        // Xcode versions before 27 do not ship the VideoToolbox super-resolution
-        // declarations. Keep the app buildable there; the feature is unavailable.
+        // Older SDKs do not declare this API, and Intel cannot run this scaler.
+        // Both still build and run the ordinary conversion and editing paths.
         []
 #endif
     }
 
     @available(macOS 27.0, *)
     static func make(info: VideoInfo, target: SmartEnhanceTarget) -> SmartEnhancePlan? {
-#if compiler(>=6.4)
+#if compiler(>=6.4) && arch(arm64)
         guard SmartEnhanceExporter.isSupported,
               let sourceWidth = info.width,
               let sourceHeight = info.height,
-              sourceWidth > 0,
-              sourceHeight > 0 else { return nil }
+              validFrame(width: sourceWidth, height: sourceHeight) else { return nil }
 
         let supported = VTLowLatencySuperResolutionScalerConfiguration
             .supportedScaleFactors(frameWidth: sourceWidth, frameHeight: sourceHeight)
-        let targetWidth = outputWidth(sourceWidth: sourceWidth, sourceHeight: sourceHeight, targetHeight: target.rawValue)
-        let requestedFactor = Float(target.rawValue) / Float(sourceHeight)
-        guard target.rawValue > sourceHeight,
-              target.rawValue <= Int((Float(sourceHeight) * maximumScaleFactor).rounded(.down)),
-              let scaleFactor = supported.sorted().first(where: {
-                  $0 <= maximumScaleFactor && $0 >= requestedFactor
-              }) else { return nil }
-        let enhancedWidth = Int((Float(sourceWidth) * scaleFactor).rounded())
-        let enhancedHeight = Int((Float(sourceHeight) * scaleFactor).rounded())
+        for factor in supported.filter({ $0.isFinite }).sorted() {
+            if let plan = geometry(sourceWidth: sourceWidth, sourceHeight: sourceHeight, target: target, scaleFactor: factor) { return plan }
+        }
+        return nil
+#else
+        nil
+#endif
+    }
+
+    /// Pure validation shared with tests, before allocating native frames.
+    /// The caps match the app's other geometry planners and keep corrupt probe
+    /// values out of both VideoToolbox and trapping float-to-Int conversions.
+    static func geometry(sourceWidth: Int, sourceHeight: Int, target: SmartEnhanceTarget, scaleFactor: Float) -> SmartEnhancePlan? {
+        guard validFrame(width: sourceWidth, height: sourceHeight),
+              scaleFactor.isFinite, scaleFactor > 1, scaleFactor <= maximumScaleFactor,
+              target.rawValue > sourceHeight,
+              Double(target.rawValue) <= Double(sourceHeight) * Double(scaleFactor),
+              let enhancedWidth = Int(exactly: (Float(sourceWidth) * scaleFactor).rounded()),
+              let enhancedHeight = Int(exactly: (Float(sourceHeight) * scaleFactor).rounded()),
+              validFrame(width: enhancedWidth, height: enhancedHeight),
+              let rawWidth = Int(exactly: (Double(sourceWidth) * Double(target.rawValue) / Double(sourceHeight)).rounded()) else { return nil }
+        let targetWidth = max(2, rawWidth / 2 * 2)
+        guard validFrame(width: targetWidth, height: target.rawValue) else { return nil }
         return SmartEnhancePlan(
             sourceWidth: sourceWidth,
             sourceHeight: sourceHeight,
@@ -154,20 +195,18 @@ struct SmartEnhancePlan: Sendable {
             targetHeight: target.rawValue,
             scaleFactor: scaleFactor
         )
-#else
-        nil
-#endif
     }
 
-    private static func outputWidth(sourceWidth: Int, sourceHeight: Int, targetHeight: Int) -> Int {
-        let rawWidth = Int((Double(sourceWidth) * Double(targetHeight) / Double(sourceHeight)).rounded())
-        return max(2, rawWidth.isMultiple(of: 2) ? rawWidth : rawWidth - 1)
+    private static func validFrame(width: Int, height: Int) -> Bool {
+        (1...maximumDimension).contains(width) && (1...maximumDimension).contains(height)
+            && Double(width) * Double(height) <= Double(maximumPixels)
     }
 }
 
-#if compiler(>=6.4)
+#if compiler(>=6.4) && arch(arm64)
 @available(macOS 27.0, *)
-final class SmartEnhanceExporter {
+actor SmartEnhanceExporter {
+    typealias ExportError = SmartEnhanceExportError
     /// A timeout can resume export before VideoToolbox calls back. End the
     /// processing session only after its last submitted request completes.
     private final class FrameProcessorSession: @unchecked Sendable {
@@ -216,34 +255,7 @@ final class SmartEnhanceExporter {
     }
 
     static var isSupported: Bool {
-        #if arch(arm64)
         VTLowLatencySuperResolutionScalerConfiguration.isSupported
-        #else
-        false
-        #endif
-    }
-
-    enum ExportError: LocalizedError {
-        case unavailable
-        case invalidSource
-        case reader(String)
-        case writer(String)
-        case pixelBuffer
-        case pixelTransfer
-        case processingTimeout
-        case finalizationTimeout
-
-        var errorDescription: String? {
-            switch self {
-            case .unavailable: L10n.text("此 Mac 不支持智能增强放大。")
-            case .invalidSource, .reader: L10n.text("无法读取用于智能增强的视频。")
-            case .writer: L10n.text("无法写入智能增强输出文件。")
-            case .pixelBuffer: L10n.text("无法准备智能增强的视频帧。")
-            case .pixelTransfer: L10n.text("无法调整智能增强输出尺寸。")
-            case .processingTimeout: L10n.text("智能增强处理超时。")
-            case .finalizationTimeout: L10n.text("整理输出文件超时。")
-            }
-        }
     }
 
     /// Exports video and re-encodes audio to AAC so the native MP4 output stays
@@ -255,8 +267,8 @@ final class SmartEnhanceExporter {
         trim: ClipRange?,
         videoBitRate: Int,
         videoTrackID: CMPersistentTrackID? = nil,
-        shouldCancel: @escaping () -> Bool,
-        onProgress: (Double) -> Void
+        shouldCancel: @escaping @MainActor @Sendable () -> Bool,
+        onProgress: @MainActor @Sendable (Double) -> Void
     ) async throws {
         guard Self.isSupported else { throw ExportError.unavailable }
 
@@ -347,13 +359,15 @@ final class SmartEnhanceExporter {
 
         var audioWriteTask: Task<Void, Error>?
         do {
-            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            if await shouldCancel() || Task.isCancelled { throw CancellationError() }
             guard writer.startWriting() else { throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to start the enhanced export.") }
             guard reader.startReading() else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
             writer.startSession(atSourceTime: trim.map { CMTime(seconds: $0.start, preferredTimescale: 600) } ?? .zero)
 
-            // Feed audio alongside video; the writer may wait for the next
-            // audio packet before accepting a high-resolution video frame.
+            // Both producers remain on this worker actor. They interleave at
+            // suspension points so the writer receives audio while video is
+            // processing, without sending its non-Sendable AVFoundation
+            // reader/outputs/writer into independent concurrent tasks.
             if let audioOutput, let audioInput {
                 audioWriteTask = Task {
                     do {
@@ -363,7 +377,7 @@ final class SmartEnhanceExporter {
                                 throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write source audio.")
                             }
                         }
-                        if shouldCancel() || Task.isCancelled { throw CancellationError() }
+                        if await shouldCancel() || Task.isCancelled { throw CancellationError() }
                         guard reader.status != .failed else {
                             throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read source audio.")
                         }
@@ -380,7 +394,7 @@ final class SmartEnhanceExporter {
 
             let offset = trim?.start ?? 0
             while let sample = videoOutput.copyNextSampleBuffer() {
-                if shouldCancel() || Task.isCancelled { throw CancellationError() }
+                if await shouldCancel() || Task.isCancelled { throw CancellationError() }
                 guard let buffer = CMSampleBufferGetImageBuffer(sample),
                       let sourceFrame = VTFrameProcessorFrame(buffer: buffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)),
                       let destinationBuffer = makeDestinationBuffer(configuration: configuration),
@@ -389,7 +403,7 @@ final class SmartEnhanceExporter {
                 }
                 let parameters = VTLowLatencySuperResolutionScalerParameters(sourceFrame: sourceFrame, destinationFrame: destinationFrame)
                 try await process(session: processorSession, parameters: parameters, shouldCancel: shouldCancel)
-                if shouldCancel() || Task.isCancelled { throw CancellationError() }
+                if await shouldCancel() || Task.isCancelled { throw CancellationError() }
                 let outputBuffer: CVPixelBuffer
                 if let pixelTransferSession {
                     guard let resizedBuffer = makeWriterDestinationBuffer(adaptor: pixelBufferAdaptor),
@@ -404,9 +418,9 @@ final class SmartEnhanceExporter {
                 guard pixelBufferAdaptor.append(outputBuffer, withPresentationTime: CMSampleBufferGetPresentationTimeStamp(sample)) else {
                     throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write an enhanced frame.")
                 }
-                onProgress(max(0, CMSampleBufferGetPresentationTimeStamp(sample).seconds - offset))
+                await onProgress(max(0, CMSampleBufferGetPresentationTimeStamp(sample).seconds - offset))
             }
-            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            if await shouldCancel() || Task.isCancelled { throw CancellationError() }
             guard reader.status != .failed else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
             videoInput.markAsFinished()
 
@@ -414,7 +428,7 @@ final class SmartEnhanceExporter {
             guard reader.status == .completed else {
                 throw ExportError.reader(reader.error?.localizedDescription ?? "The source could not be read completely.")
             }
-            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            if await shouldCancel() || Task.isCancelled { throw CancellationError() }
             try await finish(writer: writer, shouldCancel: shouldCancel)
         } catch {
             audioWriteTask?.cancel()
@@ -456,7 +470,7 @@ final class SmartEnhanceExporter {
         return pixelTransferSession
     }
 
-    private func process(session: FrameProcessorSession, parameters: VTLowLatencySuperResolutionScalerParameters, shouldCancel: @escaping () -> Bool) async throws {
+    private func process(session: FrameProcessorSession, parameters: VTLowLatencySuperResolutionScalerParameters, shouldCancel: @escaping @MainActor @Sendable () -> Bool) async throws {
         let cancellation = ExportWaitCancellation()
         let cancellationMonitor = monitorCancellation(cancellation, shouldCancel: shouldCancel)
         let parametersReference = FrameParametersReference(parameters)
@@ -485,21 +499,22 @@ final class SmartEnhanceExporter {
         }
     }
 
-    private func waitUntilReady(_ input: AVAssetWriterInput, writer: AVAssetWriter, reader: AVAssetReader, shouldCancel: () -> Bool) async throws {
-        let deadline = Date().addingTimeInterval(30)
+    private func waitUntilReady(_ input: AVAssetWriterInput, writer: AVAssetWriter, reader: AVAssetReader, shouldCancel: @MainActor @Sendable () -> Bool) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(30))
         while !input.isReadyForMoreMediaData {
-            if shouldCancel() || Task.isCancelled { throw CancellationError() }
+            if await shouldCancel() || Task.isCancelled { throw CancellationError() }
             if writer.status == .failed { throw ExportError.writer(writer.error?.localizedDescription ?? "The enhanced export failed.") }
             if writer.status == .cancelled { throw ExportError.writer("The enhanced export was cancelled by the encoder.") }
             if reader.status == .failed { throw ExportError.reader(reader.error?.localizedDescription ?? "The source video could not be read.") }
             if reader.status == .cancelled { throw ExportError.reader("The source reader was cancelled.") }
-            if Date() >= deadline { throw ExportError.writer(L10n.text("编码器未响应。")) }
+            if clock.now >= deadline { throw ExportError.writer(L10n.text("编码器未响应。")) }
             try await Task.sleep(for: .milliseconds(4))
         }
-        if shouldCancel() || Task.isCancelled { throw CancellationError() }
+        if await shouldCancel() || Task.isCancelled { throw CancellationError() }
     }
 
-    private func finish(writer: AVAssetWriter, shouldCancel: @escaping () -> Bool) async throws {
+    private func finish(writer: AVAssetWriter, shouldCancel: @escaping @MainActor @Sendable () -> Bool) async throws {
         let cancellation = ExportWaitCancellation()
         let cancellationMonitor = monitorCancellation(cancellation, shouldCancel: shouldCancel)
         defer { cancellationMonitor.cancel() }
@@ -531,10 +546,10 @@ final class SmartEnhanceExporter {
         }
     }
 
-    private func monitorCancellation(_ cancellation: ExportWaitCancellation, shouldCancel: @escaping () -> Bool) -> Task<Void, Never> {
+    private func monitorCancellation(_ cancellation: ExportWaitCancellation, shouldCancel: @escaping @MainActor @Sendable () -> Bool) -> Task<Void, Never> {
         Task {
             while !Task.isCancelled {
-                if await MainActor.run(body: { shouldCancel() }) {
+                if await shouldCancel() {
                     cancellation.cancel()
                     return
                 }
@@ -545,7 +560,7 @@ final class SmartEnhanceExporter {
 
     /// The audio producer normally finishes before video. A damaged source can
     /// leave its final read pending, so bound this last join as well.
-    private func waitForAudioCompletion(_ task: Task<Void, Error>, shouldCancel: @escaping () -> Bool) async throws {
+    private func waitForAudioCompletion(_ task: Task<Void, Error>, shouldCancel: @escaping @MainActor @Sendable () -> Bool) async throws {
         let cancellation = ExportWaitCancellation()
         let cancellationMonitor = monitorCancellation(cancellation, shouldCancel: shouldCancel)
         defer { cancellationMonitor.cancel() }
@@ -589,11 +604,11 @@ final class SmartEnhanceExporter {
     }
 }
 #else
-/// Older Xcode SDKs do not declare the macOS 27 VideoToolbox super-resolution
-/// API. This compatibility shell keeps CI and source builds valid while the
-/// UI correctly reports that Smart Enhance is unavailable on those SDKs.
+/// Intel and older SDKs use the same entry point and failure contract while
+/// omitting the Apple-silicon-only implementation entirely.
 @available(macOS 27.0, *)
-final class SmartEnhanceExporter {
+actor SmartEnhanceExporter {
+    typealias ExportError = SmartEnhanceExportError
     static var isSupported: Bool { false }
 
     func export(
@@ -603,14 +618,10 @@ final class SmartEnhanceExporter {
         trim: ClipRange?,
         videoBitRate: Int,
         videoTrackID: CMPersistentTrackID? = nil,
-        shouldCancel: @escaping () -> Bool,
-        onProgress: (Double) -> Void
+        shouldCancel: @escaping @MainActor @Sendable () -> Bool,
+        onProgress: @MainActor @Sendable (Double) -> Void
     ) async throws {
-        throw SmartEnhanceUnsupportedError()
+        throw ExportError.unavailable
     }
-}
-
-private struct SmartEnhanceUnsupportedError: LocalizedError {
-    var errorDescription: String? { L10n.text("此 Mac 不支持智能增强放大。") }
 }
 #endif

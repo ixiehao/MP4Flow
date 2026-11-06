@@ -1407,19 +1407,11 @@ final class ConverterStore: ObservableObject {
         if let aspectRatio { suffix += "-aspect-\(aspectRatio.width)x\(aspectRatio.height)" }
         if let rotation { suffix += "-\(rotation.fileSuffix)" }
         if !imageAdjustment.isIdentity { suffix += "-adjusted" }
-        var result = directory.appendingPathComponent("\(stem)\(suffix).mp4"), number = 2
-        while FileManager.default.fileExists(atPath: result.path) { result = directory.appendingPathComponent("\(stem)\(suffix)-\(number).mp4"); number += 1 }
-        return result
+        return OutputFileNaming.uniqueURL(in: directory, stem: stem, suffix: suffix)
     }
     private func uniqueMergeOutput(for firstSource: URL) -> URL {
         let directory = outputDirectory ?? firstSource.deletingLastPathComponent()
-        let stem = "\(firstSource.deletingPathExtension().lastPathComponent)-merge"
-        var result = directory.appendingPathComponent("\(stem).mp4"), number = 2
-        while FileManager.default.fileExists(atPath: result.path) {
-            result = directory.appendingPathComponent("\(stem)-\(number).mp4")
-            number += 1
-        }
-        return result
+        return OutputFileNaming.uniqueURL(in: directory, stem: firstSource.deletingPathExtension().lastPathComponent, suffix: "-merge")
     }
     private func fileNameTime(_ seconds: Double) -> String { String(format: "%02d%02d%02d", Int(seconds) / 3600, (Int(seconds) % 3600) / 60, Int(seconds) % 60) }
     nonisolated static func ffmpegFailureMessage(_ stderr: String) -> String {

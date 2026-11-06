@@ -31,9 +31,10 @@
           <p class="eyebrow" data-i18n="eyebrow">{{eyebrow}}</p>
           <h1 id="hero-title" data-i18n="heroTitle">{{heroTitle}}</h1>
           <p class="hero-intro" data-i18n="heroIntro">{{heroIntro}}</p>
+          <ul class="hero-benefits"><li>{{lightweightLabel}}</li><li>{{nativeLabel}}</li></ul>
           <p class="hero-formats">{{heroFormats}}</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="https://github.com/ixiehao/MP4Flow/releases/latest"><span data-i18n="download">{{download}}</span><svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#download"></use></svg></a>
+            <a class="button button-primary" href="#download"><span data-i18n="download">{{download}}</span><svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#download"></use></svg></a>
             <a class="button button-quiet" href="#tools" data-i18n="exploreTools">{{exploreTools}}</a>
           </div>
           <p class="hero-note"><span data-i18n="heroSystemNote">{{heroSystemNote}}</span><span aria-hidden="true"> · </span><button class="install-guide-trigger" id="install-guide-trigger" data-install-guide type="button" aria-haspopup="dialog" data-i18n="installGuide">{{installGuide}}</button></p>
@@ -139,9 +140,11 @@
         <h2 id="download-title" data-i18n="downloadTitle">{{downloadTitle}}</h2>
         <p data-i18n="downloadBody">{{downloadBody}}</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/ixiehao/MP4Flow/releases/latest"><span data-i18n="getLatest">{{getLatest}}</span><svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#download"></use></svg></a>
+          <a class="button button-primary" data-download-arch="arm64" href="{{armDownloadURL}}"><span>Apple Silicon</span><svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#download"></use></svg></a>
+          <a class="button button-quiet" data-download-arch="x86_64" href="{{intelDownloadURL}}"><span>Intel</span><svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#download"></use></svg></a>
           <a class="button button-quiet" href="https://github.com/ixiehao/MP4Flow"><span data-i18n="viewSource">{{viewSource}}</span> <svg class="button-icon tabler-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="assets/tabler-icons.svg#brand-github"></use></svg></a>
         </div>
+        <p class="chip-guide">{{chipGuide}}</p>
         <p class="download-note"><span data-i18n="downloadNote">{{downloadNote}}</span><br /><button class="install-guide-trigger" data-install-guide type="button" aria-haspopup="dialog">{{installGuide}}</button></p>
       </section>
     </main>

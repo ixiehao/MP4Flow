@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.5.1 — 2026-11-06
+
+### English
+- Lightweight, native macOS app: separate Apple Silicon and Intel installers, about 3 MB each.
+- Improved conversion, preview and update-check reliability; fixed HEVC fallback, odd dimensions and long filenames.
+
+### 中文
+- 轻量原生 macOS 应用：Apple 芯片与 Intel 独立安装包，每包约 3 MB。
+- 提升转换、预览与更新检查稳定性，修复 HEVC 回退、奇数尺寸及超长文件名问题。
+
+### 日本語
+- 軽量なmacOSネイティブアプリ。Apple Silicon・Intel別のインストーラで、各約3 MB。
+- 変換・プレビュー・更新確認を改善。HEVCの代替処理、奇数サイズ、長いファイル名の不具合を修正。
+
+### 한국어
+- 가벼운 macOS 네이티브 앱. Apple Silicon·Intel 전용 설치 파일은 각각 약 3 MB입니다.
+- 변환·미리보기·업데이트 확인을 개선하고 HEVC 대체 인코딩, 홀수 크기, 긴 파일명 문제를 수정했습니다.
+
+macOS 13+ · FFmpeg/ffprobe installed separately (`brew install ffmpeg`). Text-subtitle burning: `brew install ffmpeg-full`. Ad-hoc signed, not notarized. Apple Silicon and Intel via Rosetta tested; physical Intel/macOS 13/macOS 28 testing pending.
+
 ## 1.5.0 — 2026-11-01
 
 ### English

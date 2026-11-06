@@ -4,10 +4,10 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 
 ## Repository and disclosure
 
-- [x] Create the canonical GitHub repository and replace the clone URL in all three README files.
+- [x] Create the canonical GitHub repository and replace the clone URL in all seven README files.
 - [ ] Enable GitHub Private Vulnerability Reporting and replace the reporting instruction in [SECURITY.md](../SECURITY.md) with the repository's private reporting link.
 - [ ] Confirm the repository description, topics, licence, default branch protection, and release notes follow [GITHUB_METADATA.md](GITHUB_METADATA.md).
-- [ ] Confirm the repository homepage, trilingual README download links, issue chooser, and social preview still point to the current official project surfaces.
+- [ ] Confirm the repository homepage, seven-language README download links, issue chooser, and social preview still point to the current official project surfaces.
 - [ ] Confirm the latest Release has a human-readable title, concise English, Simplified Chinese, Japanese and Korean user-facing notes, a DMG with its actual signing/notarization status disclosed, and a matching SHA-256 file.
 - [ ] Check that `.gitignore` is effective and that the branch contains no signing certificates, provisioning profiles, private keys, `.env` files, test media, DMGs, or build products.
 - [ ] Review issues, pull requests, screenshots, and logs for private file paths, personal data, or unlicensed media.
@@ -35,8 +35,8 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 ## Build, signing, and distribution
 
 - [ ] Run `swift build -c release` and `./Scripts/validate-localizations.sh`.
-- [ ] Build the DMG with `./Scripts/package-dmg.sh`; use a dedicated `OUTPUT_DIR` for a local test build to preserve existing artifacts. The current workflow signs the app ad-hoc and requires no Developer ID certificate.
-- [ ] Verify the mounted final app with `codesign --verify --deep --strict --verbose=2 MP4Flow.app`, confirm the claimed architectures and bundled resources, and disclose that the current build is not notarized.
+- [ ] Build separate Apple Silicon and Intel DMGs with `./Scripts/package-dmg.sh` (or `--arch arm64` / `--arch x86_64`); use a dedicated `OUTPUT_DIR` for a local test build to preserve existing artifacts. The current workflow signs the app ad-hoc and requires no Developer ID certificate.
+- [ ] Verify the mounted final app with `codesign --verify --deep --strict --verbose=2 MP4Flow.app`, confirm the exact single architecture, macOS deployment minimum, matching external dSYM UUIDs and bundled resources, and disclose that the current build is not notarized.
 - [ ] Test the downloaded app's Gatekeeper behaviour on a clean Mac and provide accurate macOS approval instructions. If a future release uses Developer ID, sign nested executable code and the app, notarize and staple the final distribution, and verify the resulting ticket before claiming notarization.
 - [ ] Generate and publish the SHA-256 file for the exact final DMG. Treat a checksum as integrity information, not as a signing substitute.
 - [ ] Install the final DMG on a clean Intel Mac and Apple-silicon Mac when both architectures are claimed. Test first launch, Gatekeeper, English, Simplified Chinese, French, Russian, Spanish, Japanese, Korean, FFmpeg missing, conversion, trim, crop, rotation, and both merge modes. Confirm English appears first in the language menu.

@@ -28,6 +28,7 @@ enum MergeCommandBuilder {
     static func losslessArguments(listURL: URL, info: VideoInfo, output: URL) -> [String] {
         ["-hide_banner", "-nostdin", "-y", "-f", "concat", "-safe", "0", "-i", listURL.path,
          "-map", "0:\(info.videoStreamSpecifier)", "-map", "0:a?", "-map_metadata", "-1", "-map_chapters", "-1", "-c:v", "copy"]
+        + (info.videoCodec?.lowercased() == "hevc" ? ["-tag:v", "hvc1"] : [])
         + AudioExportPlan(options: ExportOptions(), info: info, target: nil).arguments
         + ["-sn", "-movflags", "+faststart", "-progress", "pipe:1", "-nostats", output.path]
     }

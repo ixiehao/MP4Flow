@@ -5,22 +5,42 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  build:
-    runs-on: macos-14
+  native:
+    name: Native (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-15
+          - arch: x86_64
+            runner: macos-26-intel
     steps:
-      # Pinned commit for actions/checkout v7.0.1. Update deliberately through Dependabot.
+      # Pinned commit for actions/checkout v7.0.1. Update through Dependabot.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Confirm native runner architecture
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+        run: test "$(uname -m)" = "$EXPECTED_ARCH"
       - name: Validate website
         run: |
           node --check website/app.js
           node --test Scripts/tests/website.test.mjs
-      - name: Build release binary
-        run: swift build -c release
-      - name: Validate localizations and metadata
+      - name: Validate localizations and packaging failure boundaries
         run: |
           ./Scripts/validate-localizations.sh
           python3 -m unittest discover -s Scripts/tests -v
+      - name: Build and verify native release app
+        env:
+          MP4FLOW_ARCH: ${{ matrix.arch }}
+          APP_OUTPUT_PATH: ${{ github.workspace }}/dist/ci-${{ matrix.arch }}/MP4Flow.app
+        run: ./Scripts/build-app.sh
       - name: Install synthetic-media test dependency
         run: |
           brew list ffmpeg >/dev/null 2>&1 || brew install ffmpeg
@@ -28,7 +48,20 @@ jobs:
           mp4flow_media_bin="$(brew --prefix ffmpeg-full)/bin"
           echo "$mp4flow_media_bin" >> "$GITHUB_PATH"
           echo "MP4FLOW_TEST_FFMPEG=$mp4flow_media_bin/ffmpeg" >> "$GITHUB_ENV"
-      - name: Run Swift tests
-        run: swift test
+      - name: Run native Swift tests
+        env:
+          TEST_ARCH: ${{ matrix.arch }}
+        run: swift test --arch "$TEST_ARCH" --scratch-path ".build/native-$TEST_ARCH" -Xswiftc -strict-concurrency=complete
       - name: Run synthetic media regression matrix
         run: ./Scripts/run-media-regression.sh
+  # Keep the existing required check named build. It succeeds only when both
+  # native runners pass; failure/cancellation never turns into a green gate.
+  build:
+    runs-on: ubuntu-24.04
+    needs: native
+    if: ${{ always() }}
+    steps:
+      - name: Require both native architectures
+        env:
+          NATIVE_RESULT: ${{ needs.native.result }}
+        run: test "$NATIVE_RESULT" = success

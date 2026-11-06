@@ -169,9 +169,9 @@ final class ProcessLifecycleTests: XCTestCase {
         store.items = [ConversionItem(source: first), ConversionItem(source: second)]
         store.mergeWaitingItems()
         XCTAssertTrue(store.isMerging)
-        let runningDeadline = Date().addingTimeInterval(5)
+        let runningDeadline = TestDeadline(seconds: 5)
         var runningPartial: URL?
-        while store.isMerging && Date() < runningDeadline {
+        while store.isMerging && runningDeadline.hasTimeRemaining {
             let partial = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey])
                 .first { $0.lastPathComponent.hasPrefix(".MP4Flow-") && $0.lastPathComponent.hasSuffix(".partial.mp4") }
             if let partial, (try partial.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0,
@@ -216,8 +216,8 @@ final class ProcessLifecycleTests: XCTestCase {
 
     @MainActor
     private func waitForMerge(_ store: ConverterStore) async throws {
-        let deadline = Date().addingTimeInterval(10)
-        while store.isMerging && Date() < deadline {
+        let deadline = TestDeadline(seconds: 10)
+        while store.isMerging && deadline.hasTimeRemaining {
             try await Task.sleep(nanoseconds: 20_000_000)
         }
         if store.isMerging {

@@ -248,7 +248,7 @@ struct VideoPresentation: Equatable {
     var factFields: [String] {
         var parts: [String] = []
         if let width, let height { parts.append("\(width) × \(height)") }
-        if duration.isFinite, duration > 0, duration < Double(Int.max / 2) { parts.append(Self.formattedDuration(duration)) }
+        if Self.boundedDuration(duration) > 0 { parts.append(Self.formattedDuration(duration)) }
         if let fileSize { parts.append(L10n.byteCount(fileSize)) }
         return parts
     }
@@ -263,7 +263,7 @@ struct VideoPresentation: Equatable {
     /// The worker already inspects the source. Reuse those facts after a retry
     /// instead of retaining a failed/older AVFoundation read or probing again.
     static func inspected(_ info: VideoInfo, previous: Self?) -> Self {
-        let duration = info.duration.flatMap { $0.isFinite && $0 > 0 ? $0 : nil } ?? 0
+        let duration = boundedDuration(info.duration ?? 0)
         let sameFacts = previous?.duration == duration && previous?.fileSize == info.fileSize
             && previous?.width == info.width && previous?.height == info.height
         return Self(duration: duration, fileSize: info.fileSize,
@@ -295,15 +295,26 @@ struct VideoPresentation: Equatable {
         } else {
             image = nil
         }
-        let width = naturalSize.map { Int(abs($0.width).rounded()) }.flatMap { $0 > 0 ? $0 : nil }
-        let height = naturalSize.map { Int(abs($0.height).rounded()) }.flatMap { $0 > 0 ? $0 : nil }
+        let width = naturalSize.flatMap { pixelDimension($0.width) }
+        let height = naturalSize.flatMap { pixelDimension($0.height) }
         return VideoPresentation(
-            duration: duration.isFinite ? duration : 0,
+            duration: boundedDuration(duration),
             fileSize: fileSize.map(Int64.init),
             thumbnail: image,
             width: width,
             height: height
         )
+    }
+
+    /// Broken metadata must produce absent facts, never trap the queue while
+    /// converting an untrusted framework dimension into an integer.
+    static func pixelDimension(_ value: CGFloat) -> Int? {
+        guard let pixels = Int(exactly: abs(value).rounded()), pixels > 0 else { return nil }
+        return pixels
+    }
+
+    static func boundedDuration(_ value: Double) -> Double {
+        value.isFinite && value > 0 && value < Double(Int.max / 2) ? value : 0
     }
 
     private static func formattedDuration(_ value: Double) -> String {

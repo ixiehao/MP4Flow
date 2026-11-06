@@ -18,7 +18,7 @@ Localization validation requires Python 3.9+ and macOS `plutil` on `PATH`. The v
 From the repository root, matching the CI checks:
 
 ```sh
-swift build -c release
+swift build -c release -Xswiftc -strict-concurrency=complete
 ./Scripts/validate-localizations.sh
 python3 -m unittest discover -s Scripts/tests -v
 swift test
@@ -31,7 +31,7 @@ Run media regression after its documented dependencies are available. To create 
 ./Scripts/build-app.sh
 ```
 
-The script rebuilds its configured `.app` output; it is not a test or a notarized release. Check existing output before running it.
+The script creates a new native `.app` and refuses to replace existing output; select `MP4FLOW_ARCH=arm64` or `x86_64` and a new `APP_OUTPUT_PATH` when needed. It is not a test or a notarized release. See [native packaging](INSTALLER-BUILD.md).
 
 ## Local build cache
 
@@ -90,3 +90,7 @@ For website-only or documentation-only edits, use [website checks](WEBSITE.md) a
 ## Release
 
 Use [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) and [INSTALLER-BUILD.md](INSTALLER-BUILD.md). Keep version, architecture, signing state and download messaging consistent; publication requires separate approval.
+
+## Native architecture and SDK checks
+
+CI runs the same complete suite on explicit Apple Silicon (`macos-15`) and Intel (`macos-26-intel`) runners. The `build` aggregate check requires both; a failed or cancelled matrix cannot pass it. Changing the CI host does not raise the macOS 13 deployment target. Local tests under Rosetta must be labelled as translated execution. Use [PLATFORMS.md](PLATFORMS.md) for the readiness checklist and limits of future-system claims.
