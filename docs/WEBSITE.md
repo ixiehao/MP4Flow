@@ -38,6 +38,10 @@ Phone layouts show one visual article per row; wider screens use two columns. Ke
 
 The FAQ uses the same full-width, pale rounded panel as the surrounding sections. Place its heading beside the disclosure cards on desktop and above them on phones. Keep the native `details` controls, visible keyboard focus and a generous question hit area; long translations and expanded answers must remain inside their cards.
 
+## Native installer messaging
+
+The hero highlights a lightweight native macOS app. “About 3 MB” describes each compressed, architecture-specific DMG; it excludes separately installed FFmpeg/ffprobe. Keep that distinction visible in the download section. Apple Silicon (`arm64`) and Intel (`x86_64`) downloads are explicit choices, with an About This Mac hint; do not infer CPU architecture from a browser user agent. The static generator reads the release version from `AppResources/Info.plist` for download asset names and `SoftwareApplication.softwareVersion`. Confirm both assets exist before deploying a new version of these links. Screenshot provenance retains its actual capture version.
+
 ## Images, icons and fonts
 
 - Current hero images are `mp4flow-v150-queue-*.jpg`; the feature articles use `mp4flow-v150-{crop,aspect,adjust,trim,export}-*.jpg`. These are real v1.5.0 native window captures using *Tears of Steel*, with a matching interface language for each page. Exact sizes and hashes are in `website/screenshots.json`; the builder uses those dimensions in HTML and schema.

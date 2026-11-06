@@ -5,6 +5,9 @@ import os from 'node:os';
 import { createHash } from 'node:crypto';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const appInfo = await readFile(path.join(root, 'AppResources/Info.plist'), 'utf8');
+export const appVersion = appInfo.match(/<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/)?.[1];
+if (!/^\d+\.\d+\.\d+$/.test(appVersion ?? '')) throw new Error('Invalid App version');
 export const siteURL = 'https://ixiehao.github.io/MP4Flow/';
 export const languages = [
   { id: 'en', locale: 'en', name: 'English', og: 'en_US' },
@@ -41,7 +44,7 @@ export function renderPage(template, language, copy, screenshots, assetVersions,
   const alternates = languages.map(l => `<link rel="alternate" hreflang="${l.locale}" href="${siteURL}${localePath(l.id)}" />`).join('\n    ');
   const schema = {
     '@context': 'https://schema.org', '@type': 'SoftwareApplication', '@id': `${siteURL}#software`,
-    name: 'MP4Flow', applicationCategory: 'MultimediaApplication', operatingSystem: 'macOS 13 or later',
+    name: 'MP4Flow', softwareVersion: appVersion, applicationCategory: 'MultimediaApplication', operatingSystem: 'macOS 13 or later',
     description: copy.pageDescription, url, downloadUrl: 'https://github.com/ixiehao/MP4Flow/releases/latest',
     codeRepository: 'https://github.com/ixiehao/MP4Flow', license: 'https://github.com/ixiehao/MP4Flow/blob/main/LICENSE',
     isAccessibleForFree: true, inLanguage: languages.map(l => l.locale),
@@ -82,7 +85,9 @@ export function renderPage(template, language, copy, screenshots, assetVersions,
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');
-  const values = { ...copy, head, languageLinks, scriptVersion: assetVersions.script, locale: language.locale, language: language.id, languageName: language.name,
+  const values = { ...copy, head, languageLinks,
+    armDownloadURL: `https://github.com/ixiehao/MP4Flow/releases/latest/download/MP4Flow-${appVersion}-arm64.dmg`,
+    intelDownloadURL: `https://github.com/ixiehao/MP4Flow/releases/latest/download/MP4Flow-${appVersion}-x86_64.dmg`, scriptVersion: assetVersions.script, locale: language.locale, language: language.id, languageName: language.name,
     privacyURL: `https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY${language.id === 'ja' ? '.ja' : ''}.md` };
   for (const [kind, localized] of Object.entries(screenshots)) {
     const shot = localized[language.id];

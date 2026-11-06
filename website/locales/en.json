@@ -28,12 +28,12 @@
   "downloadBody": "Download the latest version, or build from source.\nFree, open source, and right on your Mac.",
   "getLatest": "Download MP4Flow",
   "viewSource": "View source",
-  "downloadNote": "macOS 13+ · Requires FFmpeg and ffprobe",
+  "downloadNote": "macOS 13+ · Each installer is about 3 MB. FFmpeg and ffprobe installed separately.",
   "footerTagline": "Simple video tools. All on your Mac.",
   "footerPrivacy": "Privacy",
   "footerLicense": "MIT License",
   "pageTitle": "MP4Flow — Free MP4 Video Converter for Mac",
-  "pageDescription": "Convert MOV, MKV and AVI to MP4 on Mac. Batch convert, merge and edit videos locally. Free and open source, for Apple silicon and Intel.",
+  "pageDescription": "A lightweight, native Mac video converter. About 3 MB to download. Convert, merge and edit videos locally. Free and open source; FFmpeg installed separately.",
   "socialImageAlt": "MP4Flow, a native Mac video converter, showing its real English crop window with Tears of Steel",
   "installEyebrow": "ONE-TIME SETUP",
   "installTitle": "Install FFmpeg",
@@ -81,5 +81,8 @@
   "cropRotateTitle": "Crop & rotate",
   "cropRotateBody": "Remove unwanted edges and turn video by 90° or 180°, without stretching the picture.",
   "adjustTitle": "Brightness & denoise",
-  "adjustBody": "Gently lift dark scenes with a live preview. Add light denoise when needed."
+  "adjustBody": "Gently lift dark scenes with a live preview. Add light denoise when needed.",
+  "lightweightLabel": "Lightweight · about 3 MB",
+  "nativeLabel": "Native macOS",
+  "chipGuide": "Choose your chip: Apple menu → About This Mac."
 }

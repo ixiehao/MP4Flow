@@ -33,7 +33,7 @@
 
 ## 다운로드와 설치
 
-1. **앱을 설치하세요.** [최신 버전 페이지](https://github.com/ixiehao/MP4Flow/releases/latest)에서 **Assets**를 펼쳐 **MP4Flow의 `.dmg` 설치 파일**을 다운로드하세요. 파일을 열고 **MP4Flow**를 **Applications(응용 프로그램)**로 드래그하세요.
+1. **앱을 설치하세요.** [최신 버전 페이지](https://github.com/ixiehao/MP4Flow/releases/latest)에서 **Assets**를 펼쳐 칩에 맞는 **MP4Flow `.dmg` 설치 파일**: **arm64(Apple Silicon)** 또는 **x86_64(Intel)**을 다운로드하세요. 파일을 열고 **MP4Flow**를 **Applications(응용 프로그램)**로 드래그하세요.
 2. **영상 도구를 한 번만 설치하세요.** Spotlight(`⌘ 스페이스`)에서 **터미널**을 찾아 여세요. Homebrew가 없다면 [공식 안내](https://brew.sh/)에 따라 설치하고 마지막의 **Next steps**까지 완료하세요. 그다음 아래 명령을 실행하세요.
 
    ```sh

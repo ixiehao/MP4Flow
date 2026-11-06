@@ -33,7 +33,7 @@ You can also change output resolution. All video processing stays on your Mac.
 
 ## Download and install
 
-1. **Install the app.** Open the [latest release](https://github.com/ixiehao/MP4Flow/releases/latest), expand **Assets**, and download the MP4Flow **`.dmg` installer**. Open it and drag **MP4Flow** to **Applications**.
+1. **Install the app.** Open the [latest release](https://github.com/ixiehao/MP4Flow/releases/latest), expand **Assets**, and download the MP4Flow **`.dmg` installer** for your chip: **arm64 (Apple Silicon)** or **x86_64 (Intel)**. Open it and drag **MP4Flow** to **Applications**.
 2. **Install the video tools once.** Open **Terminal** using Spotlight (`⌘ Space`). If needed, [install Homebrew](https://brew.sh/) first and complete its **Next steps**. Then run:
 
    ```sh

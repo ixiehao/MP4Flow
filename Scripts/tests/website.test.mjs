@@ -4,7 +4,7 @@ import { readFile, mkdtemp, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
-import { buildSite, languages, localePath, readCatalogs, siteURL } from '../build-website.mjs';
+import { appVersion, buildSite, languages, localePath, readCatalogs, siteURL } from '../build-website.mjs';
 
 test('seven canonical pages are complete, crawlable and use matching real screenshots', async t => {
   const output = await mkdtemp(path.join(os.tmpdir(), 'mp4flow-website-test-'));
@@ -48,6 +48,14 @@ test('seven canonical pages are complete, crawlable and use matching real screen
       assert.equal(schema.url, siteURL + localePath(language.id));
       assert.equal(schema.description, catalogs[language.id].pageDescription);
       assert.equal(schema.applicationCategory, 'MultimediaApplication');
+      assert.equal(schema.softwareVersion, appVersion);
+      for (const arch of ['arm64', 'x86_64']) {
+        assert.ok(html.includes(`data-download-arch="${arch}" href="https://github.com/ixiehao/MP4Flow/releases/latest/download/MP4Flow-${appVersion}-${arch}.dmg"`));
+      }
+      assert.ok(html.includes(copy.lightweightLabel));
+      assert.ok(html.includes(copy.nativeLabel));
+      assert.ok(html.includes(copy.chipGuide));
+      assert.match(copy.downloadNote, /FFmpeg.*ffprobe/);
       assert.equal(schema.mainEntityOfPage, schema.url);
       assert.equal(schema.softwareRequirements, 'FFmpeg; ffprobe');
       assert.equal(schema.image, `${siteURL}assets/mp4flow-app-icon.png`);

@@ -28,12 +28,12 @@
   "downloadBody": "最新版をダウンロード、またはソースからビルド。\n無料・オープンソース。あなたの Mac で動きます。",
   "getLatest": "MP4Flow を入手",
   "viewSource": "ソースコード",
-  "downloadNote": "macOS 13+ · FFmpeg・ffprobe が必要",
+  "downloadNote": "macOS 13以降 · 各インストーラ約3 MB。FFmpegとffprobeは別途インストール。",
   "footerTagline": "動画のシンプルな道具。すべて Mac で。",
   "footerPrivacy": "プライバシー",
   "footerLicense": "MIT ライセンス",
   "pageTitle": "MP4Flow｜Mac用の無料MP4動画変換ソフト",
-  "pageDescription": "MOV・MKV・AVIをMacでMP4に変換。一括変換、結合、トリミング、縦横比補正、明るさ調整に対応。無料・オープンソースで、動画はMac内で処理。Appleシリコン・Intel対応。",
+  "pageDescription": "約3 MBの軽量なmacOSネイティブ動画変換アプリ。変換・結合・編集をMac内で完結。無料・オープンソース。FFmpegは別途インストール。",
   "socialImageAlt": "Mac 用動画変換アプリ MP4Flow。Tears of Steel を表示した実際の英語版切り抜き画面",
   "installEyebrow": "初回のみの設定",
   "installTitle": "FFmpeg の導入",
@@ -81,5 +81,8 @@
   "cropRotateTitle": "クロップと回転",
   "cropRotateBody": "余分な端を取り除いたり、90°・180°回転したりできます。映像を引き伸ばしません。",
   "adjustTitle": "明るさとノイズ低減",
-  "adjustBody": "プレビューを見ながら暗部を穏やかに調整。必要に応じて軽いノイズ低減を使えます。"
+  "adjustBody": "プレビューを見ながら暗部を穏やかに調整。必要に応じて軽いノイズ低減を使えます。",
+  "lightweightLabel": "軽量 · 約3 MB",
+  "nativeLabel": "macOSネイティブ",
+  "chipGuide": "チップを確認：Appleメニュー → このMacについて。"
 }

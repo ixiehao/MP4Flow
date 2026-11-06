@@ -45,6 +45,8 @@ main:focus { outline: none; }
 .eyebrow { margin-bottom: 18px; color: var(--blue); font-size: .72rem; font-weight: 750; letter-spacing: .1em; line-height: 1.5; text-transform: uppercase; }
 h1 { margin-bottom: 24px; font-size: clamp(2.7rem, 4.2vw, 3.8rem); font-weight: 760; line-height: 1.08; letter-spacing: -.055em; }
 .hero-intro { max-width: 480px; margin-bottom: 18px; color: var(--muted); font-size: 1.06rem; line-height: 1.8; }
+.hero-benefits { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; padding: 0; list-style: none; }
+.hero-benefits li { padding: 7px 11px; border: 1px solid #dce7fa; border-radius: 9px; color: #315989; background: #eff5ff; font-size: .75rem; font-weight: 650; line-height: 1.6; }
 .hero-formats { margin-bottom: 0; color: var(--muted); font-size: .8rem; line-height: 1.65; }
 .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 49px; padding: 12px 20px; border: 1px solid transparent; border-radius: 12px; font-size: .92rem; font-weight: 700; line-height: 1.45; text-align: center; }
@@ -115,6 +117,7 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 3.4vw, 3.1rem); font-weight: 740; 
 .download-panel h2 { margin-bottom: 20px; }
 .download-panel > p:not(.download-note) { max-width: 590px; margin: 0 auto; color: var(--muted); font-size: .98rem; line-height: 1.85; }
 .download-panel .hero-actions { justify-content: center; }
+.download-panel > .chip-guide { margin: 18px auto 0; font-size: .8rem; }
 .download-note { margin: 22px 0 0; color: var(--muted); font-size: .74rem; line-height: 1.8; }
 footer { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 24px; padding: 26px 0 32px; border-top: 1px solid var(--line); color: var(--muted); }
 footer > p { flex: 1 1 180px; margin: 0; font-size: .75rem; line-height: 1.75; }

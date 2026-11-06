@@ -28,12 +28,12 @@
   "downloadBody": "Descarga la última versión o compila el código fuente.\nGratis, de código abierto y en tu Mac.",
   "getLatest": "Descargar MP4Flow",
   "viewSource": "Código fuente",
-  "downloadNote": "macOS 13+ · Requiere FFmpeg y ffprobe",
+  "downloadNote": "macOS 13+ · Unos 3 MB por instalador. FFmpeg y ffprobe se instalan aparte.",
   "footerTagline": "Herramientas de video sencillas, en tu Mac.",
   "footerPrivacy": "Privacidad",
   "footerLicense": "Licencia MIT",
   "pageTitle": "MP4Flow — Convertidor de video a MP4 gratis para Mac",
-  "pageDescription": "Convierte MOV, MKV y AVI a MP4 en Mac. Conversión por lotes, unión y edición local. Gratis y de código abierto, para Apple Silicon e Intel.",
+  "pageDescription": "Un conversor de vídeo nativo y ligero para Mac: unos 3 MB de descarga. Convierte, une y edita en local. Gratis y de código abierto; FFmpeg se instala aparte.",
   "socialImageAlt": "MP4Flow, conversor nativo para Mac: ventana real de recorte en inglés con Tears of Steel",
   "installEyebrow": "INSTALA UNA SOLA VEZ",
   "installTitle": "Instalar FFmpeg",
@@ -81,5 +81,8 @@
   "cropRotateTitle": "Recorte y giro",
   "cropRotateBody": "Quita los bordes que sobran o gira el video 90° o 180°, sin estirar la imagen.",
   "adjustTitle": "Brillo y reducción de ruido",
-  "adjustBody": "Aclara las escenas oscuras con vista previa en directo. Añade una reducción de ruido suave si la necesitas."
+  "adjustBody": "Aclara las escenas oscuras con vista previa en directo. Añade una reducción de ruido suave si la necesitas.",
+  "lightweightLabel": "Ligera · unos 3 MB",
+  "nativeLabel": "Nativa para macOS",
+  "chipGuide": "Elige tu chip: menú Apple → Acerca de este Mac."
 }

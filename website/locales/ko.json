@@ -28,12 +28,12 @@
   "downloadBody": "최신 버전을 다운로드하거나 소스에서 빌드하세요.\n무료 오픈 소스로, 내 Mac에서 실행됩니다.",
   "getLatest": "MP4Flow 다운로드",
   "viewSource": "소스 코드",
-  "downloadNote": "macOS 13+ · FFmpeg 및 ffprobe 필요",
+  "downloadNote": "macOS 13 이상 · 설치 파일마다 약 3 MB. FFmpeg와 ffprobe는 별도 설치가 필요합니다.",
   "footerTagline": "간단한 영상 도구. 모두 내 Mac에서.",
   "footerPrivacy": "개인정보 보호",
   "footerLicense": "MIT 라이선스",
   "pageTitle": "MP4Flow — Mac용 무료 MP4 동영상 변환기",
-  "pageDescription": "Mac에서 MOV·MKV·AVI를 MP4로 변환하세요. 일괄 변환, 병합, 자르기, 비율 보정과 밝기 조정을 지원해요. 무료 오픈 소스로 영상은 내 Mac에서 처리해요.",
+  "pageDescription": "약 3 MB의 가벼운 macOS 네이티브 동영상 변환 앱. 변환·병합·편집을 Mac에서 처리합니다. 무료 오픈 소스이며 FFmpeg는 별도로 설치합니다.",
   "socialImageAlt": "Mac용 동영상 변환 앱 MP4Flow. Tears of Steel을 연 실제 영어 자르기 화면",
   "installEyebrow": "처음 한 번만 설정",
   "installTitle": "FFmpeg 설치",
@@ -81,5 +81,8 @@
   "cropRotateTitle": "자르기와 회전",
   "cropRotateBody": "불필요한 가장자리를 잘라내거나 90°·180° 회전하세요. 화면 비율은 유지됩니다.",
   "adjustTitle": "밝기와 노이즈 감소",
-  "adjustBody": "실시간 미리보기로 어두운 장면을 부드럽게 밝히고, 필요할 때 가벼운 노이즈 감소를 켜세요."
+  "adjustBody": "실시간 미리보기로 어두운 장면을 부드럽게 밝히고, 필요할 때 가벼운 노이즈 감소를 켜세요.",
+  "lightweightLabel": "가볍게 · 약 3 MB",
+  "nativeLabel": "macOS 네이티브",
+  "chipGuide": "칩 확인: Apple 메뉴 → 이 Mac에 관하여."
 }
