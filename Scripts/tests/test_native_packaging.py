@@ -230,12 +230,13 @@ class PackagingScriptFailureTests(unittest.TestCase):
         self.bin.mkdir()
         self.log = self.root / "commands.jsonl"
         self.env = os.environ.copy()
-        self.env.update({"PATH": str(self.bin) + os.pathsep + self.env.get("PATH", ""), "MP4FLOW_ARCH": "arm64", "APP_OUTPUT_PATH": str(self.project / "Candidate.app"), "QA_LOG": str(self.log), "QA_ROOT": str(self.root)})
+        self.env.update({"PATH": str(self.bin) + os.pathsep + self.env.get("PATH", ""), "MP4FLOW_ARCH": "arm64", "APP_OUTPUT_PATH": str(self.project / "Candidate.app"), "QA_LOG": str(self.log), "QA_ROOT": str(self.root), "TMPDIR": str(self.root) + os.sep})
         self.env.pop("MP4FLOW_ARCHS", None)
         self.env.pop("OUTPUT_DIR", None)
         self.stub("swift", """
 import json, os, sys, time
 with open(os.environ['QA_LOG'], 'a') as log: log.write(json.dumps(['swift'] + sys.argv[1:]) + '\\n')
+if os.environ.get('QA_EXPECT_TMP') and os.environ.get('TMPDIR') != os.environ['QA_EXPECT_TMP']: sys.exit(86)
 if '--show-bin-path' in sys.argv:
     if os.environ.get('QA_BIN_FAILURE') == 'status': sys.exit(9)
     if os.environ.get('QA_BIN_FAILURE') == 'empty': sys.exit(0)
@@ -380,19 +381,20 @@ os.execv('/bin/' + name, [name] + sys.argv[1:])
         packaging_python = self.stub("packaging-python", "import sys\nsys.exit(0)\n")
         marker = self.root / "installer-swift-started"
         output = self.root / "installers"
-        env = dict(self.env, QA_HOLD=str(marker), PACKAGING_PYTHON=str(packaging_python))
+        env = dict(self.env, QA_HOLD=str(marker), PACKAGING_PYTHON=str(packaging_python), QA_EXPECT_TMP=self.env["TMPDIR"])
         process = subprocess.Popen(["/bin/zsh", str(self.project / "Scripts/package-dmg.sh"), "--arch", "arm64", "--output-dir", str(output)], cwd=self.root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
         try:
             deadline = time.monotonic() + 5
             while not marker.exists() and process.poll() is None and time.monotonic() < deadline:
                 time.sleep(0.02)
-            self.assertTrue(marker.exists(), "The nested app build must start before cancelling its installer")
+            self.assertTrue(marker.exists(), "The nested app build must preserve compiler TMPDIR before cancelling")
             os.killpg(process.pid, signal.SIGTERM)
             process.communicate(timeout=5)
             self.assertNotEqual(process.returncode, 0)
             self.assertFalse((self.project / ".build/package-dmg.lock").exists())
             self.assertFalse((self.project / ".build/app-arm64.lock").exists())
             self.assertFalse(list(output.glob(".mp4flow-*")))
+            self.assertFalse(list(self.root.glob("mp4flow-native-app.*")))
             self.assertFalse((output / "MP4Flow-1.5.0-arm64").exists())
         finally:
             if process.poll() is None:

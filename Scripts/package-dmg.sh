@@ -38,6 +38,7 @@ done
 if $PREFLIGHT_ONLY; then exit 0; fi
 
 STAGE_DIR=""
+APP_BUILD_DIR=""
 VALIDATION_MOUNT=""
 MOUNTED=false
 LOCK_PATH="$PROJECT_DIR/.build/package-dmg.lock"
@@ -51,6 +52,7 @@ cleanup() {
   fi
   [[ -z "$VALIDATION_MOUNT" ]] || rmdir "$VALIDATION_MOUNT" 2>/dev/null || true
   [[ -z "$STAGE_DIR" ]] || rm -rf "$STAGE_DIR"
+  [[ -z "$APP_BUILD_DIR" ]] || rm -rf "$APP_BUILD_DIR"
   if $LOCK_ACQUIRED; then rm -f "$LOCK_PATH/pid"; rmdir "$LOCK_PATH"; fi
 }
 trap cleanup EXIT
@@ -83,7 +85,18 @@ for target in "${ARCHITECTURES[@]}"; do
   APP_PATH="$STAGE_DIR/MP4Flow.app"
   SYMBOLS_PATH="$STAGE_DIR/MP4Flow.app.dSYM"
   DMG_PATH="$STAGE_DIR/$ARTIFACT_NAME.dmg"
-  TMPDIR="$STAGE_DIR/" MP4FLOW_ARCH="$target" APP_OUTPUT_PATH="$APP_PATH" ./Scripts/build-app.sh
+  # Keep the compiler's own TMPDIR unchanged: a long/non-ASCII installer path
+  # can exceed Darwin's short compiler/IPC temporary-path budget. The app-only
+  # builder works in an owned system-temp directory, then we move the completed
+  # bundle into this installer's still-unpublished group.
+  APP_BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/mp4flow-native-app.XXXXXX")"
+  [[ -n "$APP_BUILD_DIR" && -d "$APP_BUILD_DIR" ]] || {
+    APP_BUILD_DIR=""; printf 'Unable to create an app build directory.\n' >&2; exit 1
+  }
+  MP4FLOW_ARCH="$target" APP_OUTPUT_PATH="$APP_BUILD_DIR/MP4Flow.app" ./Scripts/build-app.sh
+  mv "$APP_BUILD_DIR/MP4Flow.app" "$APP_PATH"
+  rmdir "$APP_BUILD_DIR"
+  APP_BUILD_DIR=""
   xcrun dsymutil "$APP_PATH/Contents/MacOS/MP4Flow" -o "$SYMBOLS_PATH"
   xcrun strip -S -x "$APP_PATH/Contents/MacOS/MP4Flow"
   codesign --force --sign - --timestamp=none "$APP_PATH"
