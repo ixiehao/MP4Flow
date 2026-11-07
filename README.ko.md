@@ -2,7 +2,7 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [Français](README.fr.md) · [Русский](README.ru.md) · [Español](README.es.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-**동영상을 MP4로. 쉽고 간편하게.** 무료 오픈 소스 Mac 네이티브 앱. 로그인도 영상 업로드도 필요 없어요.
+**동영상을 MP4로. 쉽고 간편하게.** 가볍고 무료인 macOS 네이티브 오픈 소스 앱. 동영상은 로컬에서 처리합니다. 설치 파일은 각각 약 3 MB이며, FFmpeg와 ffprobe는 별도 설치합니다.
 
 [**Mac용 다운로드**](https://github.com/ixiehao/MP4Flow/releases/latest) · [공식 사이트](https://ixiehao.github.io/MP4Flow/ko/) · [문제 신고](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
