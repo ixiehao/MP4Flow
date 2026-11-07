@@ -2,7 +2,7 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [Français](README.fr.md) · [Русский](README.ru.md) · [Español](README.es.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-**Vos vidéos en MP4. Tout simplement.** Une app Mac native, gratuite et open source. Sans compte ni envoi de vidéos.
+**Vos vidéos en MP4. Tout simplement.** Une app macOS native, légère, gratuite et open source. Traitement local. Chaque installateur pèse environ 3 Mo ; FFmpeg et ffprobe s’installent séparément.
 
 [**Télécharger pour Mac**](https://github.com/ixiehao/MP4Flow/releases/latest) · [Site officiel](https://ixiehao.github.io/MP4Flow/fr/) · [Signaler un problème](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 

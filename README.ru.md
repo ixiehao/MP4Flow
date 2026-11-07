@@ -2,7 +2,7 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md) · [Français](README.fr.md) · [Русский](README.ru.md) · [Español](README.es.md) · [日本語](README.ja.md) · [한국어](README.ko.md)
 
-**Видео в MP4. Проще простого.** Бесплатное приложение с открытым кодом, созданное для Mac. Без регистрации и загрузки видео в интернет.
+**Видео в MP4. Проще простого.** Лёгкое нативное приложение для macOS: бесплатно, с открытым кодом и локальной обработкой. Каждый установщик — около 3 МБ; FFmpeg и ffprobe устанавливаются отдельно.
 
 [**Скачать для Mac**](https://github.com/ixiehao/MP4Flow/releases/latest) · [Официальный сайт](https://ixiehao.github.io/MP4Flow/ru/) · [Сообщить о проблеме](https://github.com/ixiehao/MP4Flow/issues/new/choose)
 
