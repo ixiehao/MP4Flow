@@ -81,7 +81,7 @@ jobs:
       - run: npm run test:website -- --project=${{ matrix.browser }}
       - name: Save layout reports and failure screenshots
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: website-report-${{ matrix.browser }}-${{ matrix.language }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
