@@ -51,7 +51,7 @@ jobs:
     outputs:
       languages: ${{ steps.languages.outputs.languages }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -70,7 +70,7 @@ jobs:
     env:
       SITE_TEST_LANGUAGE: ${{ matrix.language }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -132,7 +132,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Submit published canonical pages
         id: indexnow
         continue-on-error: true
