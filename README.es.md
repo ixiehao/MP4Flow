@@ -37,7 +37,7 @@ También puedes cambiar la resolución de salida. Todo el procesamiento de video
 2. **Configura FFmpeg y ffprobe.** Abre MP4Flow y haz clic en el icono de onda de la parte superior para abrir Diagnóstico.
 
    - **¿Ya tienes Homebrew?** Si faltan las herramientas, pulsa «Instalar dependencias».
-   - **¿No tienes Homebrew?** [Abrir Homebrew](https://brew.sh/). Sigue las instrucciones oficiales y completa los «Next steps» si aparecen. Vuelve a MP4Flow y pulsa «Instalar dependencias».
+   - **¿No tienes Homebrew?** Sigue las instrucciones oficiales y completa los «Next steps» si aparecen. Vuelve a MP4Flow y pulsa «Instalar dependencias». [Abrir Homebrew](https://brew.sh/)
 
    MP4Flow vuelve a comprobar FFmpeg y ffprobe automáticamente. Cuando ambos estén listos, puedes empezar a convertir. [Requisitos de Homebrew](https://docs.brew.sh/Installation#macos-requirements)
 

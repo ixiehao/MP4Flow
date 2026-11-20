@@ -37,7 +37,7 @@
 2. **FFmpeg와 ffprobe를 설정하세요.** MP4Flow를 열고 창 상단의 파형 아이콘을 눌러 ‘환경 점검’을 엽니다.
 
    - **Homebrew가 이미 있나요?** 도구가 없으면 ‘의존성 설치’를 누르세요.
-   - **Homebrew가 없나요?** [Homebrew 웹사이트 열기](https://brew.sh/). 공식 안내에 따라 설치하고 ‘Next steps’가 표시되면 완료하세요. MP4Flow로 돌아와 ‘의존성 설치’를 누르세요.
+   - **Homebrew가 없나요?** 공식 안내에 따라 설치하고 ‘Next steps’가 표시되면 완료하세요. MP4Flow로 돌아와 ‘의존성 설치’를 누르세요. [Homebrew 웹사이트 열기](https://brew.sh/)
 
    MP4Flow가 FFmpeg와 ffprobe를 자동으로 다시 확인합니다. 두 도구가 준비되면 변환을 시작할 수 있습니다. [Homebrew 시스템 요구 사항](https://docs.brew.sh/Installation#macos-requirements)
 

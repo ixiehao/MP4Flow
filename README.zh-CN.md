@@ -37,7 +37,7 @@
 2. **安装 FFmpeg 和 ffprobe。** 打开 MP4Flow，点击窗口顶部的波形图标，进入「环境体检」。
 
    - **已安装 Homebrew？** 如果缺少转换工具，点击「一键安装依赖」。
-   - **还没有 Homebrew？** [打开 Homebrew 官网](https://brew.sh/). 按官网提示安装，并完成安装后显示的「Next steps」（如有）。然后回到 MP4Flow，点击「一键安装依赖」。
+   - **还没有 Homebrew？** 按官网提示安装，并完成安装后显示的「Next steps」（如有）。然后回到 MP4Flow，点击「一键安装依赖」。 [打开 Homebrew 官网](https://brew.sh/)
 
    MP4Flow 会自动复检 FFmpeg 和 ffprobe。两项都已就绪后，即可开始转换。 [Homebrew 的系统要求](https://docs.brew.sh/Installation#macos-requirements)
 

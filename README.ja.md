@@ -37,7 +37,7 @@
 2. **FFmpeg と ffprobe を設定します。** MP4Flow を開き、ウィンドウ上部の波形アイコンをクリックして「環境チェック」を開きます。
 
    - **Homebrew をインストール済みの場合** ツールが不足している場合は「依存関係をインストール」をクリックします。
-   - **Homebrew がない場合** [Homebrewを開く](https://brew.sh/). 公式の手順に従い、「Next steps」が表示されたら最後まで実行します。その後 MP4Flow に戻り、「依存関係をインストール」をクリックします。
+   - **Homebrew がない場合** 公式の手順に従い、「Next steps」が表示されたら最後まで実行します。その後 MP4Flow に戻り、「依存関係をインストール」をクリックします。 [Homebrewを開く](https://brew.sh/)
 
    MP4Flow が FFmpeg と ffprobe を自動で再確認します。両方の準備ができたら変換を開始できます。 [Homebrew の動作要件](https://docs.brew.sh/Installation#macos-requirements)
 
