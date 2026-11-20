@@ -34,13 +34,12 @@ Vous pouvez aussi changer la résolution de sortie. Tout le traitement vidéo se
 ## Télécharger et installer
 
 1. **Installez l’app.** Ouvrez la [dernière version](https://github.com/ixiehao/MP4Flow/releases/latest), dépliez **Assets** et téléchargez le **fichier `.dmg` de MP4Flow** adapté : **arm64 (Apple Silicon)** ou **x86_64 (Intel)**. Ouvrez-le, puis glissez **MP4Flow** dans **Applications**.
-2. **Installez les outils vidéo une seule fois.** Ouvrez **Terminal** avec Spotlight (`⌘ Espace`). Au besoin, [installez Homebrew](https://brew.sh/) et suivez ses **Next steps** jusqu’au bout. Exécutez ensuite :
+2. **Configurez FFmpeg et ffprobe.** Ouvrez MP4Flow et cliquez sur l’icône en forme d’onde en haut pour ouvrir le diagnostic.
 
-   ```sh
-   brew install ffmpeg
-   ```
+   - **Homebrew est déjà installé ?** Si les outils manquent, cliquez sur « Installer les dépendances ».
+   - **Vous n’avez pas Homebrew ?** [Ouvrir Homebrew](https://brew.sh/). Suivez les instructions officielles et effectuez les éventuelles étapes « Next steps ». Revenez ensuite à MP4Flow et cliquez sur « Installer les dépendances ».
 
-   Cette commande installe FFmpeg et ffprobe. Homebrew a ses propres [prérequis système](https://docs.brew.sh/Installation#macos-requirements).
+   MP4Flow vérifie automatiquement FFmpeg et ffprobe. Vous pouvez convertir vos vidéos dès que les deux outils sont prêts. [Configuration requise pour Homebrew](https://docs.brew.sh/Installation#macos-requirements)
 
 3. **Convertissez votre première vidéo.** Ajoutez-la dans MP4Flow, gardez **Conversion intelligente**, choisissez la qualité et cliquez sur **Démarrer**.
 

@@ -171,15 +171,15 @@
       </div>
       <h2 id="install-dialog-title" data-i18n="installTitle">{{installTitle}}</h2>
       <p class="dialog-intro" data-i18n="installIntro">{{installIntro}}</p>
-      <p class="install-help"><span data-i18n="installHelp">{{installHelp}}</span> <a href="https://brew.sh/" target="_blank" rel="noreferrer">brew.sh</a></p>
-      <ol class="install-steps">
-        <li data-i18n="installStepOne">{{installStepOne}}</li>
-        <li>
-          <span data-i18n="installStepTwo">{{installStepTwo}}</span>
-          <code>brew install ffmpeg</code>
-        </li>
-        <li data-i18n="installStepThree">{{installStepThree}}</li>
-      </ol>
+      <ul class="install-steps">
+        <li><strong>{{installWithHomebrew}}</strong> {{installStepTwo}}</li>
+        <li><strong>{{installWithoutHomebrew}}</strong> <a href="https://brew.sh/" target="_blank" rel="noreferrer">{{installOpenHomebrew}}</a>. {{installHelp}}</li>
+      </ul>
+      <p class="install-result">{{installStepThree}}</p>
+      <details class="install-optional">
+        <summary>{{installManual}}</summary>
+        <p>{{installManualBody}}</p>
+      </details>
       <details class="install-optional">
         <summary>{{installOptional}}</summary>
         <p>{{installOptionalBody}} <code>brew install ffmpeg-full</code></p>
@@ -187,7 +187,20 @@
       <p class="install-help"><a href="https://docs.brew.sh/Installation#macos-requirements" target="_blank" rel="noreferrer">{{installRequirements}}</a></p>
     </dialog>
 
-    <noscript><div class="noscript-install"><p>{{installIntro}}</p><p>{{installHelp}} <a href="https://brew.sh/">brew.sh</a></p><p>{{installStepOne}} {{installStepTwo}} <code>brew install ffmpeg</code></p><p>{{installStepThree}}</p><p>{{installOptionalBody}} <code>brew install ffmpeg-full</code></p><a href="https://docs.brew.sh/Installation#macos-requirements">{{installRequirements}}</a></div></noscript>
+    <noscript>
+      <section class="noscript-install">
+        <h2>{{installTitle}}</h2>
+        <p>{{installIntro}}</p>
+        <ul class="install-steps">
+          <li><strong>{{installWithHomebrew}}</strong> {{installStepTwo}}</li>
+          <li><strong>{{installWithoutHomebrew}}</strong> <a href="https://brew.sh/">{{installOpenHomebrew}}</a>. {{installHelp}}</li>
+        </ul>
+        <p class="install-result">{{installStepThree}}</p>
+        <p>{{installManualBody}}</p>
+        <p>{{installOptionalBody}} <code>brew install ffmpeg-full</code></p>
+        <a href="https://docs.brew.sh/Installation#macos-requirements">{{installRequirements}}</a>
+      </section>
+    </noscript>
     <script src="app.js?v={{scriptVersion}}" defer></script>
   </body>
 </html>

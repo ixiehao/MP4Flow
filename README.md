@@ -34,13 +34,12 @@ You can also change output resolution. All video processing stays on your Mac.
 ## Download and install
 
 1. **Install the app.** Open the [latest release](https://github.com/ixiehao/MP4Flow/releases/latest), expand **Assets**, and download the MP4Flow **`.dmg` installer** for your chip: **arm64 (Apple Silicon)** or **x86_64 (Intel)**. Open it and drag **MP4Flow** to **Applications**.
-2. **Install the video tools once.** Open **Terminal** using Spotlight (`⌘ Space`). If needed, [install Homebrew](https://brew.sh/) first and complete its **Next steps**. Then run:
+2. **Set up FFmpeg and ffprobe.** Open MP4Flow and click the waveform icon at the top to open Environment Check.
 
-   ```sh
-   brew install ffmpeg
-   ```
+   - **Already have Homebrew?** If the tools are missing, click “Install dependencies”.
+   - **No Homebrew?** [Open Homebrew](https://brew.sh/). Follow the official installation instructions and complete any “Next steps”. Then return to MP4Flow and click “Install dependencies”.
 
-   This installs both FFmpeg and ffprobe. Homebrew has its own [system requirements](https://docs.brew.sh/Installation#macos-requirements).
+   MP4Flow checks FFmpeg and ffprobe again automatically. If both are ready, you can start converting. [Homebrew system requirements](https://docs.brew.sh/Installation#macos-requirements)
 
 3. **Convert your first video.** Open MP4Flow, add a video, keep **Smart Convert** selected, choose quality, and click **Start**.
 

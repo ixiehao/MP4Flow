@@ -34,13 +34,12 @@
 ## 다운로드와 설치
 
 1. **앱을 설치하세요.** [최신 버전 페이지](https://github.com/ixiehao/MP4Flow/releases/latest)에서 **Assets**를 펼쳐 칩에 맞는 **MP4Flow `.dmg` 설치 파일**: **arm64(Apple Silicon)** 또는 **x86_64(Intel)**을 다운로드하세요. 파일을 열고 **MP4Flow**를 **Applications(응용 프로그램)**로 드래그하세요.
-2. **영상 도구를 한 번만 설치하세요.** Spotlight(`⌘ 스페이스`)에서 **터미널**을 찾아 여세요. Homebrew가 없다면 [공식 안내](https://brew.sh/)에 따라 설치하고 마지막의 **Next steps**까지 완료하세요. 그다음 아래 명령을 실행하세요.
+2. **FFmpeg와 ffprobe를 설정하세요.** MP4Flow를 열고 창 상단의 파형 아이콘을 눌러 ‘환경 점검’을 엽니다.
 
-   ```sh
-   brew install ffmpeg
-   ```
+   - **Homebrew가 이미 있나요?** 도구가 없으면 ‘의존성 설치’를 누르세요.
+   - **Homebrew가 없나요?** [Homebrew 웹사이트 열기](https://brew.sh/). 공식 안내에 따라 설치하고 ‘Next steps’가 표시되면 완료하세요. MP4Flow로 돌아와 ‘의존성 설치’를 누르세요.
 
-   FFmpeg와 ffprobe가 함께 설치돼요. Homebrew의 [시스템 요구 사항](https://docs.brew.sh/Installation#macos-requirements)은 MP4Flow와 별개예요.
+   MP4Flow가 FFmpeg와 ffprobe를 자동으로 다시 확인합니다. 두 도구가 준비되면 변환을 시작할 수 있습니다. [Homebrew 시스템 요구 사항](https://docs.brew.sh/Installation#macos-requirements)
 
 3. **첫 영상을 변환하세요.** MP4Flow에 영상을 추가하고 **스마트 변환**을 유지한 채 화질을 고른 다음 **시작**을 누르세요.
 

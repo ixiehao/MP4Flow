@@ -34,13 +34,12 @@
 ## 下载与安装
 
 1. **安装应用。** 打开[最新版本页面](https://github.com/ixiehao/MP4Flow/releases/latest)，展开 **Assets**，下载对应芯片的 **MP4Flow `.dmg` 安装包**：**arm64（Apple 芯片）** 或 **x86_64（Intel）**。打开后，将 **MP4Flow** 拖入 **Applications（应用程序）**。
-2. **首次安装视频工具。** 按 `⌘ 空格`，搜索并打开「终端」。如果还没有 Homebrew，先按[官网说明](https://brew.sh/)安装，并完成安装后提示的 **Next steps**。然后运行：
+2. **安装 FFmpeg 和 ffprobe。** 打开 MP4Flow，点击窗口顶部的波形图标，进入「环境体检」。
 
-   ```sh
-   brew install ffmpeg
-   ```
+   - **已安装 Homebrew？** 如果缺少转换工具，点击「一键安装依赖」。
+   - **还没有 Homebrew？** [打开 Homebrew 官网](https://brew.sh/). 按官网提示安装，并完成安装后显示的「Next steps」（如有）。然后回到 MP4Flow，点击「一键安装依赖」。
 
-   这会同时安装 FFmpeg 和 ffprobe。Homebrew 的[系统要求](https://docs.brew.sh/Installation#macos-requirements)与 MP4Flow 分开计算。
+   MP4Flow 会自动复检 FFmpeg 和 ffprobe。两项都已就绪后，即可开始转换。 [Homebrew 的系统要求](https://docs.brew.sh/Installation#macos-requirements)
 
 3. **开始第一次转换。** 打开 MP4Flow，添加视频，保持「**智能转换（推荐）**」，选择画质，点击「**开始转换**」。
 
