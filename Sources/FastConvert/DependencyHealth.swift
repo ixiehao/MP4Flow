@@ -381,7 +381,7 @@ struct DependencyHealthStatusBar: View {
     let refresh: () -> Void
     let copyFFmpegInstallCommand: () -> Void
     let openHomebrewWebsite: () -> Void
-    @State private var isShowingDetails = false
+    @Binding var isShowingDetails: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -470,6 +470,25 @@ private struct DependencyHealthSheet: View {
     let copyFFmpegInstallCommand: () -> Void
     let openHomebrewWebsite: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var installing = false
+    @State private var installOutcome: DependencyInstaller.Outcome?
+
+    private var installMessage: String? {
+        switch installOutcome {
+        case .homebrewMissing:
+            return "未找到 Homebrew。请先从官网下载并安装，然后回来重试。"
+        case .installed where monitor.isChecking:
+            return "安装命令已完成，正在重新检查。"
+        case .installed where monitor.report.needsFFmpegInstall:
+            return "安装后仍无法使用 FFmpeg 或 ffprobe。请查看上方的检测结果。"
+        case .installed:
+            return "FFmpeg 和 ffprobe 已就绪。"
+        case .failed:
+            return "安装未完成。请检查网络和 Homebrew 权限后重试，或使用终端安装。"
+        case nil:
+            return nil
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -484,14 +503,17 @@ private struct DependencyHealthSheet: View {
                         .foregroundStyle(BrandColor.textSecondary)
                 }
                 Spacer()
-                Button { refresh() } label: {
+                Button {
+                    installOutcome = nil
+                    refresh()
+                } label: {
                     HStack(spacing: 6) {
                         Mark(kind: .refresh, color: BrandColor.blue).frame(width: 13, height: 13)
                         Text(L10n.text("重新检查"))
                     }
                 }
                     .buttonStyle(HealthSheetActionButtonStyle(primary: false))
-                    .disabled(monitor.isChecking)
+                    .disabled(installing || monitor.isChecking)
             }
 
             if monitor.isChecking {
@@ -509,16 +531,13 @@ private struct DependencyHealthSheet: View {
                 title: "FFmpeg",
                 level: monitor.report.ffmpeg.level,
                 detail: executableDetail(monitor.report.ffmpeg),
-                fix: monitor.report.ffmpeg.level == .failed
-                    ? L10n.text(monitor.report.ffmpeg.path == nil
-                        ? "请在终端执行 brew install ffmpeg，然后重新检查。"
-                        : "请重新安装 FFmpeg：brew reinstall ffmpeg。") : nil
+                fix: nil
             )
             healthRow(
                 title: "FFprobe",
                 level: monitor.report.ffprobe.level,
                 detail: executableDetail(monitor.report.ffprobe),
-                fix: monitor.report.ffprobe.level == .failed ? L10n.text("请重新安装 FFmpeg：brew reinstall ffmpeg。") : nil
+                fix: nil
             )
             healthRow(
                 title: "VideoToolbox",
@@ -547,27 +566,67 @@ private struct DependencyHealthSheet: View {
             .padding(10)
             .background(BrandColor.selectSurface, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 
+            if monitor.report.needsFFmpegInstall {
+                HStack(spacing: 8) {
+                    Button {
+                        installOutcome = nil
+                        installing = true
+                        Task {
+                            let outcome = await DependencyInstaller.install(damagedFFmpeg: monitor.report.ffmpeg.path)
+                            installOutcome = outcome
+                            if outcome == .installed { refresh() }
+                            installing = false
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if installing { ProgressView().controlSize(.small) }
+                            Text(L10n.text(installing ? "正在安装依赖…" : "一键安装依赖"))
+                        }
+                    }
+                    .buttonStyle(HealthSheetActionButtonStyle(primary: true))
+                    .disabled(installing || monitor.isChecking)
+                    Spacer(minLength: 0)
+                }
+            }
+            if let installMessage {
+                Text(L10n.text(installMessage))
+                    .font(AppFont.caption)
+                    .foregroundStyle(BrandColor.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if case .failed(let detail) = installOutcome, !detail.isEmpty {
+                ScrollView {
+                    Text(detail)
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(BrandColor.textSecondary)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 70)
+            }
             HStack(spacing: 8) {
                 if monitor.report.needsFFmpegInstall {
                     Button(L10n.text("复制安装命令")) {
-                        if monitor.report.ffmpeg.path == nil {
-                            copyFFmpegInstallCommand()
-                        } else {
+                        if let path = monitor.report.ffmpeg.path {
                             NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString("brew reinstall ffmpeg", forType: .string)
+                            NSPasteboard.general.setString("brew reinstall " + DependencyInstaller.formula(for: path), forType: .string)
+                        } else {
+                            copyFFmpegInstallCommand()
                         }
                     }
-                        .buttonStyle(HealthSheetActionButtonStyle(primary: true))
+                        .buttonStyle(HealthSheetActionButtonStyle(primary: false))
                     Button(L10n.text("打开 Homebrew 官网")) { openHomebrewWebsite() }
                         .buttonStyle(HealthSheetActionButtonStyle(primary: false))
                 }
                 Spacer()
                 Button(L10n.text("完成")) { dismiss() }
                     .buttonStyle(HealthSheetActionButtonStyle(primary: true))
+                    .disabled(installing)
             }
         }
         .padding(22)
         .frame(width: 540)
+        .interactiveDismissDisabled(installing)
     }
 
     @ViewBuilder

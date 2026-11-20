@@ -496,3 +496,11 @@
 
 "处理详情" = "Detalles de conversión";
 "未保留 %d 个分段书签（章节），不影响视频播放。" = "Se omitieron %d marcadores de capítulo. La reproducción no cambia.";
+
+"一键安装依赖" = "Instalar dependencias";
+"正在安装依赖…" = "Instalando dependencias…";
+"未找到 Homebrew。请先从官网下载并安装，然后回来重试。" = "No se encontró Homebrew. Instálalo desde su web oficial y vuelve a intentarlo.";
+"安装命令已完成，正在重新检查。" = "Instalación terminada. Comprobando…";
+"安装未完成。请检查网络和 Homebrew 权限后重试，或使用终端安装。" = "Falló la instalación. Comprueba la red y los permisos de Homebrew o usa Terminal.";
+"FFmpeg 和 ffprobe 已就绪。" = "FFmpeg y ffprobe están listos.";
+"安装后仍无法使用 FFmpeg 或 ffprobe。请查看上方的检测结果。" = "FFmpeg o ffprobe sigue sin estar disponible. Consulta los resultados de arriba.";
