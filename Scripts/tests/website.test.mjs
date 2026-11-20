@@ -42,7 +42,21 @@ test('seven canonical pages are complete, crawlable and use matching real screen
       assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
       assert.equal((html.match(/<link rel="alternate" hreflang=/g) ?? []).length, 8);
       assert.ok(html.includes(catalogs[language.id].installTitle));
-      assert.ok(html.includes('brew install ffmpeg'));
+      const setup = html.match(/<dialog class="install-dialog"[\s\S]*?<\/dialog>/)?.[0];
+      const fallback = html.match(/<noscript>[\s\S]*?<\/noscript>/)?.[0];
+      const resourceLocale = language.id === 'zh' ? 'zh-Hans' : language.id;
+      const strings = await readFile(new URL(`../../AppResources/${resourceLocale}.lproj/Localizable.strings`, import.meta.url), 'utf8');
+      const installerLabel = strings.match(/^"一键安装依赖" = "([^"]+)";$/m)?.[1];
+      assert.ok(installerLabel);
+      const readmeName = language.id === 'en' ? 'README.md' : `README.${language.id === 'zh' ? 'zh-CN' : language.id}.md`;
+      const readme = await readFile(new URL(`../../${readmeName}`, import.meta.url), 'utf8');
+      for (const guide of [setup, fallback, readme]) {
+        assert.ok(guide?.includes(copy.installWithHomebrew));
+        assert.ok(guide.includes(copy.installWithoutHomebrew));
+        assert.ok(guide.includes('https://brew.sh/'));
+        assert.ok(guide.includes(copy.installStepThree));
+        assert.equal(guide.split(installerLabel).length - 1, 2, 'both branches use the actual App button label');
+      }
       const schema = JSON.parse(html.match(/id="software-schema"[^>]*>([\s\S]*?)<\/script>/)[1]);
       assert.deepEqual(schema.inLanguage, languages.map(l => l.locale));
       assert.equal(schema.url, siteURL + localePath(language.id));

@@ -134,12 +134,16 @@ footer .media-credit { flex: 0 0 100%; margin-top: 5px; color: #7b889c; font-siz
 .install-dialog h2 { margin-bottom: 14px; font-size: 2rem; }
 .dialog-intro { margin-bottom: 24px; color: var(--muted); line-height: 1.8; }
 .install-steps { display: grid; gap: 15px; margin: 0; padding-left: 22px; color: var(--muted); line-height: 1.7; }
-.install-steps code, .install-optional code { display: block; margin-top: 9px; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; color: #164eae; background: #f3f7ff; font: .85rem ui-monospace, SFMono-Regular, Menlo, monospace; }
+.install-steps strong { color: var(--ink); }
+.install-steps a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.install-result { margin: 16px 0 0; color: var(--muted); line-height: 1.7; }
+.install-optional code { display: block; margin-top: 9px; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; color: #164eae; background: #f3f7ff; font: .85rem ui-monospace, SFMono-Regular, Menlo, monospace; }
 .install-help { margin: 25px 0 0; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.7; }
 .install-help a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 .install-optional { margin-top: 22px; color: var(--muted); font-size: .85rem; line-height: 1.7; }
 .install-optional summary { min-height: 44px; padding: 10px 0; cursor: pointer; }
 .install-optional p { margin: 0; }
+.install-optional + .install-optional { margin-top: 0; }
 .noscript-install { max-width: 650px; margin: 0 auto 24px; padding: 16px; line-height: 1.7; }
 
 @media (max-width: 960px) {
