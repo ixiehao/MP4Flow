@@ -458,7 +458,7 @@ struct ContentView: View {
             }
             Button(L10n.text("稍后再说"), role: .cancel) {}
         } message: {
-            Text(L10n.text("FFmpeg 或 ffprobe 未安装，或无法运行。请先在「环境体检」查看缺少的组件与修复方法。\n\n如未安装，可在终端执行：brew install ffmpeg\n安装后重新检查。"))
+            Text(L10n.text("打开「环境体检」，安装或修复 FFmpeg 和 ffprobe。"))
         }
         .alert(L10n.text("检查更新"), isPresented: $showUpdateNotice) {
             if updateDownloadURL != nil {

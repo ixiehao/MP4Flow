@@ -31,6 +31,18 @@ final class DependencyInstallerTests: XCTestCase {
         XCTAssertEqual(result, .failed("network error"))
     }
 
+    func testRepairKeepsTheFullFormula() async {
+        let result = await DependencyInstaller.install(
+            damagedFFmpeg: "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg",
+            candidates: [URL(fileURLWithPath: "/usr/bin/true")]
+        ) { _, arguments in
+            let expected = [["list", "--versions", "ffmpeg-full"], ["reinstall", "ffmpeg-full"]]
+            XCTAssertTrue(expected.contains(arguments))
+            return .init(succeeded: expected.contains(arguments), detail: "")
+        }
+        XCTAssertEqual(result, .installed)
+    }
+
     func testRealProcessRunsOnlyTheExpectedCommands() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

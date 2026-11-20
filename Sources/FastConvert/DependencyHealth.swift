@@ -501,6 +501,7 @@ private struct DependencyHealthSheet: View {
                     Text(L10n.text("检查本机转换依赖与硬件编码；输出位置在添加视频后检查。"))
                         .font(AppFont.caption)
                         .foregroundStyle(BrandColor.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
                 Button {
@@ -514,6 +515,7 @@ private struct DependencyHealthSheet: View {
                 }
                     .buttonStyle(HealthSheetActionButtonStyle(primary: false))
                     .disabled(installing || monitor.isChecking)
+                    .fixedSize()
             }
 
             if monitor.isChecking {
@@ -602,7 +604,7 @@ private struct DependencyHealthSheet: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxHeight: 70)
+                .frame(height: 70)
             }
             HStack(spacing: 8) {
                 if monitor.report.needsFFmpegInstall {
