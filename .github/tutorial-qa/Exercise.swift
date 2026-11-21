@@ -44,7 +44,7 @@ func captureWindow(_ element: AXUIElement, ownedBy pid: pid_t, to output: String
           AXValueGetValue(unsafeBitCast(size, to: AXValue.self), .cgSize, &extent),
           extent.width > 300, extent.height > 150 else { fail("Invalid capture geometry") }
     let choices = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
-    let candidates = choices.compactMap { item -> (Int, Double)? in
+    let candidates = choices.compactMap { item -> (Int, CGFloat)? in
         guard item[kCGWindowOwnerPID as String] as? pid_t == pid,
               let id = item[kCGWindowNumber as String] as? Int,
               let bounds = item[kCGWindowBounds as String] as? NSDictionary,
