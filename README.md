@@ -34,7 +34,7 @@ You can also change output resolution. All video processing stays on your Mac.
 ## Download and install
 
 1. **Install the app.** Open the [latest release](https://github.com/ixiehao/MP4Flow/releases/latest), expand **Assets**, and download the MP4Flow **`.dmg` installer** for your chip: **arm64 (Apple Silicon)** or **x86_64 (Intel)**. Open it and drag **MP4Flow** to **Applications**.
-2. **Set up FFmpeg and ffprobe.** Open MP4Flow and click the waveform icon at the top to open Environment Check.
+2. **Set up FFmpeg and ffprobe.** Open MP4Flow and choose “Help → Check Dependencies…” from the menu bar.
 
    - **Already have Homebrew?** If the tools are missing, click “Install dependencies”.
    - **No Homebrew?** Follow the official installation instructions and complete any “Next steps”. Then return to MP4Flow and click “Install dependencies”. [Open Homebrew](https://brew.sh/)

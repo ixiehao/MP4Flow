@@ -256,6 +256,9 @@ test('seven READMEs cover all ten features and use current App action names', as
       assert.ok(readme.includes(`| **${catalogs[language.id][key]}** |`), `${language.id}: ${key}`);
     }
     for (const key of ['画面编辑', '画面调整', '应用编辑', '开始转换']) assert.ok(readme.includes(`**${label(key)}**`), `${language.id}: ${key}`);
+    const dependencyMenu = `${label('menu.help')} → ${label('检查依赖…')}`;
+    assert.ok(catalogs[language.id].installIntro.includes(dependencyMenu), `${language.id}: website dependency menu`);
+    assert.ok(readme.includes(dependencyMenu), `${language.id}: README dependency menu`);
     assert.ok(!readme.includes(`**${label('裁切与比例')} →`), language.id);
     assert.match(readme, /HDR/);
     assert.ok((readme.match(/https:\/\/github\.com\/ixiehao\/MP4Flow\/releases\/latest/g) ?? []).length >= 2, language.id);

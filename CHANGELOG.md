@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.3 — 2026-11-20
+
+**English** — Open Environment Check from Help → Check Dependencies. The Language menu now offers Follow System, and About links to the official website.
+
+**简体中文** — 可从「帮助 → 检查依赖」打开环境体检。「语言」菜单支持跟随系统，「关于」面板可打开官网。
+
+**日本語** — 「ヘルプ → 依存ツールを確認」から環境チェックを開けます。言語はシステム設定に合わせられ、「MP4Flow について」から公式サイトを開けます。
+
+**한국어** — ‘도움말 → 의존성 확인’에서 환경 점검을 열 수 있습니다. 언어는 시스템 설정을 따를 수 있으며, 정보 창에 공식 웹사이트 링크가 추가되었습니다.
+
+macOS 13+ · Apple Silicon / Intel · FFmpeg and ffprobe installed separately · Ad-hoc signed, not notarized
+
 ## 1.5.1 — 2026-11-06
 
 ### English

@@ -34,7 +34,7 @@ Vous pouvez aussi changer la résolution de sortie. Tout le traitement vidéo se
 ## Télécharger et installer
 
 1. **Installez l’app.** Ouvrez la [dernière version](https://github.com/ixiehao/MP4Flow/releases/latest), dépliez **Assets** et téléchargez le **fichier `.dmg` de MP4Flow** adapté : **arm64 (Apple Silicon)** ou **x86_64 (Intel)**. Ouvrez-le, puis glissez **MP4Flow** dans **Applications**.
-2. **Configurez FFmpeg et ffprobe.** Ouvrez MP4Flow et cliquez sur l’icône en forme d’onde en haut pour ouvrir le diagnostic.
+2. **Configurez FFmpeg et ffprobe.** Ouvrez MP4Flow et choisissez « Aide → Vérifier les dépendances… » dans la barre des menus.
 
    - **Homebrew est déjà installé ?** Si les outils manquent, cliquez sur « Installer les dépendances ».
    - **Vous n’avez pas Homebrew ?** Suivez les instructions officielles et effectuez les éventuelles étapes « Next steps ». Revenez ensuite à MP4Flow et cliquez sur « Installer les dépendances ». [Ouvrir Homebrew](https://brew.sh/)

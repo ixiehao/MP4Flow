@@ -8,13 +8,19 @@ struct MP4FlowApp: App {
     @NSApplicationDelegateAdaptor(MP4FlowAppDelegate.self) private var appDelegate
     @StateObject private var store = ConverterStore(journal: .live)
     @StateObject private var updateChecker = UpdateChecker()
-    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
+    @State private var dependencyCheckRequested = false
+    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.followSystem
 
     var body: some Scene {
-        WindowGroup(id: "main") {
-            ContentView(store: store, updateChecker: updateChecker, appDelegate: appDelegate)
+        Window("MP4Flow", id: "main") {
+            ContentView(
+                store: store,
+                updateChecker: updateChecker,
+                appDelegate: appDelegate,
+                dependencyCheckRequested: $dependencyCheckRequested
+            )
                 .frame(minWidth: 980, minHeight: 650)
-                .environment(\.locale, (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).locale)
+                .environment(\.locale, (AppLanguage.resolve(appLanguageIdentifier)).locale)
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -23,25 +29,31 @@ struct MP4FlowApp: App {
                     appDelegate.showAboutPanel(availableUpdate: updateChecker.availableUpdate)
                 }
             }
-            CommandMenu((AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).text("Language")) {
+            CommandMenu(AppLanguage.resolve(appLanguageIdentifier).text("Language")) {
                 Picker(selection: $appLanguageIdentifier) {
+                    Text(verbatim: L10n.text("跟随系统")).tag(AppLanguage.followSystem)
                     ForEach(AppLanguage.allCases) { language in
                         Text(verbatim: language.displayName).tag(language.rawValue)
                     }
                 } label: {
-                    Text(verbatim: (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).text("Language"))
+                    Text(verbatim: AppLanguage.resolve(appLanguageIdentifier).text("Language"))
                 }
                 .pickerStyle(.inline)
+                .labelsHidden()
             }
             CommandGroup(replacing: .help) {
                 Button(L10n.text("MP4Flow 使用帮助")) {
                     appDelegate.showHelpPanel(updateChecker: updateChecker)
                 }
                 Divider()
-                Button(updateChecker.isChecking ? L10n.text("正在检查…") : L10n.text("检查更新…")) {
+                Button(L10n.text("检查更新…")) {
                     appDelegate.requestManualUpdateCheck?()
                 }
                 .disabled(updateChecker.isChecking)
+                Button(L10n.text("检查依赖…")) {
+                    dependencyCheckRequested = true
+                    appDelegate.openMainWindow?()
+                }
                 if let update = updateChecker.availableUpdate {
                     Button(L10n.format("发现新版本 v%@", update.version)) {
                         updateChecker.openDownloadPage()
@@ -55,7 +67,7 @@ struct MP4FlowApp: App {
         Settings {
             UpdateSettingsView(updateChecker: updateChecker)
                 .id(appLanguageIdentifier)
-                .environment(\.locale, (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).locale)
+                .environment(\.locale, (AppLanguage.resolve(appLanguageIdentifier)).locale)
         }
     }
 }
@@ -64,6 +76,13 @@ private enum ProjectLinks {
     static let repository = URL(string: "https://github.com/ixiehao/MP4Flow")!
     static let issues = URL(string: "https://github.com/ixiehao/MP4Flow/issues/new/choose")!
     static let developer = URL(string: "https://github.com/ixiehao")!
+
+    static func website(for language: AppLanguage) -> URL {
+        let root = "https://ixiehao.github.io/MP4Flow/"
+        if language == .english { return URL(string: root)! }
+        let route = language == .chinese ? "zh" : language.rawValue
+        return URL(string: root + route + "/")!
+    }
 }
 
 private enum AboutCredits {
@@ -93,6 +112,7 @@ private enum AboutCredits {
         appendBody(L10n.text("免费开源的本地视频转换工具") + "\n")
         appendBody(L10n.text("开发者："))
         appendLink("ixiehao\n", ProjectLinks.developer)
+        appendLink("ixiehao.github.io/MP4Flow\n", ProjectLinks.website(for: L10n.language))
         appendLink("github.com/ixiehao/MP4Flow\n", ProjectLinks.repository)
         appendLink(L10n.text("反馈问题或建议"), ProjectLinks.issues)
         if let availableUpdate {
@@ -200,7 +220,7 @@ private struct HelpStep: View {
 
 private struct HelpPanel: View {
     @ObservedObject var updateChecker: UpdateChecker
-    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
+    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.followSystem
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -280,7 +300,7 @@ private struct HelpPanel: View {
         .padding(24)
         .frame(width: 520)
         .id(appLanguageIdentifier)
-        .environment(\.locale, (AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault).locale)
+        .environment(\.locale, (AppLanguage.resolve(appLanguageIdentifier)).locale)
     }
 }
 
@@ -333,11 +353,11 @@ private struct UpdateSettingsView: View {
 
 private struct UpdateAvailableBanner: View {
     @ObservedObject var updateChecker: UpdateChecker
-    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
+    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.followSystem
 
     var body: some View {
         if let update = updateChecker.availableUpdate, updateChecker.shouldShowUpdateBanner {
-            let language = AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault
+            let language = AppLanguage.resolve(appLanguageIdentifier)
             HStack(spacing: 12) {
                 TablerIcon(name: .download, color: BrandColor.blue)
                     .frame(width: 18, height: 18)
@@ -374,6 +394,7 @@ struct ContentView: View {
     @ObservedObject var store: ConverterStore
     @ObservedObject var updateChecker: UpdateChecker
     let appDelegate: MP4FlowAppDelegate
+    @Binding var dependencyCheckRequested: Bool
     @Environment(\.openWindow) private var openWindow
     @State private var isDropTargeted = false
     @StateObject private var dependencyHealth = DependencyHealthMonitor()
@@ -385,7 +406,7 @@ struct ContentView: View {
     @State private var clipItem: ConversionItem?
     @State private var cropItem: ConversionItem?
     @State private var exportItem: ConversionItem?
-    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.systemDefault.rawValue
+    @AppStorage("appLanguage") private var appLanguageIdentifier = AppLanguage.followSystem
     private let configurationControlHeight: CGFloat = 40
     private let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
 
@@ -424,18 +445,23 @@ struct ContentView: View {
         .ignoresSafeArea(.container, edges: .top)
         .font(AppFont.body)
         .onAppear {
-            MenuBarLocalization.shared.install(language: AppLanguage(rawValue: appLanguageIdentifier) ?? AppLanguage.systemDefault)
+            MenuBarLocalization.shared.install(language: AppLanguage.resolve(appLanguageIdentifier))
             appDelegate.openMainWindow = { openWindow(id: "main") }
             appDelegate.requestManualUpdateCheck = checkForUpdates
             appDelegate.prepareForTermination = { await store.prepareForTermination() }
             Task { _ = await updateChecker.checkAfterStartupDelay() }
-            refreshDependencyHealth()
+            if dependencyCheckRequested {
+                handleDependencyCheckRequest()
+            } else {
+                refreshDependencyHealth()
+            }
         }
+        .onChange(of: dependencyCheckRequested) { if $0 { handleDependencyCheckRequest() } }
         .onChange(of: store.outputDirectory) { _ in refreshDependencyHealth() }
         .onChange(of: store.items.count) { _ in refreshDependencyHealth() }
         .onChange(of: appLanguageIdentifier) { identifier in
             appDelegate.refreshLocalizedWindowTitles()
-            MenuBarLocalization.shared.update(language: AppLanguage(rawValue: identifier) ?? AppLanguage.systemDefault)
+            MenuBarLocalization.shared.update(language: AppLanguage.resolve(identifier))
         }
         .onChange(of: store.preset) { preset in
             if preset == .smartEnhanceUpscale {
@@ -452,10 +478,7 @@ struct ContentView: View {
             }
         }
         .alert(L10n.text("转换组件不可用"), isPresented: $store.showFFmpegSetup) {
-            Button(L10n.text("环境体检")) {
-                refreshDependencyHealth(forceToolCheck: true)
-                showDependencyHealth = true
-            }
+            Button(L10n.text("环境体检"), action: openDependencyHealth)
             Button(L10n.text("稍后再说"), role: .cancel) {}
         } message: {
             Text(L10n.text("打开「环境体检」，安装或修复 FFmpeg 和 ffprobe。"))
@@ -667,10 +690,22 @@ struct ContentView: View {
         DependencyHealthStatusBar(
             monitor: dependencyHealth,
             refresh: { refreshDependencyHealth(forceToolCheck: true) },
+            openDetails: openDependencyHealth,
             copyFFmpegInstallCommand: store.copyFFmpegInstallCommand,
             openHomebrewWebsite: store.openHomebrewWebsite,
             isShowingDetails: $showDependencyHealth
         )
+    }
+
+    private func handleDependencyCheckRequest() {
+        guard dependencyCheckRequested else { return }
+        dependencyCheckRequested = false
+        openDependencyHealth()
+    }
+
+    private func openDependencyHealth() {
+        refreshDependencyHealth(forceToolCheck: true)
+        showDependencyHealth = true
     }
 
     private func refreshDependencyHealth(forceToolCheck: Bool = false) {

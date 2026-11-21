@@ -37,7 +37,7 @@
   "socialImageAlt": "MP4Flow, a native Mac video converter, showing its real English crop window with Tears of Steel",
   "installEyebrow": "ONE-TIME SETUP",
   "installTitle": "Install FFmpeg",
-  "installIntro": "Open MP4Flow and click the waveform icon at the top to open Environment Check.",
+  "installIntro": "Open MP4Flow and choose “Help → Check Dependencies…” from the menu bar.",
   "installWithHomebrew": "Already have Homebrew?",
   "installWithoutHomebrew": "No Homebrew?",
   "installManual": "Install from Terminal",

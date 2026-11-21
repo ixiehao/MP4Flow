@@ -379,6 +379,7 @@ private struct CommandResult: Sendable {
 struct DependencyHealthStatusBar: View {
     @ObservedObject var monitor: DependencyHealthMonitor
     let refresh: () -> Void
+    let openDetails: () -> Void
     let copyFFmpegInstallCommand: () -> Void
     let openHomebrewWebsite: () -> Void
     @Binding var isShowingDetails: Bool
@@ -395,9 +396,7 @@ struct DependencyHealthStatusBar: View {
                 .truncationMode(.tail)
                 .layoutPriority(1)
             Spacer(minLength: 0)
-            Button {
-                isShowingDetails = true
-            } label: {
+            Button(action: openDetails) {
                 healthActionMark(.healthCheck)
             }
             .buttonStyle(.plain)
@@ -448,7 +447,7 @@ struct DependencyHealthStatusBar: View {
 
     private var backgroundColor: Color {
         switch displayedLevel {
-        case .failed: BrandColor.warningBackground
+        case .failed: .red.opacity(0.08)
         case .warning: BrandColor.warningBackground.opacity(0.62)
         case .ready, .checking: BrandColor.surface
         }
@@ -741,6 +740,6 @@ private func color(for level: DependencyHealthLevel) -> Color {
     case .ready: BrandColor.success
     case .warning: BrandColor.warning
     case .failed: .red
-    case .checking: BrandColor.blue
+    case .checking: .secondary
     }
 }

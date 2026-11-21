@@ -39,7 +39,7 @@ Use this checklist for each public MP4Flow release. It is a release gate, not a 
 - [ ] Verify the mounted final app with `codesign --verify --deep --strict --verbose=2 MP4Flow.app`, confirm the exact single architecture, macOS deployment minimum, matching external dSYM UUIDs and bundled resources, and disclose that the current build is not notarized.
 - [ ] Test the downloaded app's Gatekeeper behaviour on a clean Mac and provide accurate macOS approval instructions. If a future release uses Developer ID, sign nested executable code and the app, notarize and staple the final distribution, and verify the resulting ticket before claiming notarization.
 - [ ] Generate and publish the SHA-256 file for the exact final DMG. Treat a checksum as integrity information, not as a signing substitute.
-- [ ] Install the final DMG on a clean Intel Mac and Apple-silicon Mac when both architectures are claimed. Test first launch, Gatekeeper, English, Simplified Chinese, French, Russian, Spanish, Japanese, Korean, FFmpeg missing, conversion, trim, crop, rotation, and both merge modes. Confirm English appears first in the language menu.
+- [ ] Install the final DMG on a clean Intel Mac and Apple-silicon Mac when both architectures are claimed. Test first launch, Gatekeeper, English, Simplified Chinese, French, Russian, Spanish, Japanese, Korean, FFmpeg missing, conversion, trim, crop, rotation, and both merge modes. Confirm Follow System appears first, followed by English and the other supported languages.
 
 ## Release notes and support
 

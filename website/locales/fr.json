@@ -37,7 +37,7 @@
   "socialImageAlt": "MP4Flow, convertisseur natif pour Mac : véritable fenêtre de recadrage en anglais avec Tears of Steel",
   "installEyebrow": "UNE SEULE INSTALLATION",
   "installTitle": "Installer FFmpeg",
-  "installIntro": "Ouvrez MP4Flow et cliquez sur l’icône en forme d’onde en haut pour ouvrir le diagnostic.",
+  "installIntro": "Ouvrez MP4Flow et choisissez « Aide → Vérifier les dépendances… » dans la barre des menus.",
   "installWithHomebrew": "Homebrew est déjà installé ?",
   "installWithoutHomebrew": "Vous n’avez pas Homebrew ?",
   "installManual": "Installer depuis Terminal",

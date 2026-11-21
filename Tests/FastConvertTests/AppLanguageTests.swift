@@ -30,6 +30,9 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertEqual(AppLanguage.preferred(in: ["ar", "de-DE"]), .english)
         XCTAssertEqual(AppLanguage.preferred(in: []), .english)
         XCTAssertEqual(AppLanguage.preferred(in: ["french", "russian"]), .english)
+        XCTAssertEqual(AppLanguage.resolve(AppLanguage.followSystem), AppLanguage.systemDefault)
+        XCTAssertEqual(AppLanguage.resolve(nil), AppLanguage.systemDefault)
+        XCTAssertEqual(AppLanguage.resolve("ja"), .japanese)
     }
 
     func testActualCatalogsAndEveryFormattedMessage() throws {
