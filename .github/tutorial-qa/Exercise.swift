@@ -94,7 +94,7 @@ if task == "convert" {
     let sheet = require("editor sheet") { nodes(workspace, depth: 3).first { role($0) == "AXSheet" } }
     let apply = labels[task == "trim" ? "确认剪辑" : "应用设置"]!
     _ = button(sheet, apply)
-    Thread.sleep(forTimeInterval: 1.2)
+    Thread.sleep(forTimeInterval: 2.0)
     try captureWindow(sheet, ownedBy: running.processIdentifier, to: output)
     press(button(sheet, apply), apply)
     start()

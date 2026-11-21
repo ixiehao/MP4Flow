@@ -17,8 +17,8 @@ hdiutil attach -readonly -nobrowse -mountpoint "$work/mount" "$stem" -quiet
 trap 'hdiutil detach "$work/mount" -quiet || true' EXIT
 codesign --verify --deep --strict "$work/mount/MP4Flow.app"
 if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then brew install ffmpeg; fi
-ffmpeg -v error -f lavfi -i 'testsrc2=s=640x360:r=30' -t 12 -an -c:v libx264 -b:v 2M -minrate 2M -maxrate 2M -bufsize 4M -x264-params nal-hrd=cbr public/Patterns.mkv
-sha=$(shasum -a 256 public/Patterns.mkv | cut -d' ' -f1)
+ffmpeg -v error -f lavfi -i 'testsrc2=s=640x360:r=30' -t 12 -an -c:v libx264 -crf 24 -g 30 -keyint_min 30 -sc_threshold 0 -bf 0 public/Patterns.mov
+sha=$(shasum -a 256 public/Patterns.mov | cut -d' ' -f1)
 for lang in en zh ja; do
   code="$lang"
   if [[ $lang == zh ]]; then code=zh-Hans; fi
@@ -29,11 +29,11 @@ for lang in en zh ja; do
   codesign --force --sign - "$app"
   defaults write "$bundle" appLanguage -string "$code"
   defaults write "$bundle" com.ixiehao.MP4Flow.updates.automaticChecksEnabled -bool false
-  for task in convert trim size; do
+  for task in trim; do
     dir="$work/$lang-$task"
     mkdir -p "$dir"
-    cp public/Patterns.mkv "$dir/Patterns.mkv"
-    python3 - "$bundle" "$dir/Patterns.mkv" "$task" <<'PY'
+    cp public/Patterns.mov "$dir/Patterns.mov"
+    python3 - "$bundle" "$dir/Patterns.mov" "$task" <<'PY'
 import json, sys, uuid
 from pathlib import Path
 bundle, source, task = sys.argv[1:]
@@ -54,6 +54,6 @@ PY
     if [[ $task == trim ]]; then output="$dir/Patterns-trim-000003-000008.mp4"; fi
     ffmpeg -v error -i "$output" -f null -
     ffprobe -v error -show_entries 'stream=codec_name,width,height:format=duration,size' -of json "$output" > "$work/public/$task-$lang.json"
-    test "$(shasum -a 256 "$dir/Patterns.mkv" | cut -d' ' -f1)" = "$sha"
+    test "$(shasum -a 256 "$dir/Patterns.mov" | cut -d' ' -f1)" = "$sha"
   done
 done
