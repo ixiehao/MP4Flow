@@ -100,4 +100,7 @@ if task == "convert" {
     start()
 }
 _ = running.terminate()
-let _: Bool = require("QA copy to terminate") { running.isTerminated ? true : nil }
+let _: Bool = require("QA copy to terminate") {
+    RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+    return kill(running.processIdentifier, 0) != 0 && errno == ESRCH ? true : nil
+}

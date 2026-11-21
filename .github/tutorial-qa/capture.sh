@@ -51,6 +51,7 @@ PY
     open -n "$app"
     ./exercise "$app" "$bundle" "$code" "$task" "$work/public/$task-$lang.png"
     output="$dir/Patterns-MP4FlowConverted.mp4"
+    if [[ $task == trim ]]; then output="$dir/Patterns-trim-000003-000008.mp4"; fi
     ffmpeg -v error -i "$output" -f null -
     ffprobe -v error -show_entries 'stream=codec_name,width,height:format=duration,size' -of json "$output" > "$work/public/$task-$lang.json"
     test "$(shasum -a 256 "$dir/Patterns.mkv" | cut -d' ' -f1)" = "$sha"
