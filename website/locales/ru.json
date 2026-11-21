@@ -37,7 +37,7 @@
   "socialImageAlt": "MP4Flow для Mac: настоящее окно обрезки на английском с фрагментом Tears of Steel",
   "installEyebrow": "ОДНОКРАТНАЯ НАСТРОЙКА",
   "installTitle": "Установить FFmpeg",
-  "installIntro": "Откройте MP4Flow и нажмите значок с волной в верхней части окна, чтобы открыть «Диагностику».",
+  "installIntro": "Откройте MP4Flow и выберите «Справка → Проверить зависимости…» в строке меню.",
   "installWithHomebrew": "Homebrew уже установлен?",
   "installWithoutHomebrew": "Нет Homebrew?",
   "installManual": "Установить через Терминал",

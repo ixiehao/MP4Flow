@@ -41,6 +41,12 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
         return .english
     }
 
+    static let followSystem = "system"
+
+    static func resolve(_ preference: String?) -> AppLanguage {
+        AppLanguage(rawValue: preference ?? followSystem) ?? systemDefault
+    }
+
     // Resolve resource bundles once, not for every label on every progress tick.
     private static let bundles: [AppLanguage: Bundle] = Dictionary(uniqueKeysWithValues: allCases.compactMap { language in
         guard let bundle = language.bundle(in: .main) else { return nil }
@@ -81,9 +87,9 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
 /// Dynamic state strings are not `LocalizedStringKey` values, so they use this
 /// helper while static SwiftUI labels are resolved by the view locale.
 enum L10n {
-    private static var language: AppLanguage {
+    static var language: AppLanguage {
         let identifier = UserDefaults.standard.string(forKey: "appLanguage")
-        return AppLanguage(rawValue: identifier ?? "") ?? AppLanguage.systemDefault
+        return AppLanguage.resolve(identifier)
     }
 
     static func text(_ key: String) -> String { language.text(key) }

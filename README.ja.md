@@ -34,7 +34,7 @@
 ## ダウンロードと導入
 
 1. **アプリを入れる。** [最新リリース](https://github.com/ixiehao/MP4Flow/releases/latest)の **Assets** を開き、チップに合う **MP4Flow の `.dmg` ファイル**（**arm64：Apple Silicon** ／ **x86_64：Intel**）をダウンロード。開いて **MP4Flow** を **Applications（アプリケーション）** にドラッグします。
-2. **FFmpeg と ffprobe を設定します。** MP4Flow を開き、ウィンドウ上部の波形アイコンをクリックして「環境チェック」を開きます。
+2. **FFmpeg と ffprobe を設定します。** MP4Flow を開き、メニューバーの「ヘルプ → 依存ツールを確認…」を選びます。
 
    - **Homebrew をインストール済みの場合** ツールが不足している場合は「依存関係をインストール」をクリックします。
    - **Homebrew がない場合** 公式の手順に従い、「Next steps」が表示されたら最後まで実行します。その後 MP4Flow に戻り、「依存関係をインストール」をクリックします。 [Homebrewを開く](https://brew.sh/)

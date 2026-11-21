@@ -504,3 +504,6 @@
 "安装未完成。请检查网络和 Homebrew 权限后重试，或使用终端安装。" = "Échec. Vérifiez le réseau et les autorisations Homebrew, puis réessayez ou utilisez Terminal.";
 "FFmpeg 和 ffprobe 已就绪。" = "FFmpeg et ffprobe sont prêts.";
 "安装后仍无法使用 FFmpeg 或 ffprobe。请查看上方的检测结果。" = "FFmpeg ou ffprobe reste indisponible. Consultez les résultats ci-dessus.";
+
+"跟随系统" = "Suivre le système";
+"检查依赖…" = "Vérifier les dépendances…";

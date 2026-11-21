@@ -34,7 +34,7 @@
 ## 下载与安装
 
 1. **安装应用。** 打开[最新版本页面](https://github.com/ixiehao/MP4Flow/releases/latest)，展开 **Assets**，下载对应芯片的 **MP4Flow `.dmg` 安装包**：**arm64（Apple 芯片）** 或 **x86_64（Intel）**。打开后，将 **MP4Flow** 拖入 **Applications（应用程序）**。
-2. **安装 FFmpeg 和 ffprobe。** 打开 MP4Flow，点击窗口顶部的波形图标，进入「环境体检」。
+2. **安装 FFmpeg 和 ffprobe。** 打开 MP4Flow，在菜单栏选择「帮助 → 检查依赖…」。
 
    - **已安装 Homebrew？** 如果缺少转换工具，点击「一键安装依赖」。
    - **还没有 Homebrew？** 按官网提示安装，并完成安装后显示的「Next steps」（如有）。然后回到 MP4Flow，点击「一键安装依赖」。 [打开 Homebrew 官网](https://brew.sh/)

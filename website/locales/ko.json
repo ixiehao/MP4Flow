@@ -37,7 +37,7 @@
   "socialImageAlt": "Mac용 동영상 변환 앱 MP4Flow. Tears of Steel을 연 실제 영어 자르기 화면",
   "installEyebrow": "처음 한 번만 설정",
   "installTitle": "FFmpeg 설치",
-  "installIntro": "MP4Flow를 열고 창 상단의 파형 아이콘을 눌러 ‘환경 점검’을 엽니다.",
+  "installIntro": "MP4Flow를 열고 메뉴 막대에서 ‘도움말 → 의존성 확인…’를 선택하세요.",
   "installWithHomebrew": "Homebrew가 이미 있나요?",
   "installWithoutHomebrew": "Homebrew가 없나요?",
   "installManual": "터미널에서 설치",

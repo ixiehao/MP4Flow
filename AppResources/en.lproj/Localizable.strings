@@ -503,3 +503,6 @@
 "安装未完成。请检查网络和 Homebrew 权限后重试，或使用终端安装。" = "Installation failed. Check your network and Homebrew permissions, then retry or use Terminal.";
 "FFmpeg 和 ffprobe 已就绪。" = "FFmpeg and ffprobe are ready.";
 "安装后仍无法使用 FFmpeg 或 ffprobe。请查看上方的检测结果。" = "FFmpeg or ffprobe is still unavailable. See the checks above.";
+
+"跟随系统" = "Follow System";
+"检查依赖…" = "Check Dependencies…";

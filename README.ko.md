@@ -34,7 +34,7 @@
 ## 다운로드와 설치
 
 1. **앱을 설치하세요.** [최신 버전 페이지](https://github.com/ixiehao/MP4Flow/releases/latest)에서 **Assets**를 펼쳐 칩에 맞는 **MP4Flow `.dmg` 설치 파일**: **arm64(Apple Silicon)** 또는 **x86_64(Intel)**을 다운로드하세요. 파일을 열고 **MP4Flow**를 **Applications(응용 프로그램)**로 드래그하세요.
-2. **FFmpeg와 ffprobe를 설정하세요.** MP4Flow를 열고 창 상단의 파형 아이콘을 눌러 ‘환경 점검’을 엽니다.
+2. **FFmpeg와 ffprobe를 설정하세요.** MP4Flow를 열고 메뉴 막대에서 ‘도움말 → 의존성 확인…’를 선택하세요.
 
    - **Homebrew가 이미 있나요?** 도구가 없으면 ‘의존성 설치’를 누르세요.
    - **Homebrew가 없나요?** 공식 안내에 따라 설치하고 ‘Next steps’가 표시되면 완료하세요. MP4Flow로 돌아와 ‘의존성 설치’를 누르세요. [Homebrew 웹사이트 열기](https://brew.sh/)
