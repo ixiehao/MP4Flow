@@ -18,7 +18,7 @@ The existing GitHub Pages site stays at <https://ixiehao.github.io/MP4Flow/>.
 
 - `website/index.html` is the shared template; `website/locales/*.json` contains all public copy, accessible labels and metadata.
 - `Scripts/build-website.mjs` uses Node.js standard libraries to generate `_site/`. No framework, package install or runtime translation request is required.
-- Each generated page contains its full translation, canonical URL, reciprocal `hreflang` links, share metadata and structured data. The build also creates the seven-page sitemap.
+- Each generated page contains its full translation, canonical URL, reciprocal `hreflang` links, share metadata and structured data. The build also creates the sitemap for the seven home pages and the localized guides.
 - English is served directly at the root, including without JavaScript. The old `/MP4Flow/en/` remains an English alias with the root as its canonical URL; only the seven canonical routes appear in the sitemap.
 - Existing `?lang=en`, `?lang=ja` and other supported language links redirect to the corresponding page, preserving the section and other query parameters. Explicit page URLs take priority over browser language or old preferences.
 - Query-language routing uses the generated language links rather than maintaining a second route map in JavaScript.
@@ -37,6 +37,12 @@ Brightness and denoise share the App's Edit Video panel. Mention live preview, o
 Phone layouts show one visual article per row; wider screens use two columns. Keep image dimensions automatic with maximum bounds and a rounded mask on the actual image box, rather than clipping an object-fit letterbox. Use one film credit for the page in the footer. Do not repeat feature descriptions as tags, screenshot captions and another list.
 
 The FAQ uses the same full-width, pale rounded panel as the surrounding sections. Place its heading beside the disclosure cards on desktop and above them on phones. Keep the native `details` controls, visible keyboard focus and a generous question hit area; long translations and expanded answers must remain inside their cards.
+
+## Task guides
+
+`website/tutorials.json` holds three task guides in English, Simplified Chinese and Japanese. The builder publishes standalone Guides pages with reciprocal language links, an equivalent Markdown page, and sitemap entries. Homepage links appear in those three languages.
+
+Each guide uses a synthetic downloadable example, three steps and a check of the exported result. The screenshots were captured from the matching released App in isolated macOS CI windows. Their version, dimensions, hashes, captions and alternate text are in the same catalog. Publish only the inspected WebP derivatives and the sample inputs.
 
 ## Native installer messaging
 

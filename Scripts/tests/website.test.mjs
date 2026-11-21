@@ -5,6 +5,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
 import { appVersion, buildSite, languages, localePath, readCatalogs, siteURL } from '../build-website.mjs';
+import { guidePath, tutorialContent } from '../../website/tutorials.mjs';
 
 test('seven canonical pages are complete, crawlable and use matching real screenshots', async t => {
   const output = await mkdtemp(path.join(os.tmpdir(), 'mp4flow-website-test-'));
@@ -142,12 +143,27 @@ test('seven canonical pages are complete, crawlable and use matching real screen
     assert.ok(chineseReadme.includes('[官方网站](https://ixiehao.github.io/MP4Flow/zh/)'));
   });
   const sitemap = await readFile(path.join(output, 'sitemap.xml'), 'utf8');
-  assert.equal((sitemap.match(/<loc>/g) ?? []).length, 7);
-  assert.equal((sitemap.match(/xhtml:link/g) ?? []).length, 56);
+  const guideLanguages = Object.keys(tutorialContent.locales);
+  const guideCount = Object.keys(tutorialContent.guides).length * guideLanguages.length;
+  assert.equal((sitemap.match(/<loc>/g) ?? []).length, languages.length + guideCount);
+  assert.equal((sitemap.match(/xhtml:link/g) ?? []).length, 56 + guideCount * (guideLanguages.length + 1));
   assert.doesNotMatch(sitemap, /https:\/\/ixiehao.github.io\/MP4Flow\/en\//);
   assert.match(sitemap, /<loc>https:\/\/ixiehao.github.io\/MP4Flow\/zh\/<\/loc>/);
   await assert.rejects(stat(path.join(output, 'locales')));
   await assert.rejects(stat(path.join(output, 'Scripts')));
+  const sample = await readFile(path.join(output, 'assets/tutorials/Patterns.mkv'));
+  assert.equal(sample.subarray(0, 4).toString('hex'), '1a45dfa3');
+  for (const [slug, guide] of Object.entries(tutorialContent.guides)) {
+    for (const id of guideLanguages) {
+      const route = guidePath(slug, id);
+      const html = await readFile(path.join(output, route, 'index.html'), 'utf8');
+      assert.ok(sitemap.includes(`<loc>${siteURL}${route}</loc>`));
+      assert.ok(html.includes(`rel="canonical" href="${siteURL}${route}"`));
+      assert.ok(html.includes(`<h1 id="guide-title">${guide[id].title}</h1>`));
+      assert.equal((html.match(/<link rel="alternate" hreflang=/g) ?? []).length, guideLanguages.length + 1);
+      assert.equal((html.match(/<li><h2>/g) ?? []).length, 3);
+    }
+  }
 });
 
 test('42 localized captures match their provenance and actual JPEG dimensions', async () => {

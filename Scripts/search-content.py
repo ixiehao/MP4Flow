@@ -121,7 +121,19 @@ def language_ids(config):
 def page_url(config, language):
     return config['site_url'] + ('' if language == 'en' else language + '/')
 
-def inspect_page(html, canonical, language, urls):
+def tutorial_groups(config):
+    if 'tutorial_source' not in config:
+        return []
+    content = json.loads((ROOT/config['tutorial_source']).read_text())
+    ids = list(content['locales'])
+    require('en' in ids and set(ids) <= set(language_ids(config)), 'Invalid tutorial languages')
+    groups = []
+    for slug in content['guides']:
+        require(re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', slug), 'Invalid tutorial slug')
+        groups.append({language: page_url(config, language)+'guides/'+slug+'/' for language in ids})
+    return groups
+
+def inspect_page(html, canonical, language, urls, site=None):
     doc = Document(html)
     root, main, title = doc.find('html'), doc.find('main'), doc.find('title')
     require(root is not None and root.attrs.get('lang', '').split('-')[0] == language, f'{canonical}: wrong HTML language')
@@ -146,14 +158,15 @@ def inspect_page(html, canonical, language, urls):
     md = doc.find('link', type='text/markdown')
     require(md is not None and urljoin(canonical, md.attrs.get('href', '')) == canonical+'index.md', f'{canonical}: missing Markdown alternate')
     descriptor = doc.find('link', rel='describedby')
-    require(descriptor is not None and urljoin(canonical, descriptor.attrs.get('href', '')) == urls['en']+'llms.txt', f'{canonical}: missing AI reading index')
+    require(descriptor is not None and urljoin(canonical, descriptor.attrs.get('href', '')) == (site or urls['en'])+'llms.txt', f'{canonical}: missing AI reading index')
     schemas = [json.loads(node.text()) for node in doc.root.nodes() if node.tag == 'script' and node.attrs.get('type') == 'application/ld+json']
     require(schemas, f'{canonical}: missing structured data')
     graphs = [entry for schema in schemas for entry in schema.get('@graph', [schema])]
-    require(any(node.get('@type') in ('SoftwareApplication', 'WebSite', 'ProfilePage') for node in graphs), f'{canonical}: missing page/application schema')
+    types = ('Article',) if site else ('SoftwareApplication', 'WebSite', 'ProfilePage')
+    require(any(node.get('@type') in types for node in graphs), f'{canonical}: missing page/application schema')
     for node in graphs:
-        if node.get('@type') == 'SoftwareApplication':
-            require(node.get('url') == canonical and node.get('description') == description.attrs['content'], f'{canonical}: application facts differ from metadata')
+        if node.get('@type') in ('SoftwareApplication', 'Article'):
+            require(node.get('url') == canonical and node.get('description') == description.attrs['content'], f'{canonical}: structured data differs from metadata')
     body = markdown(doc.find('body'), canonical)
     text = '# ' + title.text().strip() + '\n\n> ' + description.attrs['content'].strip() + '\n\n<' + canonical + '>\n\n' + body
     text = re.sub(r'[\t ]+\n', '\n', text)
@@ -177,9 +190,11 @@ def build(config, check=False):
     ids = language_ids(config)
     urls = {language: page_url(config, language) for language in ids}
     site = config['site_url']
+    tutorials = tutorial_groups(config)
+    canonical_pages = [canonical for group in [urls, *tutorials] for canonical in group.values()]
     sitemap = ET.fromstring((directory/'sitemap.xml').read_text())
     locations = [node.text for node in sitemap.findall('{*}url/{*}loc')]
-    require(len(locations) == len(urls) and set(locations) == set(urls.values()), 'Sitemap does not match actual canonical languages')
+    require(len(locations) == len(canonical_pages) and set(locations) == set(canonical_pages), 'Sitemap does not match actual canonical pages')
     summaries = {}
     for language, canonical in urls.items():
         folder = directory/('' if language == 'en' else language)
@@ -188,6 +203,15 @@ def build(config, check=False):
         compare_or_write(folder/'index.md', text, check)
     lines = ['# '+config['name'], '', '> '+summaries['en'], '', '## Pages', '']
     lines += [f'- [{LANGUAGE_NAMES.get(language, language)}]({canonical}index.md)' for language, canonical in urls.items()]
+    if tutorials:
+        lines += ['', '## Guides', '']
+    for group in tutorials:
+        for language, canonical in group.items():
+            folder = directory/canonical.removeprefix(site)
+            text, _ = inspect_page((folder/'index.html').read_text(), canonical, language, group, site)
+            compare_or_write(folder/'index.md', text, check)
+            title = text.splitlines()[0].removeprefix('# ')
+            lines.append(f'- [{title} ({LANGUAGE_NAMES[language]})]({canonical}index.md)')
     if config.get('projects'):
         lines += ['', '## Projects', '']
         lines += [f'- [{project["name"]}]({project["url"]}): {project["description"]}' for project in config['projects']]
@@ -196,13 +220,14 @@ def build(config, check=False):
     compare_or_write(directory/'indexnow-key.txt', ownership_key(config)+'\n', check)
     for url in config.get('root_sitemaps', []):
         require('Sitemap: '+url in (directory/'robots.txt').read_text(), 'Domain-root robots is missing '+url)
-    return len(ids)
+    return len(canonical_pages)
 
 def notification(config):
     base = config['site_url']
     origin = urlsplit(base)
     require(origin.scheme == 'https' and base.endswith('/') and not origin.query and not origin.fragment, 'Use the production HTTPS directory')
     urls = [page_url(config, language) for language in language_ids(config)]
+    urls += [canonical for group in tutorial_groups(config) for canonical in group.values()]
     require(all(url.startswith(base) and not urlsplit(url).query for url in urls), 'URLs must stay in this project scope')
     return {'host': origin.netloc, 'key': ownership_key(config), 'keyLocation': base+'indexnow-key.txt', 'urlList': urls}
 

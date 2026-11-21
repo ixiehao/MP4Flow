@@ -1,0 +1,295 @@
+{
+  "locales": {
+    "en": {
+      "heading": "MP4Flow guides",
+      "prepare": "Before you start",
+      "setup": "Install MP4Flow and confirm that FFmpeg and ffprobe are ready under “Help → Check Dependencies…”. The synthetic sample below is 12 seconds long at 640 × 360.",
+      "install": "Download and setup",
+      "sample": "Download {file}",
+      "verify": "Check the result",
+      "image": "View full-size image",
+      "more": "More guides",
+      "nav": "Guides"
+    },
+    "zh": {
+      "heading": "MP4Flow 使用教程",
+      "prepare": "开始前",
+      "setup": "安装 MP4Flow，在「帮助 → 检查依赖…」确认 FFmpeg 和 ffprobe 已就绪。下面提供 12 秒、640 × 360 的合成示例。",
+      "install": "下载与安装",
+      "sample": "下载 {file}",
+      "verify": "检查成品",
+      "image": "查看原尺寸图片",
+      "more": "其他教程",
+      "nav": "教程"
+    },
+    "ja": {
+      "heading": "MP4Flow の使い方",
+      "prepare": "はじめる前に",
+      "setup": "MP4Flow をインストールし、「ヘルプ → 依存ツールを確認…」で FFmpeg と ffprobe が使えることを確認します。サンプルは 12 秒、640 × 360 の合成テスト映像です。",
+      "install": "ダウンロードとセットアップ",
+      "sample": "{file} をダウンロード",
+      "verify": "出力を確認する",
+      "image": "画像を原寸で表示",
+      "more": "ほかのガイド",
+      "nav": "ガイド"
+    }
+  },
+  "guides": {
+    "mkv-to-mp4": {
+      "capture": "convert",
+      "en": {
+        "title": "Convert MKV to MP4 on a Mac",
+        "description": "Turn the 12-second MKV sample into a playable MP4 with Smart Convert.",
+        "steps": [
+          [
+            "Add the MKV",
+            "Click Add Videos or drag Patterns.mkv into the conversion queue."
+          ],
+          [
+            "Keep the original resolution",
+            "Keep Smart Convert and Balanced. Select Original under Resolution and Source Folder under Output Location. Smart Convert copies compatible video when possible."
+          ],
+          [
+            "Convert and open the folder",
+            "Click Start. When the row shows Completed, click its folder icon (Open Folder)."
+          ]
+        ],
+        "result": "Open Patterns-MP4FlowConverted.mp4. Check the .mp4 extension in Finder, then play the file and verify it is about 12 seconds long at 640 × 360.",
+        "alt": "MP4Flow’s English queue showing a completed conversion of Patterns.mkv.",
+        "caption": "Completed means the MP4 is ready. The folder icon locates it in Finder.",
+        "media": {
+          "src": "assets/tutorials/v153-convert-en.webp",
+          "width": 980,
+          "height": 395,
+          "sha256": "727167ed2cf2877893d99bd261388b8c57e3ad2e421f628c37f16a5ad951e92f"
+        }
+      },
+      "zh": {
+        "title": "在 Mac 上把 MKV 转成 MP4",
+        "description": "用智能转换将 12 秒的 MKV 示例变成可播放的 MP4。",
+        "steps": [
+          [
+            "添加 MKV",
+            "点击「添加视频」，或将 Patterns.mkv 拖入转换队列。"
+          ],
+          [
+            "保留原始分辨率",
+            "保持「智能转换（推荐）」「清晰刚好」「原始尺寸」和「源文件夹」。视频编码兼容时，智能转换会优先复制视频流。"
+          ],
+          [
+            "转换并找到成品",
+            "点击「开始转换」。队列显示「已完成」后，点击该行的文件夹图标「打开文件夹」。"
+          ]
+        ],
+        "result": "打开 Patterns-MP4FlowConverted.mp4，确认可以播放。在访达检查文件扩展名为 .mp4，再核对视频约 12 秒、640 × 360。",
+        "alt": "MP4Flow 简体中文队列中，Patterns.mkv 的转换状态为已完成。",
+        "caption": "队列显示「已完成」。点击该行的文件夹图标可在访达找到成品。",
+        "media": {
+          "src": "assets/tutorials/v153-convert-zh.webp",
+          "width": 980,
+          "height": 395,
+          "sha256": "1a0fd91bd3820cdffaf0f404841b85c8c9051e8f961334508895c8dd17282ac6"
+        }
+      },
+      "ja": {
+        "title": "Mac で MKV を MP4 に変換する",
+        "description": "スマート変換で、12 秒の MKV サンプルを再生できる MP4 に変換します。",
+        "steps": [
+          [
+            "MKV を追加する",
+            "「動画を追加」をクリックするか、Patterns.mkv を変換キューにドラッグします。"
+          ],
+          [
+            "元の解像度を保つ",
+            "「スマート変換（おすすめ）」「バランス」「元のサイズ」と「元のフォルダ」を選びます。互換性がある場合は映像ストリームをコピーします。"
+          ],
+          [
+            "変換して保存先を開く",
+            "「変換を開始」をクリックします。行が「完了」になったら、フォルダアイコンの「フォルダを開く」を選びます。"
+          ]
+        ],
+        "result": "Patterns-MP4FlowConverted.mp4 を再生します。Finder で拡張子が .mp4 であることを確認し、長さが約 12 秒、解像度が 640 × 360 であることを確かめます。",
+        "alt": "Patterns.mkv の変換が完了した MP4Flow の日本語キュー。",
+        "caption": "「完了」と表示されたら、フォルダアイコンから Finder で出力を確認できます。",
+        "media": {
+          "src": "assets/tutorials/v153-convert-ja.webp",
+          "width": 980,
+          "height": 395,
+          "sha256": "484ae39377008cd8e718cc74c2266ee5b51570d11b498a314048425323697f09"
+        }
+      },
+      "sample": "Patterns.mkv"
+    },
+    "trim-mp4-clip": {
+      "capture": "trim",
+      "en": {
+        "title": "Trim an MOV clip to MP4 on a Mac",
+        "description": "Keep seconds 3–8 of the sample and export a five-second MP4 clip.",
+        "steps": [
+          [
+            "Open Trim",
+            "Add a fresh copy of Patterns.mov to the queue. Click the scissors icon (Trim) on its row."
+          ],
+          [
+            "Choose the range to keep",
+            "Under Keep range, set Start to 00:00:03.000 and End to 00:00:08.000. Check that Kept Duration reads 00:00:05.000, then click Confirm Trim."
+          ],
+          [
+            "Export the clip",
+            "Keep Smart Convert and click Start. When it finishes, use Open Folder on the completed row."
+          ]
+        ],
+        "result": "Play Patterns-trim-000003-000008.mp4 from start to finish. It should run for about 5 seconds and contain only the selected segment. The input MOV stays in place.",
+        "alt": "English trim editor with Start at 3 seconds, End at 8 seconds and a kept duration of 5 seconds.",
+        "caption": "The kept range starts at 00:00:03.000 and ends at 00:00:08.000.",
+        "media": {
+          "src": "assets/tutorials/v153-trim-en.webp",
+          "width": 760,
+          "height": 540,
+          "sha256": "7a1bdc876e4eee2a67ebfaf14c823171fa98ee9c8d481ccefb8b4d9d1a17ff33"
+        }
+      },
+      "zh": {
+        "title": "在 Mac 上从 MOV 截取片段并导出 MP4",
+        "description": "保留示例的第 3–8 秒，导出 5 秒的 MP4 片段。",
+        "steps": [
+          [
+            "打开剪切",
+            "把一份新的 Patterns.mov 加到队列，点击该行的剪刀图标「剪切」。"
+          ],
+          [
+            "设定保留范围",
+            "在「保留范围」中将「起始」设为 00:00:03.000，「结束」设为 00:00:08.000。确认「保留时长」为 00:00:05.000 后，点击「确认剪切」。"
+          ],
+          [
+            "导出片段",
+            "保持「智能转换（推荐）」，点击「开始转换」。完成后点击该行的「打开文件夹」。"
+          ]
+        ],
+        "result": "从头播放 Patterns-trim-000003-000008.mp4，应只有选中的约 5 秒片段。原 MOV 仍保存在原处。",
+        "alt": "简体中文剪切窗口，起始为 3 秒、结束为 8 秒，保留时长为 5 秒。",
+        "caption": "「起始」为 00:00:03.000，「结束」为 00:00:08.000。",
+        "media": {
+          "src": "assets/tutorials/v153-trim-zh.webp",
+          "width": 760,
+          "height": 540,
+          "sha256": "4ce036a21df5edbf1a2b74487d90a06fda037e57754ba37139eae72ca8afcf60"
+        }
+      },
+      "ja": {
+        "title": "Mac で MOV の一部を MP4 に切り出す",
+        "description": "サンプルの 3～8 秒を残し、5 秒の MP4 クリップにします。",
+        "steps": [
+          [
+            "トリミングを開く",
+            "新しい Patterns.mov をキューに追加し、行のはさみアイコン「トリミング」をクリックします。"
+          ],
+          [
+            "残す範囲を指定する",
+            "「残す範囲」の「開始」を 00:00:03.000、「終了」を 00:00:08.000 にします。「保存する長さ」が 00:00:05.000 になったら「トリミングを確定」をクリックします。"
+          ],
+          [
+            "クリップを書き出す",
+            "「スマート変換（おすすめ）」のまま「変換を開始」をクリックします。完了した行から「フォルダを開く」を選びます。"
+          ]
+        ],
+        "result": "Patterns-trim-000003-000008.mp4 を最初から再生し、選択した約 5 秒の映像だけが含まれていることを確認します。元の MOV はそのまま残ります。",
+        "alt": "開始 3 秒、終了 8 秒、保存する長さ 5 秒を示す日本語のトリミング画面。",
+        "caption": "「開始」は 00:00:03.000、「終了」は 00:00:08.000 です。",
+        "media": {
+          "src": "assets/tutorials/v153-trim-ja.webp",
+          "width": 760,
+          "height": 540,
+          "sha256": "737c4760eef41f6bcb9188595bb376c7916aaa3cdbed23a51eccdc830e601076"
+        }
+      },
+      "sample": "Patterns.mov"
+    },
+    "mp4-target-size": {
+      "capture": "size",
+      "en": {
+        "title": "Export a smaller MP4 on a Mac",
+        "description": "Set a 1 MB target for the MKV sample, then check the size of the exported MP4.",
+        "steps": [
+          [
+            "Open Export Settings",
+            "Add a fresh copy of Patterns.mkv. Click the gear icon (Export Settings) for that video."
+          ],
+          [
+            "Set a 1 MB target",
+            "Turn on the switch next to Target Size, enter 1 MB, and click Apply Settings. A size target re-encodes the video and can reduce detail."
+          ],
+          [
+            "Convert and locate the MP4",
+            "Keep the original resolution and click Start. Use Open Folder when the row shows Completed."
+          ]
+        ],
+        "result": "Compare the original MKV and output MP4 in Finder using Get Info (⌘I). In this example, the input is about 3.03 MB and the output is about 0.97 MB. The target is approximate. If you have a strict upload limit, allow some margin and check the actual file before uploading.",
+        "alt": "English Export Settings panel with Target Size switched on and set to 1 MB.",
+        "caption": "1 MB is the export target. Finder shows the actual file size.",
+        "media": {
+          "src": "assets/tutorials/v153-size-en.webp",
+          "width": 640,
+          "height": 536,
+          "sha256": "f6a7f59d4f84caa5cb0744c4b9e9da5f96ec7e24b05a2cb6e35fab477c357eba"
+        }
+      },
+      "zh": {
+        "title": "在 Mac 上按目标体积导出 MP4",
+        "description": "把示例 MKV 的目标体积设为 1 MB，再核对导出的 MP4 有多大。",
+        "steps": [
+          [
+            "打开导出设置",
+            "添加一份新的 Patterns.mkv，点击该视频的齿轮图标「导出设置」。"
+          ],
+          [
+            "将目标设为 1 MB",
+            "开启「目标体积」开关，输入 1 MB，再点击「应用设置」。按体积导出会重新编码，画面细节可能减少。"
+          ],
+          [
+            "转换并找到 MP4",
+            "保留原始尺寸，点击「开始转换」。队列显示「已完成」后，点击「打开文件夹」。"
+          ]
+        ],
+        "result": "在访达分别选中原 MKV 和导出的 MP4，按 ⌘I 查看大小。本例从约 3.03 MB 导出为约 0.97 MB。目标体积是估算值。若上传有硬性限制，设置时留些余量，上传前再确认文件大小。",
+        "alt": "简体中文导出设置窗口中，目标体积开关已打开，数值为 1 MB。",
+        "caption": "1 MB 是导出目标，实际大小以访达显示为准。",
+        "media": {
+          "src": "assets/tutorials/v153-size-zh.webp",
+          "width": 640,
+          "height": 536,
+          "sha256": "838a7af292cfebead05c68249599e8d31cd938069435e70973ef51a1d6aa8ece"
+        }
+      },
+      "ja": {
+        "title": "Mac で MP4 を小さいサイズに書き出す",
+        "description": "MKV サンプルに 1 MB の目標を設定し、実際の MP4 の容量を確認します。",
+        "steps": [
+          [
+            "書き出し設定を開く",
+            "新しい Patterns.mkv を追加し、動画の歯車アイコン「書き出し設定」をクリックします。"
+          ],
+          [
+            "目標を 1 MB にする",
+            "「目標サイズ」をオンにして 1 MB を入力し、「設定を適用」をクリックします。目標サイズを使うと再エンコードされ、細部が失われることがあります。"
+          ],
+          [
+            "変換して MP4 を開く",
+            "元の解像度のまま「変換を開始」をクリックします。行が「完了」になったら「フォルダを開く」を選びます。"
+          ]
+        ],
+        "result": "Finder で元の MKV と出力した MP4 をそれぞれ選び、⌘I でサイズを比較します。このサンプルは約 3.03 MB から約 0.97 MB になりました。目標は目安です。厳密なアップロード上限がある場合は余裕を持たせ、実際の容量を確認してください。",
+        "alt": "日本語の書き出し設定画面で、目標サイズをオンにして 1 MB を指定した状態。",
+        "caption": "1 MB は書き出しの目標値です。実際のサイズは Finder で確認します。",
+        "media": {
+          "src": "assets/tutorials/v153-size-ja.webp",
+          "width": 640,
+          "height": 536,
+          "sha256": "e5fa4dd7eb07ae1b4b3c22d62155ec5edc5dd89044eba2adef2d21e37449d23a"
+        }
+      },
+      "sample": "Patterns.mkv"
+    }
+  },
+  "captureVersion": "1.5.3"
+}

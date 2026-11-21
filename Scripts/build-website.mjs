@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
+import { guidePath, renderGuide, renderGuideCards, tutorialContent } from '../website/tutorials.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const appInfo = await readFile(path.join(root, 'AppResources/Info.plist'), 'utf8');
@@ -85,7 +86,9 @@ export function renderPage(template, language, copy, screenshots, assetVersions,
     `<script id="software-schema" type="application/ld+json">${JSON.stringify(schema).replace(/</g, '\\u003c')}</script>`
   ].join('\n    ');
   const languageLinks = languages.map(l => `<a href="${prefix}${localePath(l.id)}" lang="${l.locale}" hreflang="${l.locale}" data-language="${l.id}"${l.id === language.id ? ' aria-current="page"' : ''}>${l.name}</a>`).join('\n          ');
-  const values = { ...copy, head, languageLinks,
+  const guideLabel = tutorialContent.locales[language.id]?.nav;
+  const guideNav = guideLabel ? `<a href="#guides">${escape(guideLabel)}</a>` : '';
+  const values = { ...copy, head, languageLinks, guideNav, guideCards: renderGuideCards(language.id, prefix),
     armDownloadURL: `https://github.com/ixiehao/MP4Flow/releases/latest/download/MP4Flow-${appVersion}-arm64.dmg`,
     intelDownloadURL: `https://github.com/ixiehao/MP4Flow/releases/latest/download/MP4Flow-${appVersion}-x86_64.dmg`, scriptVersion: assetVersions.script, locale: language.locale, language: language.id, languageName: language.name,
     privacyURL: `https://github.com/ixiehao/MP4Flow/blob/main/PRIVACY${language.id === 'ja' ? '.ja' : ''}.md` };
@@ -97,7 +100,7 @@ export function renderPage(template, language, copy, screenshots, assetVersions,
   }
   let result = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!(key in values)) throw new Error(`Missing template value: ${key}`);
-    return ['head', 'languageLinks'].includes(key) ? values[key] : escape(values[key]).replace(/\n/g, '<br />');
+    return ['head', 'languageLinks', 'guideNav', 'guideCards'].includes(key) ? values[key] : escape(values[key]).replace(/\n/g, '<br />');
   });
   result = result.replace('<html lang=', `<html data-language="${language.id}" data-root="${prefix}" lang=`);
   result = result.replace(/(href|src)="(assets\/|styles\.css|app\.js)/g, `$1="${prefix}$2`);
@@ -122,6 +125,23 @@ export async function buildSite(output = path.join(root, '_site')) {
       await readFile(path.join(root, 'website', shot.src));
     }
   }
+  const guideLanguages = languages.filter(language => language.id in tutorialContent.locales);
+  for (const [slug, guide] of Object.entries(tutorialContent.guides)) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !/^[a-zA-Z0-9-]+\.(mkv|mov|mp4)$/.test(guide.sample)) {
+      throw new Error(`Invalid tutorial source: ${slug}`);
+    }
+    await readFile(path.join(root, 'website/assets/tutorials', guide.sample));
+    for (const { id } of guideLanguages) {
+      const { media } = guide[id];
+      const imagePath = `assets/tutorials/v${tutorialContent.captureVersion.replaceAll('.', '')}-${guide.capture}-${id}.webp`;
+      if (media.src !== imagePath || !Number.isSafeInteger(media.width) || media.width <= 0
+          || !Number.isSafeInteger(media.height) || media.height <= 0) {
+        throw new Error(`Invalid tutorial screenshot: ${slug}/${id}`);
+      }
+      const hash = createHash('sha256').update(await readFile(path.join(root, 'website', media.src))).digest('hex');
+      if (hash !== media.sha256) throw new Error(`Changed tutorial screenshot: ${slug}/${id}`);
+    }
+  }
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
   await cp(path.join(root, 'website/assets'), path.join(output, 'assets'), { recursive: true });
@@ -135,8 +155,23 @@ export async function buildSite(output = path.join(root, '_site')) {
   const english = languages.find(language => language.id === 'en');
   await mkdir(path.join(output, 'en'), { recursive: true });
   await writeFile(path.join(output, 'en/index.html'), renderPage(template, english, catalogs.en, screenshots, assetVersions, 'en/'));
-  const alternates = [...languages.map(l => ({ locale: l.locale, url: siteURL + localePath(l.id) })), { locale: 'x-default', url: siteURL }];
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${languages.map(l => `  <url><loc>${siteURL}${localePath(l.id)}</loc>\n${alternates.map(a => `    <xhtml:link rel="alternate" hreflang="${a.locale}" href="${a.url}" />`).join('\n')}\n  </url>`).join('\n')}\n</urlset>\n`;
+  const sitemapGroup = (editions, route) => editions.map(language => {
+    const alternates = [...editions, { locale: 'x-default', id: 'en' }];
+    return `  <url><loc>${siteURL}${route(language.id)}</loc>\n${alternates.map(a => `    <xhtml:link rel="alternate" hreflang="${a.locale}" href="${siteURL}${route(a.id)}" />`).join('\n')}\n  </url>`;
+  });
+  const entries = sitemapGroup(languages, localePath);
+  for (const [slug, guide] of Object.entries(tutorialContent.guides)) {
+    for (const language of guideLanguages) {
+      const directory = path.join(output, guidePath(slug, language.id));
+      const media = guide[language.id].media;
+      await mkdir(directory, { recursive: true });
+      await writeFile(path.join(directory, 'index.html'), renderGuide({
+        slug, language, languages, siteURL, styles, siteCopy: catalogs[language.id], media
+      }));
+    }
+    entries.push(...sitemapGroup(guideLanguages, id => guidePath(slug, id)));
+  }
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${entries.join('\n')}\n</urlset>\n`;
   await writeFile(path.join(output, 'sitemap.xml'), sitemap);
   return output;
 }
