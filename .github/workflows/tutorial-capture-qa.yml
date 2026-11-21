@@ -1,0 +1,21 @@
+name: MP4Flow isolated tutorial capture
+on:
+  push:
+    branches: [qa/tutorial-capture-v153]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-15
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: bash .github/tutorial-qa/capture.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tutorial-window-captures
+          path: ${{ runner.temp }}/mp4flow-tutorials/public/*
+          if-no-files-found: error
+          retention-days: 2
