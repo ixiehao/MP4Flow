@@ -4,5 +4,6 @@
   "directory": "_site",
   "source_url": "https://github.com/ixiehao/MP4Flow",
   "key_file": "website/indexnow-key.txt",
-  "language_source": "website/locales/*.json"
+  "language_source": "website/locales/*.json",
+  "tutorial_source": "website/tutorials.json"
 }
