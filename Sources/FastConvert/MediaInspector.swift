@@ -17,7 +17,7 @@ enum MediaInspector {
     }
 
     static func arguments(for source: URL) -> [String] {
-        ["-v", "error", "-show_entries", "stream=index,id,codec_type,codec_name,bit_rate,width,height,r_frame_rate,avg_frame_rate,time_base,pix_fmt,sample_rate,channels,channel_layout,color_transfer,color_space,color_primaries,color_range,sample_aspect_ratio:stream_disposition=attached_pic,timed_thumbnails,default:stream_side_data=rotation:stream_tags=rotate,language,title:chapter=id:format=duration,bit_rate,format_name,size", "-of", "json", source.path]
+        ["-v", "error", "-show_data_hash", "SHA256", "-show_entries", "stream=index,id,codec_type,codec_name,extradata_hash,bit_rate,width,height,r_frame_rate,avg_frame_rate,time_base,pix_fmt,sample_rate,channels,channel_layout,color_transfer,color_space,color_primaries,color_range,sample_aspect_ratio,start_time,duration:stream_disposition=attached_pic,timed_thumbnails,default:stream_side_data=rotation:stream_tags=rotate,language,title:chapter=id:format=duration,start_time,bit_rate,format_name,size", "-of", "json", source.path]
     }
 
     static func unavailable() -> VideoInfo {
@@ -55,6 +55,10 @@ enum MediaInspector {
         info.videoTrackCount = videoStreams.count
         info.selectedVideoStreamIndex = video?.index.flatMap { $0 >= 0 ? $0 : nil }
         info.selectedVideoTrackID = response.format?.usesNativeTrackIDs == true ? video?.nativeTrackID : nil
+        info.videoExtradataHash = video?.extradataHash
+        info.videoStartTime = video?.startTime.flatMap(Double.init)
+        info.videoDuration = video?.duration.flatMap(Double.init)
+        info.formatStartTime = response.format?.startTime.flatMap(Double.init)
         info.streamLayout = response.streams.map {
             MediaStreamLayout(index: $0.index, type: $0.codecType, codec: $0.codecName, isAuxiliaryImage: $0.disposition?.isAuxiliaryImage == true)
         }
@@ -76,17 +80,19 @@ private struct ProbeResponse: Decodable, Sendable { let streams: [ProbeStream]; 
 private struct ProbeChapter: Decodable, Sendable {}
 private struct ProbeStream: Decodable, Sendable {
     let index: Int?, id: String?, disposition: MediaStreamDisposition?
-    let codecType: String?, codecName: String?, bitRate: String?, width: Int?, height: Int?
+    let codecType: String?, codecName: String?, extradataHash: String?, bitRate: String?, width: Int?, height: Int?
     let rFrameRate: String?, avgFrameRate: String?, pixelFormat: String?, sampleRate: String?, channels: Int?, channelLayout: String?, colorTransfer: String?
     let colorSpace: String?, colorPrimaries: String?, colorRange: String?
     let sampleAspectRatio: String?, timeBase: String?, sideDataList: [ProbeSideData]?, tags: [String: String]?
+    let startTime: String?, duration: String?
     enum CodingKeys: String, CodingKey {
         case index, id, disposition
-        case codecType = "codec_type", codecName = "codec_name", bitRate = "bit_rate"
+        case codecType = "codec_type", codecName = "codec_name", extradataHash = "extradata_hash", bitRate = "bit_rate"
         case rFrameRate = "r_frame_rate", pixelFormat = "pix_fmt", sampleRate = "sample_rate", channels, width, height
         case avgFrameRate = "avg_frame_rate", channelLayout = "channel_layout"
         case colorTransfer = "color_transfer", colorSpace = "color_space", colorPrimaries = "color_primaries", colorRange = "color_range"
         case sampleAspectRatio = "sample_aspect_ratio", timeBase = "time_base", sideDataList = "side_data_list", tags
+        case startTime = "start_time", duration
     }
 
     var isMovieVideo: Bool { codecType == "video" && disposition?.isAuxiliaryImage != true }
@@ -100,8 +106,8 @@ private struct ProbeStream: Decodable, Sendable {
 }
 private struct ProbeSideData: Decodable, Sendable { let rotation: Double? }
 private struct ProbeFormat: Decodable, Sendable {
-    let duration: String?, bitRate: String?, name: String?, size: String?
-    enum CodingKeys: String, CodingKey { case duration, bitRate = "bit_rate", name = "format_name", size }
+    let duration: String?, startTime: String?, bitRate: String?, name: String?, size: String?
+    enum CodingKeys: String, CodingKey { case duration, startTime = "start_time", bitRate = "bit_rate", name = "format_name", size }
 
     // MPEG-TS IDs are PIDs, not AVFoundation persistent track IDs. Only the
     // MOV/MP4 family guarantees that these identifiers refer to the same track.

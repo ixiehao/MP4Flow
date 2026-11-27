@@ -15,12 +15,18 @@ enum FFmpegHardwareRetryClassifier {
         let lines = stderr.lowercased().components(separatedBy: .newlines)
         let terminalFailure = [
             "no space left", "disk full", "permission denied", "operation not permitted",
-            "could not write header", "error opening output", "error writing output", "muxer",
+            "could not write header", "error writing output", "error writing trailer", "muxer",
+            "read-only file system", "input/output error", "file too large",
             "invalid data found when processing input", "moov atom not found", "broken pipe",
             "out of memory", "cannot allocate memory", "not enough memory", "timed out", "timeout",
             "terminated by signal", "received signal"
         ].contains { marker in lines.contains(where: { $0.contains(marker) }) }
-        guard !terminalFailure else { return nil }
+        // A missing VideoToolbox filter is reported while opening the output
+        // graph. FFmpeg follows the named filter error with this summary.
+        let outputOpenFailure = lines.contains {
+            $0.contains("error opening output") && !$0.hasSuffix(": filter not found")
+        }
+        guard !terminalFailure, !outputOpenFailure else { return nil }
 
         if usedHardwarePipeline {
             if lines.contains(where: { $0.contains("display_rotation") && ($0.contains("unrecognized option") || $0.contains("option not found")) }) {
@@ -303,15 +309,9 @@ final class ConverterStore: ObservableObject {
 
     func start() {
         guard !isBusy else { return }
-        if case .restored? = recoveryNotice { recoveryNotice = nil }
-        guard let binary = locateFFmpeg() else { showFFmpegSetup = true; return }
-        guard locateFFprobe(for: binary) != nil else {
-            statusText = L10n.text("未检测到 ffprobe，请安装完整的 FFmpeg 后重试。")
-            showFFmpegSetup = true
-            return
-        }
         let pendingIDs = items.compactMap { if case .waiting = $0.state { return $0.id }; return nil }
-        guard !pendingIDs.isEmpty else { return }
+        guard !pendingIDs.isEmpty, let binary = requireMediaTools() else { return }
+        if case .restored? = recoveryNotice { recoveryNotice = nil }
         ffmpegURL = binary; cancellationRequested = false; isVerifyingMerge = false; queueIDs = Set(pendingIDs); isRunning = true; overallProgress = 0
         // Thumbnail extraction is useful for review, but it decodes video and
         // competes with FFmpeg for CPU, I/O, and hardware-decoder resources.
@@ -323,8 +323,7 @@ final class ConverterStore: ObservableObject {
     /// Merges every waiting item in queue order. No stream is re-encoded: any
     /// mismatch is reported instead of silently producing a lower-quality file.
     func mergeWaitingItems() {
-        guard canMerge else { return }
-        guard let binary = locateFFmpeg() else { showFFmpegSetup = true; return }
+        guard canMerge, let binary = requireMediaTools() else { return }
         let sources = items.compactMap { item -> URL? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil, item.imageAdjustment.isIdentity, item.exportOptions.isDefault { return item.source }; return nil }
         mergeItemIDs = items.compactMap { item -> UUID? in if case .waiting = item.state, item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil, item.imageAdjustment.isIdentity, item.exportOptions.isDefault { return item.id }; return nil }
         for index in items.indices where mergeItemIDs.contains(items[index].id) { items[index].state = .merging(nil) }
@@ -341,16 +340,13 @@ final class ConverterStore: ObservableObject {
     /// Begins the user-confirmed fallback when lossless stream concatenation is
     /// impossible. It normalizes every source to one H.264/AAC MP4 timeline.
     func startCompatibleMerge() {
-        guard !isBusy, compatibleMergeIDs.count >= 2, let binary = locateFFmpeg() else {
-            if locateFFmpeg() == nil { showFFmpegSetup = true }
-            return
-        }
+        guard !isBusy, compatibleMergeIDs.count >= 2 else { return }
         let candidates = items.filter { item in
             guard compatibleMergeIDs.contains(item.id), item.trimRange == nil, item.rotation == nil, item.crop == nil, item.aspectRatio == nil, item.imageAdjustment.isIdentity, item.exportOptions.isDefault else { return false }
             if case .waiting = item.state { return true }
             return false
         }
-        guard candidates.count >= 2 else { return }
+        guard candidates.count >= 2, let binary = requireMediaTools() else { return }
         cancellationRequested = false
         isVerifyingMerge = false
         presentationQueue.isSuspended = true
@@ -515,6 +511,18 @@ final class ConverterStore: ObservableObject {
               infos.dropFirst().allSatisfy({ $0.mergeSignature == signature }) else {
             offerCompatibleMerge()
             return
+        }
+        // Hidden pre-roll can overlap the previous clip during concatenation.
+        for (source, info) in zip(sources, infos) {
+            let independentStart = await hasIndependentVideoStart(source, info: info, ffmpegURL: ffmpegURL)
+            if cancellationRequested {
+                finishMerge(message: L10n.text("合并已取消。"), output: nil)
+                return
+            }
+            if !independentStart {
+                offerCompatibleMerge()
+                return
+            }
         }
         recordMergeNotices(infos: infos, preset: isCompatibleMerging ? .h264Hardware : .remux)
         mergeDurations = infos.map(\.duration)
@@ -713,10 +721,7 @@ final class ConverterStore: ObservableObject {
                 self.consumeMergeProgress(String(decoding: data, as: UTF8.self))
             }
         }
-        if cancellationRequested || result.wasCancelled { return .cancelled }
-        if result.timedOut { return .failure("MP4Flow:stalled") }
-        if result.launchError != nil { return .failure("MP4Flow:launch-failed") }
-        if result.succeeded { return .success }
+        if let outcome = completedFFmpegResult(result) { return outcome }
         let message = friendlyMergeError(result.standardError)
         if let hint = FFmpegHardwareRetryClassifier.hint(stderr: result.standardError, usedHardwarePipeline: false, usedHardwareEncoder: usesHardwareEncoder) {
             return .retryableFailure(message, hint)
@@ -866,32 +871,20 @@ final class ConverterStore: ObservableObject {
             items[index].phase = nil
             return
         }
-        // A trim should not silently become a full re-encode. When the source
-        // streams are safe in MP4, use lossless stream copy regardless of the
-        // selected conversion preset. This is the same fast path as “极速直封装”.
-        // Unsupported streams fall back to the user's normal hardware/software
-        // conversion choice so the output remains a playable MP4.
         let editedGeometry = info.geometry(crop: crop, rotation: rotation)
         let unchangedHeight = editedGeometry?.canSkipUnchangedSize == true ? editedGeometry?.height : nil
         let resizeRequiresEncoding = resolution.requiresReencode(sourceHeight: unchangedHeight)
-        // In automatic mode an incompatible audio codec should not force a
-        // perfectly compatible video through a full decode/encode cycle.
-        // Restrict this route to complete, unedited source timelines.
+        // Encode cuts so the first visible frame is a keyframe.
+        let videoRequiresEncoding = trim != nil || rotation != nil || crop != nil || aspectRatio != nil
+            || !imageAdjustment.isIdentity || resizeRequiresEncoding || exportOptions.targetSizeMB != nil || exportOptions.subtitles == .burn
+        // Smart conversion can copy compatible video while encoding audio.
         let compatibleAudio = exportPlan.audio.canCopyAll
         let directlyCompatible = info.canCopyVideoToMP4 && compatibleAudio
         let copyVideoAndEncodeAudio = preset == .smartMP4
-            && trim == nil && rotation == nil && crop == nil && aspectRatio == nil && imageAdjustment.isIdentity && !resizeRequiresEncoding
-            && info.canCopyVideoToMP4 && !compatibleAudio && exportOptions.targetSizeMB == nil && exportOptions.subtitles != .burn
+            && !videoRequiresEncoding && info.canCopyVideoToMP4 && !compatibleAudio
         let resolvedPreset: ConversionPreset
-        if preset == .smartEnhanceUpscale {
-            resolvedPreset = preset
-        } else if rotation != nil || crop != nil || aspectRatio != nil || !imageAdjustment.isIdentity || resizeRequiresEncoding || exportOptions.targetSizeMB != nil || exportOptions.subtitles == .burn {
-            // Edits require re-encoding, but retain an explicitly selected
-            // software or HEVC encoder. Only copy/automatic presets need a
-            // concrete H.264 encoding path here.
-            resolvedPreset = (preset == .remux || preset == .smartMP4) ? .h264Hardware : preset
-        } else if trim != nil, directlyCompatible {
-            resolvedPreset = .remux
+        if videoRequiresEncoding && (preset == .remux || preset == .smartMP4) {
+            resolvedPreset = trim != nil && info.isHDR ? .hevcHardware : .h264Hardware
         } else if preset == .smartMP4 {
             resolvedPreset = directlyCompatible || copyVideoAndEncodeAudio ? .remux : .h264Hardware
         } else {
@@ -900,7 +893,6 @@ final class ConverterStore: ObservableObject {
         let effectivePreset = exportPlan.encodingPreset(for: resolvedPreset)
         items[index].failure = nil
         items[index].mediaHandling = Self.mediaHandlingNotice(for: info, preset: effectivePreset, options: exportOptions)
-        setPhase(copyVideoAndEncodeAudio ? .audioTranscoding : phase(for: effectivePreset, preferHardwareEncoder: true), for: id, progress: info.duration == nil ? nil : 0, count: count, detail: exportPlan.targetSize.map { L10n.format("目标约 %@", L10n.byteCount($0.targetBytes)) } ?? (copyVideoAndEncodeAudio ? nil : outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution, sourceHeight: editedGeometry?.height)))
         if let aspectRatio, aspectRatio.outputSize(height: resolution.targetHeight ?? editedGeometry?.height ?? 0) == nil {
             markFailed(id, failure: ConversionFailure(reasonKey: "目标比例或尺寸超出支持范围", solutionKey: "请选择较小分辨率或接近原画的比例。", diagnostic: "geometry:unsupported-size"), count: count)
             return
@@ -909,11 +901,61 @@ final class ConverterStore: ObservableObject {
             markFailed(id, failure: ConversionFailure(reasonKey: "HDR 视频暂不支持画面调整", solutionKey: "请先导出 SDR 视频，再调整亮度。", diagnostic: "adjustment:hdr"), count: count)
             return
         }
+        var subtitleTrim: SubtitleTrim?
+        defer { subtitleTrim?.cleanup() }
+        if let trim, exportPlan.options.subtitles == .keep, let track = exportPlan.subtitle {
+            do {
+                let staged = try SubtitleTrim()
+                subtitleTrim = staged
+                let extraction = await runSubtitleExtraction(ffmpegURL: ffmpegURL, arguments: staged.extractionArguments(source: source, track: track, trim: trim), id: id)
+                switch extraction {
+                case .success:
+                    try staged.writeClippedSubtitles(in: trim)
+                case .cancelled:
+                    if let current = items.firstIndex(where: { $0.id == id }) {
+                        items[current].state = .cancelled
+                        items[current].phase = nil
+                    }
+                    return
+                case .failure(let message), .retryableFailure(let message, _):
+                    markFailed(id, failure: Self.failure(from: message), count: count)
+                    return
+                }
+            } catch {
+                markFailed(id, failure: ConversionFailure(reasonKey: ExportOptionError.missingSubtitle.reasonKey, solutionKey: "请打开导出设置并重新选择。", diagnostic: "subtitle:prepare"), count: count)
+                return
+            }
+        }
+        setPhase(copyVideoAndEncodeAudio ? .audioTranscoding : phase(for: effectivePreset, preferHardwareEncoder: true), for: id, progress: info.duration == nil ? nil : 0, count: count, detail: exportPlan.targetSize.map { L10n.format("目标约 %@", L10n.byteCount($0.targetBytes)) } ?? (copyVideoAndEncodeAudio ? nil : outputSummary(info, preset: effectivePreset, quality: quality, resolution: resolution, sourceHeight: editedGeometry?.height)))
+        let trimmedSubtitle = subtitleTrim?.clippedURL
         let final = uniqueOutput(for: source, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment)
         let temporary = final.deletingLastPathComponent().appendingPathComponent(".MP4Flow-\(UUID().uuidString).partial.mp4")
-        // The worker owns only its partial file; a successful move leaves the
-        // published output untouched, while every early return also cleans up.
         defer { try? FileManager.default.removeItem(at: temporary) }
+        func encodeWithFFmpeg(recoverTimeline: Bool = false) async -> ProcessResult {
+            func run(hardwarePipeline: Bool, hardwareEncoder: Bool) async -> ProcessResult {
+                await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: hardwarePipeline, preferHardwareEncoder: hardwareEncoder, exportPlan: exportPlan, trimmedSubtitle: trimmedSubtitle, recoverClipTimeline: recoverTimeline)
+            }
+            var attempt = await run(hardwarePipeline: !recoverTimeline, hardwareEncoder: true)
+            // Retry only a diagnosed VideoToolbox failure.
+            if case .retryableFailure(_, .cpuDecodeAndFilter) = attempt, !cancellationRequested {
+                setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件处理失败，正在使用兼容方式重试"))
+                attempt = await run(hardwarePipeline: false, hardwareEncoder: true)
+            }
+            if case .retryableFailure(_, .softwareEncoder) = attempt, !cancellationRequested,
+               FFmpegCommandBuilder.usesVideoToolboxEncoder(effectivePreset) {
+                setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件编码不可用，正在使用兼容编码重试"))
+                attempt = await run(hardwarePipeline: false, hardwareEncoder: false)
+            }
+            return attempt
+        }
+
+        let ffmpegTrim = effectivePreset == .smartEnhanceUpscale ? nil : trim
+        let requiresOpeningFrame = ffmpegTrim.map { info.videoAlreadyStarted(at: $0.start) } ?? false
+        func verifyConversion() async -> ConversionFailure? {
+            setPhase(.verifying, for: id, progress: 0.999, count: count)
+            return await verifyOutput(temporary, ffmpegURL: ffmpegURL, expectedAspectRatio: aspectRatio?.value ?? info.displayAspectRatio(crop: crop, rotation: rotation), requiresSquarePixels: aspectRatio != nil, expectedAudioCount: exportOptions.audioCount(in: info), expectedSubtitleCount: exportOptions.subtitles == .keep ? 1 : 0, clipDuration: ffmpegTrim.map { $0.end - $0.start }, requiresOpeningFrame: requiresOpeningFrame)
+        }
+
         var result: ProcessResult
         if effectivePreset == .smartEnhanceUpscale {
             guard rotation == nil, crop == nil, aspectRatio == nil, imageAdjustment.isIdentity else {
@@ -936,29 +978,19 @@ final class ConverterStore: ObservableObject {
             statusText = L10n.format("智能增强放大至 %@", plan.outputSummary)
             result = await runSmartEnhance(source: source, output: temporary, info: info, plan: plan, trim: trim, quality: quality, id: id, count: count)
         } else {
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, exportPlan: exportPlan)
-        }
-        // Keep the fast VideoToolbox path as the default. Retry only when the
-        // stderr allowlist identifies a specific VideoToolbox component: a
-        // decoder/filter failure gets one CPU-pipeline attempt, while an
-        // encoder failure goes directly to libx264. Generic media, mux, I/O,
-        // and timeout failures never replay the whole video automatically.
-        if case .retryableFailure(_, .cpuDecodeAndFilter) = result,
-           !cancellationRequested,
-           effectivePreset != .smartEnhanceUpscale {
-            setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件处理失败，正在使用兼容方式重试"))
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, preferHardwarePipeline: false, exportPlan: exportPlan)
-        }
-        if case .retryableFailure(_, .softwareEncoder) = result,
-           !cancellationRequested,
-           effectivePreset != .smartEnhanceUpscale,
-           FFmpegCommandBuilder.usesVideoToolboxEncoder(effectivePreset) {
-            setPhase(.softwareTranscoding, for: id, progress: nil, count: count, detail: L10n.text("硬件编码不可用，正在使用兼容编码重试"))
-            result = await runFFmpeg(ffmpegURL: ffmpegURL, source: source, output: temporary, info: info, preset: effectivePreset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, id: id, count: count, preferHardwarePipeline: false, preferHardwareEncoder: false, exportPlan: exportPlan)
+            result = await encodeWithFFmpeg()
         }
         if case .success = result, !cancellationRequested {
-            setPhase(.verifying, for: id, progress: 0.999, count: count)
-            if let verificationFailure = await verifyOutput(temporary, ffmpegURL: ffmpegURL, expectedAspectRatio: aspectRatio?.value ?? info.displayAspectRatio(crop: crop, rotation: rotation), requiresSquarePixels: aspectRatio != nil, expectedAudioCount: exportOptions.audioCount(in: info), expectedSubtitleCount: exportOptions.subtitles == .keep ? 1 : 0) {
+            var verification = await verifyConversion()
+            let needsTimelineRecovery = verification?.diagnostic == "verify:clip-timeline"
+                || (requiresOpeningFrame && verification?.diagnostic == "verify:no-video-stream")
+            if !cancellationRequested, ffmpegTrim != nil, needsTimelineRecovery {
+                setPhase(phase(for: effectivePreset, preferHardwareEncoder: true), for: id, progress: nil, count: count)
+                result = await encodeWithFFmpeg(recoverTimeline: true)
+                if case .success = result, !cancellationRequested { verification = await verifyConversion() }
+                else { verification = nil }
+            }
+            if let verificationFailure = verification {
                 result = .failure(verificationFailure.reason)
                 if let current = items.firstIndex(where: { $0.id == id }) {
                     items[current].failure = verificationFailure
@@ -997,6 +1029,14 @@ final class ConverterStore: ObservableObject {
 
     private enum ProcessResult {
         case success, cancelled, failure(String), retryableFailure(String, FFmpegHardwareRetryHint)
+    }
+
+    private func completedFFmpegResult(_ result: FFmpegProcessRunner.Result) -> ProcessResult? {
+        if cancellationRequested || result.wasCancelled { return .cancelled }
+        if result.timedOut { return .failure("MP4Flow:stalled") }
+        if result.launchError != nil { return .failure("MP4Flow:launch-failed") }
+        if Self.hasTruncatedInput(result.standardError) { return .failure("MP4Flow:unreadable-media") }
+        return result.succeeded ? .success : nil
     }
 
     private func shouldRetryProbe(for source: URL) -> Bool {
@@ -1057,7 +1097,7 @@ final class ConverterStore: ObservableObject {
     }
 
     nonisolated static func failure(from message: String) -> ConversionFailure {
-        if message.lowercased().contains("no such filter") && message.lowercased().contains("subtitles") {
+        if message == "MP4Flow:subtitle-renderer" {
             return ConversionFailure(reasonKey: ExportOptionError.missingRenderer.reasonKey, solutionKey: "可选择保留字幕，或安装支持 libass 的 FFmpeg。", diagnostic: "ffmpeg:subtitle-renderer")
         }
         if message == "MP4Flow:aspect-mismatch" {
@@ -1104,6 +1144,12 @@ final class ConverterStore: ObservableObject {
                 solutionKey: "请在「环境体检」检查 FFmpeg，修复安装或权限后重试。",
                 diagnostic: "ffmpeg:launch-failed"
             )
+        }
+        if message == "MP4Flow:unsupported-options" {
+            return ConversionFailure(reasonKey: "FFmpeg 不支持当前转换参数", solutionKey: "请更新 MP4Flow 或 FFmpeg 后重试。", diagnostic: "ffmpeg:unsupported-options")
+        }
+        if message == "MP4Flow:output-unavailable" {
+            return ConversionFailure(reasonKey: "无法保存输出文件", solutionKey: "请检查输出文件夹权限和可用空间后重试。", diagnostic: "ffmpeg:output-unavailable")
         }
         if message == "MP4Flow:disk-full" {
             return ConversionFailure(reasonKey: "输出磁盘空间不足", solutionKey: "请释放空间或选择其他输出位置后重试。", diagnostic: "ffmpeg:disk-full")
@@ -1160,7 +1206,7 @@ final class ConverterStore: ObservableObject {
     /// Validate the temporary result before atomically publishing it. This is
     /// deliberately metadata-only: it catches a zero-byte/truncated output
     /// without decoding a long video for a second time.
-    private func verifyOutput(_ output: URL, ffmpegURL: URL, expectedAspectRatio: Double? = nil, requiresSquarePixels: Bool = false, expectedAudioCount: Int? = nil, expectedSubtitleCount: Int? = nil) async -> ConversionFailure? {
+    private func verifyOutput(_ output: URL, ffmpegURL: URL, expectedAspectRatio: Double? = nil, requiresSquarePixels: Bool = false, expectedAudioCount: Int? = nil, expectedSubtitleCount: Int? = nil, clipDuration: Double? = nil, requiresOpeningFrame: Bool = false) async -> ConversionFailure? {
         guard let values = try? output.resourceValues(forKeys: [.fileSizeKey]),
               let size = values.fileSize,
               size > 0 else {
@@ -1194,6 +1240,14 @@ final class ConverterStore: ObservableObject {
                 reasonKey: "输出文件缺少视频流",
                 solutionKey: "请使用「最稳妥转换」重试。",
                 diagnostic: "verify:no-video-stream"
+            )
+        }
+        if let clipDuration, let start = info.videoStartTime,
+           (requiresOpeningFrame && start > 0.002) || (info.videoDuration.map { start + $0 > clipDuration + 0.1 } ?? false) {
+            return ConversionFailure(
+                reasonKey: "输出文件未通过媒体检查",
+                solutionKey: "请重试；仍失败请使用「最稳妥转换」。",
+                diagnostic: "verify:clip-timeline"
             )
         }
         if (expectedAudioCount != nil && info.audioTrackCount != expectedAudioCount) || (expectedSubtitleCount != nil && info.subtitleTrackCount != expectedSubtitleCount) {
@@ -1270,7 +1324,18 @@ final class ConverterStore: ObservableObject {
     }
 #endif
 
-    private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment, id: UUID, count: Int, copyVideoAndEncodeAudio: Bool = false, preferHardwarePipeline: Bool = true, preferHardwareEncoder: Bool = true, exportPlan: ExportPlan) async -> ProcessResult {
+    private func runSubtitleExtraction(ffmpegURL: URL, arguments: [String], id: UUID) async -> ProcessResult {
+        guard !cancellationRequested else { return .cancelled }
+        var configuration = processConfiguration
+        configuration.activityPolicy = .anyOutput
+        let runner = FFmpegProcessRunner(executable: ffmpegURL, arguments: arguments, configuration: configuration)
+        activeProcesses[id] = runner
+        defer { activeProcesses.removeValue(forKey: id) }
+        let result = await runner.run()
+        return completedFFmpegResult(result) ?? .failure(Self.ffmpegFailureMessage(result.standardError))
+    }
+
+    private func runFFmpeg(ffmpegURL: URL, source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment, id: UUID, count: Int, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool, exportPlan: ExportPlan, trimmedSubtitle: URL?, recoverClipTimeline: Bool) async -> ProcessResult {
         let exportOptions = exportPlan.options
         guard !cancellationRequested else { return .cancelled }
         let generation = UUID()
@@ -1282,7 +1347,7 @@ final class ConverterStore: ObservableObject {
         lastProgressUpdate[id] = nil
         let runner = FFmpegProcessRunner(
             executable: ffmpegURL,
-            arguments: FFmpegCommandBuilder.arguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder, exportPlan: exportPlan),
+            arguments: FFmpegCommandBuilder.arguments(source: source, output: output, info: info, preset: preset, quality: quality, resolution: resolution, trim: trim, rotation: rotation, crop: crop, aspectRatio: aspectRatio, imageAdjustment: imageAdjustment, copyVideoAndEncodeAudio: copyVideoAndEncodeAudio, preferHardwarePipeline: preferHardwarePipeline, preferHardwareEncoder: preferHardwareEncoder, exportPlan: exportPlan, trimmedSubtitle: trimmedSubtitle, recoverClipTimeline: recoverClipTimeline),
             configuration: processConfiguration
         )
         activeProcesses[id] = runner
@@ -1300,10 +1365,7 @@ final class ConverterStore: ObservableObject {
                 self?.consumeProgress(String(decoding: data, as: UTF8.self), duration: trim.map { $0.end - $0.start } ?? info.duration, id: id, count: count, generation: generation)
             }
         }
-        if cancellationRequested || result.wasCancelled { return .cancelled }
-        if result.timedOut { return .failure("MP4Flow:stalled") }
-        if result.launchError != nil { return .failure("MP4Flow:launch-failed") }
-        if result.succeeded { return .success }
+        if let outcome = completedFFmpegResult(result) { return outcome }
         let message = Self.ffmpegFailureMessage(result.standardError)
         if let hint = FFmpegHardwareRetryClassifier.hint(
             stderr: result.standardError,
@@ -1386,16 +1448,44 @@ final class ConverterStore: ObservableObject {
         return await MediaInspector.inspect(at: source, using: probe, runner: runner)
     }
 
+    private func hasIndependentVideoStart(_ source: URL, info: VideoInfo, ffmpegURL: URL) async -> Bool {
+        guard !cancellationRequested, let probe = locateFFprobe(for: ffmpegURL) else { return false }
+        let runner = FFmpegProcessRunner(
+            executable: probe,
+            arguments: ["-v", "error", "-select_streams", info.videoStreamSpecifier, "-read_intervals", "%+#128",
+                        "-show_entries", "packet=flags", "-of", "csv=p=0", source.path],
+            configuration: .init(inactivityTimeout: 30, maximumOutputBytes: 4_096)
+        )
+        let id = UUID()
+        activeProcesses[id] = runner
+        defer { activeProcesses.removeValue(forKey: id) }
+        let result = await runner.run()
+        guard result.succeeded,
+              let flags = String(decoding: result.standardOutput, as: UTF8.self).split(whereSeparator: \.isNewline).first else { return false }
+        return flags.hasPrefix("K") && !flags.contains("D")
+    }
+
     private func locateFFmpeg() -> URL? {
-        if let ffmpegOverride {
-            return FileManager.default.isExecutableFile(atPath: ffmpegOverride.path) ? ffmpegOverride : nil
-        }
-        let candidate = DependencyToolResolver.resolve().ffmpeg
-        return candidate.flatMap { FileManager.default.isExecutableFile(atPath: $0.path) ? $0 : nil }
+        guard let candidate = ffmpegOverride ?? DependencyToolResolver.resolve().ffmpeg,
+              DependencyToolResolver.isExecutable(candidate) else { return nil }
+        return candidate
     }
     private func locateFFprobe(for ffmpeg: URL) -> URL? {
         let sibling = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
-        return FileManager.default.isExecutableFile(atPath: sibling.path) ? sibling : nil
+        return DependencyToolResolver.isExecutable(sibling) ? sibling : nil
+    }
+
+    private func requireMediaTools() -> URL? {
+        guard let binary = locateFFmpeg() else {
+            showFFmpegSetup = true
+            return nil
+        }
+        guard locateFFprobe(for: binary) != nil else {
+            statusText = L10n.text("未检测到 ffprobe，请安装完整的 FFmpeg 后重试。")
+            showFFmpegSetup = true
+            return nil
+        }
+        return binary
     }
     private func canonicalURL(_ url: URL) -> URL {
         url.standardizedFileURL.resolvingSymlinksInPath()
@@ -1414,11 +1504,25 @@ final class ConverterStore: ObservableObject {
         return OutputFileNaming.uniqueURL(in: directory, stem: firstSource.deletingPathExtension().lastPathComponent, suffix: "-merge")
     }
     private func fileNameTime(_ seconds: Double) -> String { String(format: "%02d%02d%02d", Int(seconds) / 3600, (Int(seconds) % 3600) / 60, Int(seconds) % 60) }
+    // A MOV demuxer that runs out of data can still leave FFmpeg with exit status 0.
+    nonisolated private static func hasTruncatedInput(_ stderr: String) -> Bool {
+        stderr.lowercased().split(whereSeparator: \.isNewline).contains { line in
+            (line.hasPrefix("[mov,mp4,") || (line.hasPrefix("[in#") && line.contains("/mov,mp4,")))
+                && line.contains("] stream ") && line.contains(", offset 0x") && line.hasSuffix(": partial file")
+        }
+    }
+
     nonisolated static func ffmpegFailureMessage(_ stderr: String) -> String {
         let text = stderr.lowercased()
-        if text.contains("no space left") || text.contains("disk full") { return "MP4Flow:disk-full" }
-        if text.contains("permission denied") || text.contains("operation not permitted") { return "MP4Flow:permission" }
-        if text.contains("no such file") { return "MP4Flow:missing-source" }
+        let lines = text.split(whereSeparator: \.isNewline)
+        if lines.contains(where: { $0.hasSuffix("no space left on device") || $0.hasSuffix("disk full") }) { return "MP4Flow:disk-full" }
+        let outputOpenErrors = ["no such file or directory", "not a directory", "is a directory", "read-only file system", "permission denied", "operation not permitted", "input/output error", "file too large"]
+        if lines.contains(where: { line in
+            (line.hasPrefix("error opening output files:") || line.contains("error writing trailer:") || line.contains("error submitting a packet to the muxer:"))
+                && outputOpenErrors.contains(where: line.hasSuffix)
+        }) { return "MP4Flow:output-unavailable" }
+        if lines.contains(where: { $0.hasSuffix("permission denied") || $0.hasSuffix("operation not permitted") }) { return "MP4Flow:permission" }
+        if lines.contains(where: { $0.hasSuffix("no such file or directory") || $0 == "no such file" }) { return "MP4Flow:missing-source" }
         if text.contains("invalid data found when processing input") || text.contains("moov atom not found") || text.contains("could not find codec parameters") {
             return "MP4Flow:unreadable-media"
         }
@@ -1426,6 +1530,11 @@ final class ConverterStore: ObservableObject {
             return "MP4Flow:hardware-encoder"
         }
         if text.contains("unknown encoder") { return "MP4Flow:software-encoder" }
+        if text.contains("no such filter: 'subtitles'") { return "MP4Flow:subtitle-renderer" }
+        if lines.contains(where: { line in
+            line.hasPrefix("unrecognized option ") || line.hasPrefix("error splitting the argument list: option not found")
+                || (line.hasPrefix("option ") && (line.contains(" cannot be applied to input ") || line.contains(" cannot be applied to output ")))
+        }) { return "MP4Flow:unsupported-options" }
         let containerFailures = [
             "could not find tag for codec", "codec not currently supported in container",
             "codec not supported in container", "muxer does not support"

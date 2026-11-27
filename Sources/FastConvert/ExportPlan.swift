@@ -7,7 +7,7 @@ struct AudioExportPlan: Sendable {
     let arguments: [String]
     let canCopyAll: Bool
 
-    init(options: ExportOptions, info: VideoInfo, target: TargetSizePlan?, forceAAC: Bool = false) {
+    init(options: ExportOptions, info: VideoInfo, target: TargetSizePlan?, forceAAC: Bool = false, trim: ClipRange? = nil) {
         tracks = options.chosenAudio(in: info)
         let mustEncode = target != nil || forceAAC
         canCopyAll = !mustEncode && (options.audio == .none || (tracks.isEmpty ? info.audioCodec == nil || info.audioCodec?.lowercased() == "aac" : tracks.allSatisfy { $0.codec.lowercased() == "aac" }))
@@ -15,10 +15,18 @@ struct AudioExportPlan: Sendable {
         var args: [String] = []
         for (offset, track) in tracks.enumerated() {
             let copy = !mustEncode && track.codec.lowercased() == "aac"
-            if copy { args += ["-c:a:\(offset)", "copy"] }
-            else {
+            if copy {
+                args += ["-c:a:\(offset)", "copy"]
+                if trim != nil {
+                    // Preserve ordinary AAC pre-roll. When a seek brings back
+                    // more than 1.5 seconds, keep the last 250 ms for decoding.
+                    let excessPreroll = "lt(startpts*tb\\,-1.5)*lt(pts*tb\\,-0.25)"
+                    args += ["-bsf:a:\(offset)", "noise=amount=0:drop=\(excessPreroll)"]
+                }
+            } else {
                 let rate = target?.audioRatePerTrack ?? (forceAAC ? 192_000 : min(max(track.bitRate ?? info.safeAudioRate, 64_000), 192_000))
                 args += ["-c:a:\(offset)", "aac", "-b:a:\(offset)", "\(rate)"]
+                if trim != nil { args += ["-filter:a:\(offset)", "atrim=start=0"] }
             }
             if let language = track.language { args += ["-metadata:s:a:\(offset)", "language=\(language)"] }
             args += ["-disposition:a:\(offset)", track.isDefault || tracks.count == 1 ? "default" : "0"]
@@ -46,7 +54,7 @@ struct ExportPlan: Sendable {
         if preset == .smartEnhanceUpscale && !options.supportsNativeEnhancement(info: info) { throw ExportOptionError.incompatibleEnhancement }
         if info.isHDR && (options.targetSizeMB != nil || options.subtitles == .burn) { throw ExportOptionError.hdrEdits }
         if options.subtitles == .burn && !canBurnSubtitles { throw ExportOptionError.missingRenderer }
-        audio = AudioExportPlan(options: options, info: info, target: targetSize, forceAAC: preset == .h264Cap8)
+        audio = AudioExportPlan(options: options, info: info, target: targetSize, forceAAC: preset == .h264Cap8, trim: trim)
         subtitle = options.chosenSubtitle(in: info)
     }
 

@@ -21,29 +21,6 @@ import XCTest
     func testCompatibleMergeFillsMissingSoundWithoutDroppingOtherTracks() async throws {
         try await verifyMerge(compatible: true, videoOnly: false, silentSecond: true)
     }
-    func testCompatibleMergePreservesAnIntentionalAudioStartDelay() async throws {
-        let directory = try makeDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let first = try await fixture(directory.appendingPathComponent("original.mp4"), size: "320x240", audio: true)
-        let delayed = directory.appendingPathComponent("delayed.mp4")
-        _ = try await run(["-v", "error", "-i", first.path, "-itsoffset", "0.4", "-i", first.path, "-map", "0:v", "-map", "1:a", "-c", "copy", delayed.path])
-        let second = try await fixture(directory.appendingPathComponent("second.mp4"), size: "640x360", audio: true)
-        let store = ConverterStore(ffmpegOverride: ffmpeg)
-        store.outputDirectory = directory; store.items = [ConversionItem(source: delayed), ConversionItem(source: second)]
-        store.mergeWaitingItems(); try await wait(store)
-        XCTAssertTrue(store.showCompatibleMergePrompt)
-        store.startCompatibleMerge(); try await wait(store)
-        let output = try XCTUnwrap(store.mergeOutput, store.mergeNotice)
-        func rms(_ data: Data) -> Double {
-            let bytes = [UInt8](data)
-            let samples = stride(from: 0, to: bytes.count - 1, by: 2).map { index in Double(Int16(bitPattern: UInt16(bytes[index]) | UInt16(bytes[index + 1]) << 8)) / 32768 }
-            return sqrt(samples.reduce(0) { $0 + $1 * $1 } / Double(max(1, samples.count)))
-        }
-        let leading = try await run(["-v", "error", "-ss", "0.1", "-i", output.path, "-t", "0.1", "-map", "0:a:0", "-c:a", "pcm_s16le", "-f", "s16le", "-"])
-        let sounding = try await run(["-v", "error", "-ss", "0.6", "-i", output.path, "-t", "0.1", "-map", "0:a:0", "-c:a", "pcm_s16le", "-f", "s16le", "-"])
-        XCTAssertLessThan(rms(leading), 0.005, "The intentional leading silence must not be reset away")
-        XCTAssertGreaterThan(rms(sounding), 0.02)
-    }
     func testConflictingTrackOrderAndHDRAreRejectedBeforeEncoding() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

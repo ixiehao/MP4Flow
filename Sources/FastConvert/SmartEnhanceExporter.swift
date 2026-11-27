@@ -278,9 +278,12 @@ actor SmartEnhanceExporter {
         }
         let audioTrack = try await asset.loadTracks(withMediaType: .audio).first
         let reader = try AVAssetReader(asset: asset)
-        if let trim {
-            reader.timeRange = CMTimeRange(start: CMTime(seconds: trim.start, preferredTimescale: 600), duration: CMTime(seconds: trim.end - trim.start, preferredTimescale: 600))
+        let clipRange = trim.map {
+            CMTimeRange(start: CMTime(seconds: $0.start, preferredTimescale: 600), end: CMTime(seconds: $0.end, preferredTimescale: 600))
         }
+        if let clipRange { reader.timeRange = clipRange }
+        let videoEnd = try? await videoTrack.load(.timeRange).end
+        let assetEnd = try? await asset.load(.duration)
         let sourceSettings: [String: Any] = [
             kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange),
             kCVPixelBufferIOSurfacePropertiesKey as String: [:]
@@ -362,7 +365,7 @@ actor SmartEnhanceExporter {
             if await shouldCancel() || Task.isCancelled { throw CancellationError() }
             guard writer.startWriting() else { throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to start the enhanced export.") }
             guard reader.startReading() else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
-            writer.startSession(atSourceTime: trim.map { CMTime(seconds: $0.start, preferredTimescale: 600) } ?? .zero)
+            writer.startSession(atSourceTime: clipRange?.start ?? .zero)
 
             // Both producers remain on this worker actor. They interleave at
             // suspension points so the writer receives audio while video is
@@ -393,12 +396,14 @@ actor SmartEnhanceExporter {
             }
 
             let offset = trim?.start ?? 0
+            var finalFrame: (buffer: CVPixelBuffer, time: CMTime)?
             while let sample = videoOutput.copyNextSampleBuffer() {
                 if await shouldCancel() || Task.isCancelled { throw CancellationError() }
+                let presentationTime = CMSampleBufferGetPresentationTimeStamp(sample)
                 guard let buffer = CMSampleBufferGetImageBuffer(sample),
-                      let sourceFrame = VTFrameProcessorFrame(buffer: buffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)),
+                      let sourceFrame = VTFrameProcessorFrame(buffer: buffer, presentationTimeStamp: presentationTime),
                       let destinationBuffer = makeDestinationBuffer(configuration: configuration),
-                      let destinationFrame = VTFrameProcessorFrame(buffer: destinationBuffer, presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sample)) else {
+                      let destinationFrame = VTFrameProcessorFrame(buffer: destinationBuffer, presentationTimeStamp: presentationTime) else {
                     throw ExportError.pixelBuffer
                 }
                 let parameters = VTLowLatencySuperResolutionScalerParameters(sourceFrame: sourceFrame, destinationFrame: destinationFrame)
@@ -415,13 +420,27 @@ actor SmartEnhanceExporter {
                     outputBuffer = destinationBuffer
                 }
                 try await waitUntilReady(videoInput, writer: writer, reader: reader, shouldCancel: shouldCancel)
-                guard pixelBufferAdaptor.append(outputBuffer, withPresentationTime: CMSampleBufferGetPresentationTimeStamp(sample)) else {
+                guard pixelBufferAdaptor.append(outputBuffer, withPresentationTime: presentationTime) else {
                     throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to write an enhanced frame.")
                 }
-                await onProgress(max(0, CMSampleBufferGetPresentationTimeStamp(sample).seconds - offset))
+                finalFrame = (outputBuffer, presentationTime)
+                await onProgress(max(0, presentationTime.seconds - offset))
             }
             if await shouldCancel() || Task.isCancelled { throw CancellationError() }
             guard reader.status != .failed else { throw ExportError.reader(reader.error?.localizedDescription ?? "Unable to read the source video.") }
+            var completedHeldFrame = false
+            if let finalFrame, let videoEnd, videoEnd.isNumeric {
+                let end = min(videoEnd, clipRange?.end ?? videoEnd)
+                if end - finalFrame.time > CMTime(value: 1, timescale: 10) {
+                    // The writer infers frame duration from the next sample.
+                    // Repeat only the last held image, at the end of its span.
+                    try await waitUntilReady(videoInput, writer: writer, reader: reader, shouldCancel: shouldCancel)
+                    guard pixelBufferAdaptor.append(finalFrame.buffer, withPresentationTime: end - CMTime(value: 1, timescale: 60)) else {
+                        throw ExportError.writer(writer.error?.localizedDescription ?? "Unable to finish an enhanced frame.")
+                    }
+                    completedHeldFrame = true
+                }
+            }
             videoInput.markAsFinished()
 
             if let audioWriteTask { try await waitForAudioCompletion(audioWriteTask, shouldCancel: shouldCancel) }
@@ -429,6 +448,12 @@ actor SmartEnhanceExporter {
                 throw ExportError.reader(reader.error?.localizedDescription ?? "The source could not be read completely.")
             }
             if await shouldCancel() || Task.isCancelled { throw CancellationError() }
+            if let clipRange {
+                let end = assetEnd.flatMap { $0.isNumeric ? min($0, clipRange.end) : nil } ?? clipRange.end
+                writer.endSession(atSourceTime: end)
+            } else if completedHeldFrame, let assetEnd, assetEnd.isNumeric {
+                writer.endSession(atSourceTime: assetEnd)
+            }
             try await finish(writer: writer, shouldCancel: shouldCancel)
         } catch {
             audioWriteTask?.cancel()

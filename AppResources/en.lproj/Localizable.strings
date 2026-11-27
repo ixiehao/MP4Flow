@@ -354,6 +354,8 @@
 "请更新或重新安装 FFmpeg，或改用「智能转换」后重试。" = "Update or reinstall FFmpeg, or try Smart Convert.";
 "此视频流无法直接写入 MP4" = "This stream cannot be copied directly into MP4";
 "请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Try Smart Convert first. If it still fails, use Reliable (Slow).";
+"FFmpeg 不支持当前转换参数" = "FFmpeg does not support these conversion options";
+"请更新 MP4Flow 或 FFmpeg 后重试。" = "Update MP4Flow or FFmpeg, then try again.";
 "无法启动转换工具" = "Could not start the conversion tool";
 "请在「环境体检」检查 FFmpeg，修复安装或权限后重试。" = "Check FFmpeg in Environment Check, fix its installation or permissions, and try again.";
 "Language" = "Language";

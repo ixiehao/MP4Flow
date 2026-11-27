@@ -26,7 +26,9 @@ struct CompatibleMergePlan: Sendable {
 
 enum MergeCommandBuilder {
     static func losslessArguments(listURL: URL, info: VideoInfo, output: URL) -> [String] {
-        ["-hide_banner", "-nostdin", "-y", "-f", "concat", "-safe", "0", "-i", listURL.path,
+        // Keep the concat timeline's zero. An AAC priming packet can have a
+        // negative timestamp, which must not push the first video frame later.
+        ["-hide_banner", "-nostdin", "-y", "-copyts", "-f", "concat", "-safe", "0", "-i", listURL.path,
          "-map", "0:\(info.videoStreamSpecifier)", "-map", "0:a?", "-map_metadata", "-1", "-map_chapters", "-1", "-c:v", "copy"]
         + (info.videoCodec?.lowercased() == "hevc" ? ["-tag:v", "hvc1"] : [])
         + AudioExportPlan(options: ExportOptions(), info: info, target: nil).arguments
@@ -72,7 +74,9 @@ enum MergeCommandBuilder {
             for slot in 0..<audio.count {
                 let layout = audio.channelLayouts[slot]
                 if info.audioTrackCount > 0 {
-                    filters.append("[\(index):a:\(slot)]aresample=48000:first_pts=0,aformat=channel_layouts=\(layout)[a\(index)_\(slot)]")
+                    // Keep the stream's start timestamp. Filling the leading gap
+                    // inside each input branch can stall concat in FFmpeg 9.1.
+                    filters.append("[\(index):a:\(slot)]aresample=48000,aformat=channel_layouts=\(layout)[a\(index)_\(slot)]")
                 } else {
                     filters.append("anullsrc=r=48000:cl=\(layout),atrim=duration=\(FFmpegNumber.time(info.duration ?? 0)),asetpts=PTS-STARTPTS[a\(index)_\(slot)]")
                 }

@@ -355,6 +355,8 @@
 "请更新或重新安装 FFmpeg，或改用「智能转换」后重试。" = "Mettez à jour ou réinstallez FFmpeg, ou essayez « Conversion intelligente ».";
 "此视频流无法直接写入 MP4" = "Ce flux ne peut pas être copié directement dans un MP4";
 "请使用「智能转换」重新编码后重试；仍失败请使用「最稳妥转换」。" = "Essayez « Conversion intelligente ». Si l’échec persiste, utilisez « Fiable (lent) ».";
+"FFmpeg 不支持当前转换参数" = "FFmpeg ne prend pas en charge ces options de conversion";
+"请更新 MP4Flow 或 FFmpeg 后重试。" = "Mettez à jour MP4Flow ou FFmpeg, puis réessayez.";
 "无法启动转换工具" = "Impossible de lancer l’outil de conversion";
 "请在「环境体检」检查 FFmpeg，修复安装或权限后重试。" = "Vérifiez FFmpeg dans « Diagnostic », corrigez son installation ou ses autorisations, puis réessayez.";
 "Language" = "Langue";

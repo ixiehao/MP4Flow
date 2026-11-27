@@ -22,6 +22,14 @@ enum DependencyToolResolver {
             + ["/opt/local/bin", "/usr/bin"]).map { URL(fileURLWithPath: $0, isDirectory: true) }
     }()
 
+    static func isExecutable(_ candidate: URL) -> Bool {
+        // Directory search permission also passes isExecutableFile. Resolve
+        // links so real Homebrew binaries and scripts remain valid candidates.
+        guard FileManager.default.isExecutableFile(atPath: candidate.path) else { return false }
+        let target = candidate.resolvingSymlinksInPath()
+        return (try? target.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true
+    }
+
     static func resolve(in directories: [URL] = defaultDirectories) -> (ffmpeg: URL?, ffprobe: URL?) {
         let candidates = directories.map { $0.appendingPathComponent("ffmpeg") }
         // A partially removed ffmpeg-full installation must not hide a complete
@@ -29,10 +37,9 @@ enum DependencyToolResolver {
         // borrow ffprobe from a different distribution. If no pair works, keep
         // the original candidate and its own sibling for accurate diagnostics.
         let complete = candidates.first {
-            FileManager.default.isExecutableFile(atPath: $0.path)
-                && FileManager.default.isExecutableFile(atPath: $0.deletingLastPathComponent().appendingPathComponent("ffprobe").path)
+            isExecutable($0) && isExecutable($0.deletingLastPathComponent().appendingPathComponent("ffprobe"))
         }
-        let ffmpeg = complete ?? candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
+        let ffmpeg = complete ?? candidates.first(where: isExecutable)
             ?? candidates.first { FileManager.default.fileExists(atPath: $0.path) }
         let sibling = ffmpeg?.deletingLastPathComponent().appendingPathComponent("ffprobe")
         let ffprobe = sibling.flatMap { FileManager.default.fileExists(atPath: $0.path) ? $0 : nil }
@@ -180,7 +187,7 @@ private enum DependencyHealthProbe {
                 ffprobe = await inspectExecutable(named: "ffprobe", at: tools.ffprobe)
                 guard !Task.isCancelled else { return DependencyHealthReport.checking }
                 let encoders: String?
-                if let path = ffmpeg.path {
+                if ffmpeg.level == .ready, let path = ffmpeg.path {
                     let result = await run(URL(fileURLWithPath: path), arguments: ["-hide_banner", "-encoders"], timeout: 4)
                     encoders = result.succeeded ? result.output.lowercased() : nil
                 } else {
@@ -221,7 +228,7 @@ private enum DependencyHealthProbe {
             return ExecutableHealth(level: .failed, path: nil, version: nil)
         }
 
-        guard FileManager.default.isExecutableFile(atPath: executable.path) else {
+        guard DependencyToolResolver.isExecutable(executable) else {
             return ExecutableHealth(level: .failed, path: executable.path, version: nil)
         }
 

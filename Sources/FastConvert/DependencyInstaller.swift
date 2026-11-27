@@ -33,11 +33,10 @@ enum DependencyInstaller {
         let matchingBrew = damagedFFmpeg.flatMap { path in
             candidates.first { candidate in
                 let prefix = candidate.deletingLastPathComponent().deletingLastPathComponent().path
-                return path.hasPrefix(prefix + "/")
+                return path.hasPrefix(prefix + "/") && DependencyToolResolver.isExecutable(candidate)
             }
         }
-        let executable = { (url: URL) in FileManager.default.isExecutableFile(atPath: url.path) }
-        guard let brew = matchingBrew.flatMap({ executable($0) ? $0 : nil }) ?? candidates.first(where: executable) else {
+        guard let brew = matchingBrew ?? candidates.first(where: DependencyToolResolver.isExecutable) else {
             return .homebrewMissing
         }
         let package = formula(for: damagedFFmpeg)

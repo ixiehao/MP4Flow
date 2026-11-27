@@ -472,6 +472,10 @@ struct VideoInfo: Sendable {
     var chapterCount = 0
     var selectedVideoStreamIndex: Int? = nil
     var selectedVideoTrackID: Int32? = nil
+    var videoExtradataHash: String? = nil
+    var videoStartTime: Double? = nil
+    var videoDuration: Double? = nil
+    var formatStartTime: Double? = nil
     var streamLayout: [MediaStreamLayout] = []
     var audioTracks: [MediaTrack] = []
     var subtitleTracks: [MediaTrack] = []
@@ -511,32 +515,38 @@ struct VideoInfo: Sendable {
         return nil
     }
 
-    /// Match the demuxer's clock so VFR timestamps are not rounded to the
-    /// nominal frame-rate clock. A literal rational also supports older FFmpeg
-    /// versions that do not accept the newer symbolic `demux` option.
+    /// A literal demuxer clock preserves VFR timing on older FFmpeg versions.
     var encodingTimeBase: String? {
-        guard let timeBase else { return nil }
-        let fields = timeBase.split(separator: "/", omittingEmptySubsequences: false)
-        guard fields.count == 2, let numerator = Int32(fields[0]), let denominator = Int32(fields[1]),
-              numerator > 0, denominator > 0 else { return nil }
+        guard let (numerator, denominator) = Self.positiveRational(timeBase) else { return nil }
         return "\(numerator)/\(denominator)"
     }
 
-    /// A precise cut can fall between frames. Hold the first selected frame
-    /// back to zero only for that sub-frame gap, so Quick Look can draw its
-    /// paused preview. Keep every later PTS and all audio timing unchanged;
-    /// resetting the entire video clock would move it relative to copied AAC.
-    /// Longer, intentional leading gaps remain intact.
+    /// Align a sub-frame opening gap for Quick Look without shifting later timestamps.
     var trimmedFirstFrameFilter: String? {
-        // VFR's r_frame_rate can describe a timestamp grid (e.g. 90000 Hz),
-        // not its playback cadence. Prefer the measured average when valid.
-        for rate in [averageFrameRate, frameRate].compactMap({ $0 }) {
-            let fields = rate.split(separator: "/", omittingEmptySubsequences: false)
-            guard fields.count == 2, let numerator = Int32(fields[0]), let denominator = Int32(fields[1]),
-                  numerator > 0, denominator > 0 else { continue }
-            return "setpts=if(eq(N\\,0)*between(PTS*TB\\,0\\,\(denominator)/\(numerator)+TB)\\,0\\,PTS)"
+        guard let (numerator, denominator) = Self.positiveRational(averageFrameRate) ?? Self.positiveRational(frameRate) else { return nil }
+        return "setpts=if(eq(N\\,0)*between(PTS*TB\\,0\\,\(denominator)/\(numerator)+TB)\\,0\\,PTS)"
+    }
+
+    /// Used only to recover a clip that began inside a long-held frame.
+    var openingFrameRecoveryRate: Double {
+        for clock in [frameRate, averageFrameRate] {
+            guard let (numerator, denominator) = Self.positiveRational(clock) else { continue }
+            let rate = Double(numerator) / Double(denominator)
+            if (1...240).contains(rate) { return max(30, rate) }
         }
-        return nil
+        return 30
+    }
+
+    private static func positiveRational(_ value: String?) -> (Int32, Int32)? {
+        guard let fields = value?.split(separator: "/", omittingEmptySubsequences: false), fields.count == 2,
+              let numerator = Int32(fields[0]), let denominator = Int32(fields[1]),
+              numerator > 0, denominator > 0 else { return nil }
+        return (numerator, denominator)
+    }
+
+    func videoAlreadyStarted(at time: Double) -> Bool {
+        guard let videoStartTime, videoStartTime.isFinite else { return false }
+        return videoStartTime - (formatStartTime ?? 0) <= time + 0.002
     }
 
     var isHDR: Bool {
@@ -552,10 +562,15 @@ struct VideoInfo: Sendable {
     var mergeSignature: MergeSignature? {
         guard let videoCodec, let width, let height, let frameRate, let pixelFormat,
               let timeBase = encodingTimeBase else { return nil }
+        let codec = videoCodec.lowercased()
+        // The concat demuxer adjusts AVC packets when needed. HEVC hvc1
+        // relies on one MP4 track configuration for every segment.
+        let hevcExtradataHash = codec == "hevc" ? videoExtradataHash : nil
+        guard codec != "hevc" || hevcExtradataHash != nil else { return nil }
         let angle = displayRotation ?? 0
         guard angle.isFinite else { return nil }
         let rotation = (angle.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
-        return MergeSignature(videoCodec: videoCodec.lowercased(), width: width, height: height, frameRate: frameRate, pixelFormat: pixelFormat, timeBase: timeBase, sampleAspectRatio: sampleAspectRatio, displayRotation: rotation, audioCodec: audioCodec?.lowercased(), audioSampleRate: audioSampleRate, audioChannels: audioChannels, streamLayout: streamLayout, audioTracks: audioTracks.map(AudioStreamSignature.init), colorMetadata: [colorTransfer, colorPrimaries, colorSpace, colorRange])
+        return MergeSignature(videoCodec: codec, hevcExtradataHash: hevcExtradataHash, width: width, height: height, frameRate: frameRate, pixelFormat: pixelFormat, timeBase: timeBase, sampleAspectRatio: sampleAspectRatio, displayRotation: rotation, audioCodec: audioCodec?.lowercased(), audioSampleRate: audioSampleRate, audioChannels: audioChannels, streamLayout: streamLayout, audioTracks: audioTracks.map(AudioStreamSignature.init), colorMetadata: [colorTransfer, colorPrimaries, colorSpace, colorRange])
     }
     var mergePixelAspectRatio: Double {
         guard let sampleAspectRatio else { return 1 }
@@ -591,6 +606,7 @@ struct VideoInfo: Sendable {
 
 struct MergeSignature: Hashable, Sendable {
     let videoCodec: String
+    let hevcExtradataHash: String?
     let width: Int
     let height: Int
     let frameRate: String

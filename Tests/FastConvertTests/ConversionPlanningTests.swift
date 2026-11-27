@@ -37,7 +37,7 @@ final class ConversionPlanningTests: XCTestCase {
         try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x720:rate=6:duration=1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", source.path])
         let sourceHash = try copiedVideoHash(source, ffmpeg: tools.ffmpeg)
 
-        let smart = ConverterStore()
+        let smart = ConverterStore(ffmpegOverride: tools.ffmpeg)
         smart.outputResolution = .p720
         smart.outputDirectory = directory
         smart.items = [ConversionItem(source: source)]
@@ -45,7 +45,7 @@ final class ConversionPlanningTests: XCTestCase {
         let copied = try await completedOutput(smart)
         XCTAssertEqual(try copiedVideoHash(copied, ffmpeg: tools.ffmpeg), sourceHash, "An unchanged smart resize must not spend time re-encoding")
 
-        let software = ConverterStore()
+        let software = ConverterStore(ffmpegOverride: tools.ffmpeg)
         software.preset = .h264Software
         software.outputResolution = .p720
         software.outputDirectory = directory
@@ -64,7 +64,7 @@ final class ConversionPlanningTests: XCTestCase {
         try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x720:rate=12:duration=1", "-f", "lavfi", "-i", "sine=frequency=660:sample_rate=48000:duration=1", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-c:a", "pcm_s16le", "-shortest", source.path])
         let sourceHash = try copiedVideoHash(source, ffmpeg: tools.ffmpeg)
 
-        let smart = ConverterStore()
+        let smart = ConverterStore(ffmpegOverride: tools.ffmpeg)
         smart.outputResolution = .p720
         smart.outputDirectory = directory
         smart.items = [ConversionItem(source: source)]
@@ -79,7 +79,7 @@ final class ConversionPlanningTests: XCTestCase {
         try run(tools.ffmpeg, ["-v", "error", "-i", output.path, "-map", "0:v:0", "-map", "0:a:0", "-f", "null", "-"])
 
         for (preset, resolution) in [(ConversionPreset.h264Software, OutputResolution.p720), (.smartMP4, .p480)] {
-            let encoded = ConverterStore()
+            let encoded = ConverterStore(ffmpegOverride: tools.ffmpeg)
             encoded.preset = preset
             encoded.outputResolution = resolution
             encoded.outputDirectory = directory
@@ -103,7 +103,7 @@ final class ConversionPlanningTests: XCTestCase {
         XCTAssertGreaterThan((intervals.max() ?? 0) - (intervals.min() ?? 0), 0.003, "The fixture must actually have irregular timestamps")
 
         for preset in [ConversionPreset.h264Software, .h264Hardware] {
-            let store = ConverterStore()
+            let store = ConverterStore(ffmpegOverride: tools.ffmpeg)
             store.preset = preset
             store.outputDirectory = directory
             let item = ConversionItem(source: source)
@@ -131,13 +131,12 @@ final class ConversionPlanningTests: XCTestCase {
         let source = directory.appendingPathComponent("late trim.mp4")
         try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=192x128:rate=30:duration=8", "-f", "lavfi", "-i", "sine=frequency=660:sample_rate=48000:duration=8", "-c:v", "libx264", "-preset", "ultrafast", "-g", "90", "-crf", "24", "-c:a", "aac", "-shortest", source.path])
 
-        let store = ConverterStore()
+        let store = ConverterStore(ffmpegOverride: tools.ffmpeg)
         store.preset = .h264Software
         store.outputDirectory = directory
         let item = ConversionItem(source: source)
         store.items = [item]
         store.scheduleTrim(item, start: 6.123, end: 7.456)
-        // Force a pixel edit, since a compatible trim alone deliberately copies.
         store.scheduleCrop(item, crop: CropRect(x: 0, y: 0, width: 192, height: 128))
         store.start()
         let output = try await completedOutput(store)
@@ -177,7 +176,7 @@ final class ConversionPlanningTests: XCTestCase {
         let referenceAudio = try capture(tools.ffmpeg, ["-v", "error", "-i", referenceAudioFile.path, "-t", "1.1", "-c:a", "pcm_s16le", "-f", "md5", "-"])
         let cases: [(ConversionPreset, Bool, URL)] = [(.h264Hardware, true, silent), (.h264Hardware, false, source), (.hevcHardware, true, source)]
         for (preset, crop, input) in cases {
-            let store = ConverterStore()
+            let store = ConverterStore(ffmpegOverride: tools.ffmpeg)
             store.preset = preset
             store.outputDirectory = directory
             let item = ConversionItem(source: input)
@@ -211,7 +210,7 @@ final class ConversionPlanningTests: XCTestCase {
         try run(tools.ffmpeg, ["-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x96:rate=30:duration=2", "-f", "lavfi", "-i", "sine=sample_rate=48000:duration=3", "-vf", "setpts=PTS+0.8/TB", "-fps_mode", "passthrough", "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", source.path])
         let sourceStart = try XCTUnwrap(frameTimes(source, ffprobe: tools.ffprobe).first)
         XCTAssertGreaterThan(sourceStart, 0.7)
-        let store = ConverterStore()
+        let store = ConverterStore(ffmpegOverride: tools.ffmpeg)
         store.preset = .h264Software
         store.outputDirectory = directory
         let item = ConversionItem(source: source)
@@ -233,7 +232,7 @@ final class ConversionPlanningTests: XCTestCase {
         let sourceTimes = try frameTimes(source, ffprobe: tools.ffprobe).filter { $0 >= 0.123 && $0 < 1.456 }
         let info = await MediaInspector.inspect(at: source, using: tools.ffprobe)
         XCTAssertNotNil(info.averageFrameRate, "The actual probe must include the measured frame rate used for the preview gap bound")
-        let store = ConverterStore()
+        let store = ConverterStore(ffmpegOverride: tools.ffmpeg)
         store.preset = .h264Software
         store.outputDirectory = directory
         let item = ConversionItem(source: source)
@@ -264,14 +263,19 @@ final class ConversionPlanningTests: XCTestCase {
     }
 
     private func mediaTools() throws -> (ffmpeg: URL, ffprobe: URL) {
-        guard let path = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg"].first(where: { FileManager.default.isExecutableFile(atPath: $0) }) else {
+        let override = ProcessInfo.processInfo.environment["MP4FLOW_TEST_FFMPEG"].map { URL(fileURLWithPath: $0) }
+        guard let ffmpeg = override ?? DependencyToolResolver.resolve().ffmpeg else {
             throw XCTSkip("FFmpeg is required for synthetic media tests")
         }
-        let ffmpeg = URL(fileURLWithPath: path)
+        let ffprobe = ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe")
+        guard DependencyToolResolver.isExecutable(ffmpeg), DependencyToolResolver.isExecutable(ffprobe) else {
+            if override != nil { XCTFail("MP4FLOW_TEST_FFMPEG must name a complete executable FFmpeg/ffprobe pair") }
+            throw XCTSkip("FFmpeg and ffprobe are required for synthetic media tests")
+        }
         guard try capture(ffmpeg, ["-hide_banner", "-encoders"]).contains("libx264") else {
             throw XCTSkip("The synthetic regression fixture requires libx264")
         }
-        return (ffmpeg, ffmpeg.deletingLastPathComponent().appendingPathComponent("ffprobe"))
+        return (ffmpeg, ffprobe)
     }
 
     private func temporaryDirectory() throws -> URL {
