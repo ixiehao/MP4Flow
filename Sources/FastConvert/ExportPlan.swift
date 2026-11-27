@@ -18,9 +18,10 @@ struct AudioExportPlan: Sendable {
             if copy {
                 args += ["-c:a:\(offset)", "copy"]
                 if trim != nil {
-                    // Keep enough AAC warm-up packets for the decoder. More
-                    // distant pre-roll is hidden by the edit list and unused.
-                    args += ["-bsf:a:\(offset)", "noise=amount=0:drop=lt(pts*tb\\,-0.25)"]
+                    // Preserve ordinary AAC pre-roll. When a seek brings back
+                    // more than 1.5 seconds, keep the last 250 ms for decoding.
+                    let excessPreroll = "lt(startpts*tb\\,-1.5)*lt(pts*tb\\,-0.25)"
+                    args += ["-bsf:a:\(offset)", "noise=amount=0:drop=\(excessPreroll)"]
                 }
             } else {
                 let rate = target?.audioRatePerTrack ?? (forceAAC ? 192_000 : min(max(track.bitRate ?? info.safeAudioRate, 64_000), 192_000))
