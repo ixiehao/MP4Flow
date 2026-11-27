@@ -48,7 +48,7 @@ final class EditorPlaybackObservationTests: XCTestCase {
     }
 
     @MainActor
-    func testDetachingReleasesPlayerInsteadOfRetainingTheOldView() {
+    func testDetachingReleasesPlayerInsteadOfRetainingTheOldView() async throws {
         let observation = EditorPlaybackObservation()
         weak var released: AVPlayer?
         autoreleasepool {
@@ -58,7 +58,12 @@ final class EditorPlaybackObservationTests: XCTestCase {
             XCTAssertTrue(observation.isObserving)
             observation.detach()
         }
-        XCTAssertNil(released)
         XCTAssertFalse(observation.isObserving)
+        // Let AVFoundation drain pending callbacks before checking ownership.
+        let deadline = ProcessInfo.processInfo.systemUptime + 1
+        while released != nil && ProcessInfo.processInfo.systemUptime < deadline {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertNil(released)
     }
 }

@@ -2,13 +2,14 @@ import Foundation
 
 /// Pure command construction. No UI state, process ownership or fallback side effects.
 enum FFmpegCommandBuilder {
-    static func arguments(source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool, exportPlan: ExportPlan) -> [String] {
+    static func arguments(source: URL, output: URL, info: VideoInfo, preset: ConversionPreset, quality: ConversionQuality, resolution: OutputResolution, trim: ClipRange?, rotation: VideoRotation?, crop: CropRect?, aspectRatio: DisplayAspectRatio?, imageAdjustment: ImageAdjustment, copyVideoAndEncodeAudio: Bool, preferHardwarePipeline: Bool, preferHardwareEncoder: Bool, exportPlan: ExportPlan, trimmedSubtitle: URL? = nil, recoverClipTimeline: Bool = false) -> [String] {
         let preset = exportPlan.encodingPreset(for: preset)
         let exportOptions = exportPlan.options
         // Privacy-first default: never copy source metadata or chapters, which
         // may contain title, author, device, location, or editing information.
-        var args = ["-hide_banner", "-nostdin", "-y", "-thread_queue_size", "1024"]
-        let hardwarePipeline = preferHardwarePipeline && exportOptions.subtitles != .burn && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop, imageAdjustment: imageAdjustment)
+        // Use the default input queue for local files. FFmpeg 9.1 accepts -thread_queue_size only on outputs.
+        var args = ["-hide_banner", "-nostdin", "-y"]
+        let hardwarePipeline = preferHardwarePipeline && !recoverClipTimeline && exportOptions.subtitles != .burn && canUseVideoToolboxPipeline(info: info, preset: preset, crop: crop, imageAdjustment: imageAdjustment)
         // For H.264/HEVC without CPU-only edits, keep decoded frames inside
         // VideoToolbox all the way to the encoder. This also benefits an
         // original-size conversion: not just resizes.
@@ -21,17 +22,20 @@ enum FFmpegCommandBuilder {
                 args += ["-display_rotation:v", "0"]
             }
         }
-        // Input seeking decodes only from the preceding keyframe, including
-        // accurate discarding during re-encoding. Output seeking would decode
-        // the entire prefix of a long video before producing the first frame.
-        // Stream-copy cuts still begin near a keyframe, as the editor explains.
+        // Input seeking decodes from the preceding keyframe and discards pre-roll.
+        // Output seeking would decode the entire prefix of a long video.
         if let trim {
-            args += ["-ss", FFmpegNumber.time(trim.start), "-i", source.path]
-        } else {
-            args += ["-i", source.path]
+            args += ["-ss", FFmpegNumber.time(trim.start)]
+            if recoverClipTimeline { args += ["-noaccurate_seek"] }
+        }
+        args += ["-i", source.path]
+        if let trimmedSubtitle {
+            args += ["-f", "srt", "-i", trimmedSubtitle.path]
         }
         args += ["-map", "0:\(info.videoStreamSpecifier)"] + exportOptions.audioMaps
-        if exportOptions.subtitles == .keep, let track = exportOptions.chosenSubtitle(in: info) { args += ["-map", "0:\(track.index)"] }
+        if exportOptions.subtitles == .keep, let track = exportPlan.subtitle {
+            args += ["-map", trimmedSubtitle == nil ? "0:\(track.index)" : "1:s:0"]
+        }
         args += ["-map_metadata", "-1", "-map_chapters", "-1"]
         let targetPlan = exportPlan.targetSize
         if let trim {
@@ -53,8 +57,17 @@ enum FFmpegCommandBuilder {
             filters.append(displayRotation.videoToolboxFilter)
             if displayRotation.swapsDimensions { filters.append("setsar=1/sar") }
         }
-        if preset != .remux, let trim, trim.start > 0, let firstFrameFilter = info.trimmedFirstFrameFilter {
-            filters.append(firstFrameFilter)
+        if preset != .remux, let trim {
+            if recoverClipTimeline {
+                // Extend the frame covering the cut rather than dropping it.
+                // Resampling also bounds the duration of the final sample.
+                let startsAtCut = info.videoAlreadyStarted(at: trim.start)
+                let start = startsAtCut ? ":start_time=0" : ""
+                filters.append("fps=fps=\(FFmpegNumber.time(info.openingFrameRecoveryRate))\(start)")
+                if !startsAtCut { filters.append("trim=start=0") }
+            } else if trim.start > 0, let firstFrameFilter = info.trimmedFirstFrameFilter {
+                filters.append(firstFrameFilter)
+            }
         }
         if let rotation {
             filters.append(hardwarePipeline ? rotation.videoToolboxFilter : rotation.filter)
@@ -105,12 +118,14 @@ enum FFmpegCommandBuilder {
                 ? hardware(codec: "h264_videotoolbox", videoRate: videoRate, keepsVideoToolboxFrames: hardwarePipeline)
                 : softwareBitrate(videoRate: videoRate)
         case .hevcHardware:
+            let preserveHDR = trim != nil && info.isHDR
             if preferHardwareEncoder {
-                args += hardware(codec: "hevc_videotoolbox", videoRate: videoRate, keepsVideoToolboxFrames: hardwarePipeline)
+                args += hardware(codec: "hevc_videotoolbox", videoRate: videoRate, keepsVideoToolboxFrames: hardwarePipeline, pixelFormat: preserveHDR ? "p010le" : "yuv420p")
+                if preserveHDR { args += ["-profile:v", "main10"] }
             } else if let targetPlan {
                 args += ["-c:v", "libx265", "-preset", quality.targetCompressionPreset, "-b:v", rate(targetPlan.videoRate), "-pix_fmt", "yuv420p"]
             } else {
-                args += softwareBitrate(videoRate: videoRate, codec: "libx265")
+                args += softwareBitrate(videoRate: videoRate, codec: "libx265", pixelFormat: preserveHDR ? "yuv420p10le" : "yuv420p")
             }
             args += ["-tag:v", "hvc1"]
         case .h264Software:
@@ -149,13 +164,13 @@ enum FFmpegCommandBuilder {
             && ["h264", "hevc"].contains(info.videoCodec?.lowercased() ?? "")
     }
 
-    private static func hardware(codec: String, videoRate: Int, keepsVideoToolboxFrames: Bool = false) -> [String] {
+    private static func hardware(codec: String, videoRate: Int, keepsVideoToolboxFrames: Bool = false, pixelFormat: String = "yuv420p") -> [String] {
         var args = ["-c:v", codec, "-prio_speed", "1", "-b:v", rate(videoRate), "-maxrate", rate(Int(Double(videoRate) * 1.25)), "-bufsize", rate(videoRate * 2)]
-        if !keepsVideoToolboxFrames { args += ["-pix_fmt", "yuv420p"] }
+        if !keepsVideoToolboxFrames { args += ["-pix_fmt", pixelFormat] }
         return args
     }
-    private static func softwareBitrate(videoRate: Int, codec: String = "libx264") -> [String] {
-        ["-c:v", codec, "-preset", "veryfast", "-b:v", rate(videoRate), "-maxrate", rate(Int(Double(videoRate) * 1.25)), "-bufsize", rate(videoRate * 2), "-pix_fmt", "yuv420p"]
+    private static func softwareBitrate(videoRate: Int, codec: String = "libx264", pixelFormat: String = "yuv420p") -> [String] {
+        ["-c:v", codec, "-preset", "veryfast", "-b:v", rate(videoRate), "-maxrate", rate(Int(Double(videoRate) * 1.25)), "-bufsize", rate(videoRate * 2), "-pix_fmt", pixelFormat]
     }
     private static func rate(_ bits: Int) -> String { "\(max(64, bits / 1_000))k" }
 }

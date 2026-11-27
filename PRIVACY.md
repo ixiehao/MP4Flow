@@ -21,6 +21,7 @@ MP4Flow is designed to process media on the Mac where it is run. This document d
 - Outputs are written next to the source file by default, or in the folder you choose. Source files are never deleted or overwritten by MP4Flow.
 - Work-in-progress outputs use a hidden, UUID-named `.partial.mp4` file beside the intended result and are moved into place only after processing and output verification succeed. The app tries to remove those files after an ordinary failure or cancellation. A crash, forced quit, power loss, or storage error can leave a partial file behind; it is safe to delete after confirming that no conversion is active.
 - Lossless merge briefly creates a UUID-named manifest in the system temporary directory. It contains the selected source paths and is removed after the merge returns. A forced termination can leave that temporary manifest until macOS cleans its temporary directory.
+- Keeping text subtitles in a trimmed clip creates temporary subtitle files in a private directory. The app removes them when the export finishes or is cancelled.
 
 ## Metadata and local tools
 

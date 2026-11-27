@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.4 — 2026-11-27
+
+**English** — Fixed frozen starts and shortened clips when trimming or enhancing variable-frame-rate video. Improved FFmpeg 9.1 compatibility, subtitle timing, and merge reliability.
+
+**简体中文** — 修复剪切后片头卡住，以及可变帧率视频剪切或增强后时长不正确。改善 FFmpeg 9.1 兼容性、字幕时间和合并稳定性。
+
+**日本語** — トリミング後の冒頭の停止と、可変フレームレート動画のトリミング・高画質化後に長さがずれる問題を修正。FFmpeg 9.1 との互換性、字幕のタイミング、結合の安定性を改善。
+
+**한국어** — 자르기 후 영상 시작 부분이 멈추거나 가변 프레임률 영상의 자르기·화질 개선 후 길이가 달라지는 문제를 수정했습니다. FFmpeg 9.1 호환성, 자막 타이밍, 병합 안정성을 개선했습니다.
+
+macOS 13+ · Apple Silicon / Intel · FFmpeg and ffprobe installed separately · Ad-hoc signed, not notarized
+
 ## 1.5.3 — 2026-11-20
 
 **English** — Open Environment Check from Help → Check Dependencies. The Language menu now offers Follow System, and About links to the official website.

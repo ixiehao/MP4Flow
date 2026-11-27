@@ -137,7 +137,6 @@ final class ConversionPlanningTests: XCTestCase {
         let item = ConversionItem(source: source)
         store.items = [item]
         store.scheduleTrim(item, start: 6.123, end: 7.456)
-        // Force a pixel edit, since a compatible trim alone deliberately copies.
         store.scheduleCrop(item, crop: CropRect(x: 0, y: 0, width: 192, height: 128))
         store.start()
         let output = try await completedOutput(store)
